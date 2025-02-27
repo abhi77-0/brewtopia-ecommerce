@@ -1,5 +1,6 @@
 const express = require("express");
 const { signup, verifyOTP, loginPage, login } = require("../controllers/userController");
+const { isAuthenticated } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
@@ -22,16 +23,12 @@ router.get("/verify-otp", (req, res) => {
 // Handle OTP Verification Form
 router.post("/verify-otp", verifyOTP);
 
-// Render Login Page
 router.get("/login", loginPage); // Render login page
 router.post("/login", login); // Handle login logic
 
-// Render Home Page
-router.get("/home", (req, res) => {
-    if (!req.session.user) {
-        return res.redirect("/login"); // Redirect to login if not authenticated
-    }
-    res.render("home"); // Render the home page
+// Protected routes
+router.get('/home', isAuthenticated, (req, res) => {
+    res.render('home', { user: req.session.user });
 });
 
 module.exports = router;
