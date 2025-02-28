@@ -80,6 +80,33 @@
             margin-top: 2rem;
             box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
         }
+
+        .invalid-feedback {
+            display: none;
+            color: #dc3545;
+            font-size: 0.875rem;
+        }
+
+        .form-control.is-invalid {
+            border-color: #dc3545;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+
+        .field-requirements {
+            font-size: 0.875rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+
+        .validation-error {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -96,28 +123,59 @@
             <div class="auth-image"></div>
             <div class="auth-form">
                 <h2 class="form-title">Login</h2>
-                <form action="/users/login" method="POST">
+                
+                <% if (typeof error !== 'undefined') { %>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <%= error %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <% } %>
+
+                <form action="/users/login" method="POST" id="loginForm" novalidate>
                     <div class="mb-3">
                         <label class="form-label">Email Address</label>
-                        <input type="email" class="form-control" name="email" required>
+                        <input type="email" 
+                               class="form-control <%= typeof validationErrors !== 'undefined' && validationErrors.some(e => e.includes('email')) ? 'is-invalid' : '' %>" 
+                               name="email" 
+                               id="email"
+                               value="<%= typeof email !== 'undefined' ? email : '' %>"
+                               placeholder="Enter your email"
+                               onkeypress="return event.charCode != 32"
+                               oninput="this.value=this.value.replace(/\s/g,'')"
+                               autocomplete="email">
+                        
+                        <div class="invalid-feedback" id="emailError">
+                            Please enter a valid email address
+                        </div>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Password</label>
-                        <input type="password" class="form-control" name="password" required>
+                        <input type="password" 
+                               class="form-control <%= typeof validationErrors !== 'undefined' && validationErrors.some(e => e.includes('password')) ? 'is-invalid' : '' %>"
+                               name="password" 
+                               id="password"
+                               placeholder="Enter your password"
+                               onkeypress="return event.charCode != 32"
+                               oninput="this.value=this.value.replace(/\s/g,'')">
+                        <div class="invalid-feedback" id="passwordError">
+                            Please enter a valid password
+                        </div>
                         <div class="text-end mt-1">
                             <a href="/users/forgot-password" class="text-decoration-none" style="color: #1382f1; font-size: 0.9rem;">
                                 Forgot Password?
                             </a>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 mb-3">Login</button>
-                    <p class="text-center mb-1">
-                        <a href="/users/forgot-password" class="text-decoration-none" style="color: #087df2;">Forgot Password?</a>
-                    </p>
-                    <p class="text-center mb-0">
+
+                    <button type="submit" class="btn btn-primary w-100" id="submitButton">
+                        Log In
+                    </button>
+
+                    <p class="text-center mt-3">
                         Don't have an account? 
-                        <a href="/users/signup" class="text-decoration-none" style="color: #343a40;">
-                            Sign up here
+                        <a href="/users/signup" class="text-decoration-none" style="color: #1382f1;">
+                            Sign up
                         </a>
                     </p>
                 </form>
@@ -128,6 +186,60 @@
     <footer class="footer">
         &copy; 2025 Brewtopia. All rights reserved.
     </footer>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const email = document.getElementById('email');
+        const password = document.getElementById('password');
+        const emailError = document.getElementById('emailError');
+        const passwordError = document.getElementById('passwordError');
+        const submitButton = document.getElementById('submitButton');
+
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        function validatePassword(password) {
+            return password.length >= 6 && !password.includes(' ');
+        }
+
+        function validateForm() {
+            let isValid = true;
+
+            // Email validation
+            if (!validateEmail(email.value)) {
+                email.classList.add('is-invalid');
+                emailError.style.display = 'block';
+                isValid = false;
+            } else {
+                email.classList.remove('is-invalid');
+                emailError.style.display = 'none';
+            }
+
+            // Password validation
+            if (!validatePassword(password.value)) {
+                password.classList.add('is-invalid');
+                passwordError.style.display = 'block';
+                isValid = false;
+            } else {
+                password.classList.remove('is-invalid');
+                passwordError.style.display = 'none';
+            }
+
+            submitButton.disabled = !isValid;
+            return isValid;
+        }
+
+        email.addEventListener('input', validateForm);
+        password.addEventListener('input', validateForm);
+
+        form.addEventListener('submit', function(e) {
+            if (!validateForm()) {
+                e.preventDefault();
+            }
+        });
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
