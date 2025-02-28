@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %></title>
+    <title>Brewtopia - Home</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%);
             min-height: 100vh;
+            color: #333;
         }
 
         .navbar {
@@ -25,68 +26,680 @@
             color: #FF9800 !important;
         }
 
-        .welcome-section {
-            padding: 3rem 0;
-            text-align: center;
+        .search-bar {
+            max-width: 500px;
+            width: 100%;
         }
 
-        .welcome-title {
-            font-size: 2.5rem;
-            color: #343a40;
+        .search-input {
+            border-radius: 20px;
+            padding-left: 1rem;
+            padding-right: 3rem;
+            border: 1px solid #ddd;
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #666;
+        }
+
+        .nav-icon {
+            color: #666;
+            font-size: 1.2rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-icon:hover {
+            color: #FF9800;
+            background: rgba(255, 152, 0, 0.1);
+        }
+
+        .badge-notification {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #FF9800;
+            color: white;
+            border-radius: 50%;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: #666;
+            padding: 0.5rem;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .user-profile:hover {
+            background: rgba(255, 152, 0, 0.1);
+            color: #FF9800;
+        }
+
+        .user-profile img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .dropdown-menu {
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: none;
+            padding: 0.5rem;
+        }
+
+        .dropdown-item {
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 152, 0, 0.1);
+            color: #FF9800;
+        }
+
+        /* Product Card Styles */
+        .product-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .product-card .card-img-top {
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .btn-wishlist {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .btn-wishlist:hover {
+            background: #FF9800;
+            color: white;
+        }
+
+        .price {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #FF9800;
+        }
+
+        /* Footer Styles */
+        .footer {
+            margin-top: auto;
+        }
+
+        .footer h5 {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .footer a {
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer a:hover {
+            color: #FF9800 !important;
+        }
+
+        .social-links a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .social-links a:hover {
+            background: #FF9800;
+            transform: translateY(-3px);
+        }
+
+        .newsletter-form .form-control {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #fff;
+            padding: 0.75rem;
+        }
+
+        .newsletter-form .form-control::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .bg-darker {
+            background: #1a1a1a;
+        }
+
+        .payment-methods {
+            max-height: 30px;
+            opacity: 0.7;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .product-card .card-img-top {
+                height: 180px;
+            }
+        }
+
+        /* Hero Banner Styles */
+        .hero-banner {
+            background: linear-gradient(135deg, #FF9800 0%, #FF5722 100%);
+            padding: 4rem 0;
+            margin-bottom: 2rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .banner-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .banner-text {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .banner-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transform: perspective(1000px) rotateY(-15deg);
+            transition: transform 0.3s ease;
+        }
+
+        .banner-image:hover {
+            transform: perspective(1000px) rotateY(0deg);
+        }
+
+        .section-header {
+            position: relative;
+            margin-bottom: 3rem;
+        }
+
+        .section-header::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 3px;
+            background: #FF9800;
+            margin: 1rem auto;
+        }
+
+        /* Product Tag */
+        .product-tag {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #FF9800;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .hero-banner {
+                padding: 2rem 0;
+                text-align: center;
+            }
+
+            .banner-title {
+                font-size: 2.5rem;
+            }
+
+            .banner-image {
+                margin-top: 2rem;
+                transform: none;
+            }
+        }
+
+        /* Add these new styles */
+        .category-header {
+            position: relative;
+            padding-left: 15px;
+            border-left: 4px solid #FF9800;
+        }
+
+        .category-section {
+            margin-bottom: 4rem;
+        }
+
+        .abv-tag {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .category-header h3 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .category-header p {
+            margin-bottom: 0;
+        }
+
+        /* Add these new styles for category cards */
+        .category-card {
+            height: 300px;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .strong-beer {
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                        url('https://images.unsplash.com/photo-1613766748834-4b1645474cad?ixlib=rb-4.0.3') center/cover;
+        }
+
+        .mild-beer {
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                        url('https://images.unsplash.com/photo-1612528443702-f6741f70a049?ixlib=rb-4.0.3') center/cover;
+        }
+
+        .category-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 2rem;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: white;
+        }
+
+        .category-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .category-desc {
+            font-size: 1.1rem;
+            opacity: 0.9;
             margin-bottom: 1rem;
         }
 
-        .user-info {
-            font-size: 1.2rem;
-            color: #6c757d;
+        .category-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #FF9800;
+            font-weight: 600;
+            transition: gap 0.3s ease;
         }
 
-        .footer {
-            text-align: center;
-            padding: 1rem;
-            background: #ffffff;
-            color: #333;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
+        .category-card:hover .category-link {
+            gap: 1rem;
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light">
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="/users/home">
+            <!-- Brand -->
+            <a class="navbar-brand" href="/">
                 <i class="fas fa-beer me-2"></i>Brewtopia
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+
+            <!-- Toggle Button -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <span class="nav-link">Welcome, <%= user.name %></span>
+
+            <!-- Navbar Content -->
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <!-- Search Bar -->
+                <form class="search-bar mx-lg-auto position-relative">
+                    <input type="search" 
+                           class="form-control search-input" 
+                           placeholder="Search for beers..."
+                           aria-label="Search">
+                    <button type="submit" class="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+
+                <!-- Navigation Icons -->
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link user-profile dropdown-toggle" 
+                           href="#" 
+                           id="userDropdown" 
+                           role="button" 
+                           data-bs-toggle="dropdown">
+                            <img src="https://ui-avatars.com/api/?name=<%= user ? user.name : 'User' %>&background=FF9800&color=fff" 
+                                 alt="Profile">
+                            <span class="d-none d-lg-inline"><%= user ? user.name : 'User' %></span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile"><i class="fas fa-user me-2"></i>Profile</a></li>
+                            <li><a class="dropdown-item" href="/orders"><i class="fas fa-box me-2"></i>Orders</a></li>
+                            <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/users/logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/users/logout">Logout</a>
+                        <a class="nav-link nav-icon" href="/wishlist" title="Wishlist">
+                            <i class="fas fa-heart"></i>
+                            <span class="badge-notification">0</span>
+                        </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-icon" href="/cart" title="Cart">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="badge-notification">0</span>
+                        </a>
+                    </li>
+                   
                 </ul>
             </div>
         </div>
     </nav>
 
-    <div class="container">
-        <div class="welcome-section">
-            <h1 class="welcome-title">Welcome to Brewtopia</h1>
-            <p class="user-info">Hello, <%= user.name %>! We're glad you're here.</p>
+    <!-- Hero Banner Section -->
+    <div class="hero-banner">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="banner-title">Discover Craft Beer Paradise</h1>
+                    <p class="banner-text">Explore our handpicked selection of the finest craft beers from around the world.</p>
+                    <a href="#collection" class="btn btn-primary btn-lg">Shop Now</a>
+                </div>
+                <div class="col-md-6 text-center">
+                    <img src="https://images.unsplash.com/photo-1584225064785-c62a8b43d148?ixlib=rb-4.0.3" 
+                         alt="Craft Beer Collection" 
+                         class="banner-image">
+                </div>
+            </div>
         </div>
     </div>
 
-    <footer class="footer">
-        &copy; 2025 Brewtopia. All rights reserved.
+    <!-- Shop by Category Section -->
+    <div class="container py-5">
+        <div class="section-header text-center mb-5">
+            <h2 class="display-5 fw-bold">Shop by Category</h2>
+            <p class="text-muted">Choose your preferred strength</p>
+        </div>
+        
+        <div class="row g-4">
+            <!-- Strong Beer Category Card -->
+            <div class="col-md-6">
+                <a href="/category/strong" class="text-decoration-none">
+                    <div class="category-card strong-beer">
+                        <div class="category-content">
+                            <h3 class="category-title">Strong Beers</h3>
+                            <p class="category-desc">ABV 6% and above</p>
+                            <span class="category-link">Explore <i class="fas fa-arrow-right"></i></span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Mild Beer Category Card -->
+            <div class="col-md-6">
+                <a href="/category/mild" class="text-decoration-none">
+                    <div class="category-card mild-beer">
+                        <div class="category-content">
+                            <h3 class="category-title">Mild Beers</h3>
+                            <p class="category-desc">ABV below 6%</p>
+                            <span class="category-link">Explore <i class="fas fa-arrow-right"></i></span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Collection Section -->
+    <div class="container py-5" id="collection">
+        <div class="section-header text-center mb-5">
+            <h2 class="display-5 fw-bold">Our Collection</h2>
+            <p class="text-muted">Handcrafted beers for every taste</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Beer Card 1 -->
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="card h-100 product-card">
+                    <div class="position-relative">
+                        <img src="https://images.unsplash.com/photo-1608270586620-248524c67de9?ixlib=rb-4.0.3" 
+                             class="card-img-top" 
+                             alt="Hoppy IPA">
+                        <button class="btn-wishlist">
+                            <i class="far fa-heart"></i>
+                        </button>
+                        <div class="product-tag">Popular</div>
+                        <div class="abv-tag">ABV 6.5%</div>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Hoppy IPA</h5>
+                        <p class="card-text text-muted">India Pale Ale | Strong</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="price">$4.99</span>
+                            <button class="btn btn-primary btn-sm">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Beer Card 2 -->
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="card h-100 product-card">
+                    <div class="position-relative">
+                        <img src="https://images.unsplash.com/photo-1612528443702-f6741f70a049?ixlib=rb-4.0.3" 
+                             class="card-img-top" 
+                             alt="Golden Lager">
+                        <button class="btn-wishlist">
+                            <i class="far fa-heart"></i>
+                        </button>
+                        <div class="abv-tag">ABV 5%</div>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Golden Lager</h5>
+                        <p class="card-text text-muted">Premium Lager | Mild</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="price">$3.99</span>
+                            <button class="btn btn-primary btn-sm">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Beer Card 3 -->
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="card h-100 product-card">
+                    <div class="position-relative">
+                        <img src="https://images.unsplash.com/photo-1613766748834-4b1645474cad?ixlib=rb-4.0.3" 
+                             class="card-img-top" 
+                             alt="Dark Stout">
+                        <button class="btn-wishlist">
+                            <i class="far fa-heart"></i>
+                        </button>
+                        <div class="abv-tag">ABV 8%</div>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Dark Stout</h5>
+                        <p class="card-text text-muted">Imperial Stout | Strong</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="price">$5.99</span>
+                            <button class="btn btn-primary btn-sm">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Beer Card 4 -->
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="card h-100 product-card">
+                    <div class="position-relative">
+                        <img src="https://images.unsplash.com/photo-1571767454098-246b94fbcf70?ixlib=rb-4.0.3" 
+                             class="card-img-top" 
+                             alt="Wheat Beer">
+                        <button class="btn-wishlist">
+                            <i class="far fa-heart"></i>
+                        </button>
+                        <div class="abv-tag">ABV 4.5%</div>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Wheat Beer</h5>
+                        <p class="card-text text-muted">Belgian Style | Mild</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="price">$4.49</span>
+                            <button class="btn btn-primary btn-sm">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-5 bg-dark text-light">
+        <div class="container py-5">
+            <div class="row g-4">
+                <div class="col-12 col-md-4">
+                    <h5 class="mb-3">About Brewtopia</h5>
+                    <p class="text-muted">Discover the finest selection of craft beers from around the world. We're passionate about bringing unique and exceptional brews to your doorstep.</p>
+                    <div class="social-links">
+                        <a href="#" class="text-light me-3"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-light me-3"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-light"><i class="fab fa-pinterest"></i></a>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <h5 class="mb-3">Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="/about" class="text-muted">About Us</a></li>
+                        <li><a href="/contact" class="text-muted">Contact Us</a></li>
+                        <li><a href="/faq" class="text-muted">FAQs</a></li>
+                        <li><a href="/shipping" class="text-muted">Shipping Info</a></li>
+                    </ul>
+                </div>
+                <div class="col-6 col-md-2">
+                    <h5 class="mb-3">Categories</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="/category/lager" class="text-muted">Lagers</a></li>
+                        <li><a href="/category/ale" class="text-muted">Ales</a></li>
+                        <li><a href="/category/stout" class="text-muted">Stouts</a></li>
+                        <li><a href="/category/ipa" class="text-muted">IPAs</a></li>
+                    </ul>
+                </div>
+                <div class="col-12 col-md-4">
+                    <h5 class="mb-3">Newsletter</h5>
+                    <p class="text-muted">Subscribe to receive updates, access to exclusive deals, and more.</p>
+                    <form class="newsletter-form">
+                        <div class="input-group">
+                            <input type="email" class="form-control" placeholder="Enter your email">
+                            <button class="btn btn-primary" type="submit">Subscribe</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="bottom-footer py-3 bg-darker">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-6 text-center text-md-start">
+                        <p class="mb-0 text-muted">&copy; 2025 Brewtopia. All rights reserved.</p>
+                    </div>
+                    <div class="col-md-6 text-center text-md-end mt-3 mt-md-0">
+                        <img src="https://via.placeholder.com/250x30" alt="Payment Methods" class="payment-methods">
+                    </div>
+                </div>
+            </div>
+        </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Add to Wishlist functionality
+        document.querySelectorAll('.btn-wishlist').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const icon = this.querySelector('i');
+                icon.classList.toggle('far');
+                icon.classList.toggle('fas');
+                icon.classList.toggle('text-danger');
+            });
+        });
+
+        // Add to Cart functionality
+        document.querySelectorAll('.btn-primary').forEach(button => {
+            button.addEventListener('click', function(e) {
+                if(this.textContent === 'Add to Cart') {
+                    this.innerHTML = '<i class="fas fa-check"></i> Added';
+                    this.classList.add('btn-success');
+                    setTimeout(() => {
+                        this.innerHTML = 'Add to Cart';
+                        this.classList.remove('btn-success');
+                    }, 2000);
+                }
+            });
+        });
+    </script>
 </body>
 </html>
 

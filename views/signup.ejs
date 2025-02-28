@@ -154,31 +154,67 @@
 
                 
 
-                <form action="/users/signup" method="POST">
+                <form action="/users/signup" method="POST" id="signupForm" novalidate>
                     <div class="mb-3">
                         <label class="form-label">Full Name</label>
-                        <input type="text" class="form-control" name="name" 
-                            value="<%= typeof formData !== 'undefined' ? formData.name : '' %>"
-                            placeholder="Enter your full name">
+                        <input type="text" 
+                               class="form-control <%= typeof validationErrors !== 'undefined' && validationErrors.some(e => e.includes('Name')) ? 'is-invalid' : '' %>" 
+                               name="name" 
+                               id="name"
+                               value="<%= typeof formData !== 'undefined' ? formData.name : '' %>"
+                               placeholder="Enter your full name">
+                        <div class="invalid-feedback" id="nameError">
+                            Name must be at least 2 characters long
+                        </div>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Email Address</label>
                         <input type="email" 
-                               class="form-control" 
+                               class="form-control <%= typeof validationErrors !== 'undefined' && validationErrors.some(e => e.includes('email')) ? 'is-invalid' : '' %>" 
                                name="email" 
+                               id="email"
                                value="<%= typeof formData !== 'undefined' ? formData.email : '' %>"
                                placeholder="Enter your email"
                                onkeypress="return event.charCode != 32"
                                oninput="this.value=this.value.replace(/\s/g,'')"
                                autocomplete="email">
+                        <div class="invalid-feedback" id="emailError">
+                            Please enter a valid email address
+                        </div>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Password</label>
-                        <input type="password" class="form-control" name="password" 
-                            placeholder="Enter your password">
+                        <input type="password" 
+                               class="form-control <%= typeof validationErrors !== 'undefined' && validationErrors.some(e => e.includes('Password')) ? 'is-invalid' : '' %>" 
+                               name="password" 
+                               id="password"
+                               placeholder="Enter your password"
+                               onkeypress="return event.charCode != 32"
+                               oninput="this.value=this.value.replace(/\s/g,'')">
+                        <div class="invalid-feedback" id="passwordError">
+                            Password must be at least 6 characters long
+                        </div>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Confirm Password</label>
+                        <input type="password" 
+                               class="form-control <%= typeof validationErrors !== 'undefined' && validationErrors.some(e => e.includes('match')) ? 'is-invalid' : '' %>" 
+                               name="confirmPassword" 
+                               id="confirmPassword"
+                               placeholder="Confirm your password"
+                               onkeypress="return event.charCode != 32"
+                               oninput="this.value=this.value.replace(/\s/g,'')">
+                        <div class="invalid-feedback" id="confirmPasswordError">
+                            Passwords do not match
+                        </div>
+                    </div>
+
                     
-                    <button type="submit" class="btn btn-primary w-100 mb-3">
+
+                    <button type="submit" class="btn btn-primary w-100 mb-3" id="submitButton">
                         Create Account
                     </button>
                     <div class="divider">
@@ -200,6 +236,144 @@
                         </a>
                     </p>
                 </form>
+                
+                <script>
+                    const form = document.getElementById('signupForm');
+                    const name = document.getElementById('name');
+                    const email = document.getElementById('email');
+                    const password = document.getElementById('password');
+                    const confirmPassword = document.getElementById('confirmPassword');
+                    const submitButton = document.getElementById('submitButton');
+
+                    // Track which fields have been touched
+                    const touchedFields = {
+                        name: false,
+                        email: false,
+                        password: false,
+                        confirmPassword: false
+                    };
+
+                    function validateEmail(email) {
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        return emailRegex.test(email);
+                    }
+
+                    function validateField(field) {
+                        switch(field.id) {
+                            case 'name':
+                                if (touchedFields.name) {
+                                    if (!field.value || field.value.length < 2) {
+                                        field.classList.add('is-invalid');
+                                        document.getElementById('nameError').style.display = 'block';
+                                        return false;
+                                    } else {
+                                        field.classList.remove('is-invalid');
+                                        document.getElementById('nameError').style.display = 'none';
+                                        return true;
+                                    }
+                                }
+                                return true;
+
+                            case 'email':
+                                if (touchedFields.email) {
+                                    if (!validateEmail(field.value)) {
+                                        field.classList.add('is-invalid');
+                                        document.getElementById('emailError').style.display = 'block';
+                                        return false;
+                                    } else {
+                                        field.classList.remove('is-invalid');
+                                        document.getElementById('emailError').style.display = 'none';
+                                        return true;
+                                    }
+                                }
+                                return true;
+
+                            case 'password':
+                                if (touchedFields.password) {
+                                    if (!field.value || field.value.length < 6) {
+                                        field.classList.add('is-invalid');
+                                        document.getElementById('passwordError').style.display = 'block';
+                                        return false;
+                                    } else {
+                                        field.classList.remove('is-invalid');
+                                        document.getElementById('passwordError').style.display = 'none';
+                                        return true;
+                                    }
+                                }
+                                return true;
+
+                            case 'confirmPassword':
+                                if (touchedFields.confirmPassword || touchedFields.password) {
+                                    if (field.value !== password.value) {
+                                        field.classList.add('is-invalid');
+                                        document.getElementById('confirmPasswordError').style.display = 'block';
+                                        return false;
+                                    } else {
+                                        field.classList.remove('is-invalid');
+                                        document.getElementById('confirmPasswordError').style.display = 'none';
+                                        return true;
+                                    }
+                                }
+                                return true;
+                        }
+                        return true;
+                    }
+
+                    function validateForm(isSubmitting = false) {
+                        // If submitting, mark all fields as touched
+                        if (isSubmitting) {
+                            Object.keys(touchedFields).forEach(key => touchedFields[key] = true);
+                        }
+
+                        const isNameValid = validateField(name);
+                        const isEmailValid = validateField(email);
+                        const isPasswordValid = validateField(password);
+                        const isConfirmPasswordValid = validateField(confirmPassword);
+
+                        const isValid = isNameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid;
+                        submitButton.disabled = !isValid;
+                        return isValid;
+                    }
+
+                    // Add blur event listeners to mark fields as touched
+                    name.addEventListener('blur', () => {
+                        touchedFields.name = true;
+                        validateField(name);
+                    });
+
+                    email.addEventListener('blur', () => {
+                        touchedFields.email = true;
+                        validateField(email);
+                    });
+
+                    password.addEventListener('blur', () => {
+                        touchedFields.password = true;
+                        validateField(password);
+                    });
+
+                    confirmPassword.addEventListener('blur', () => {
+                        touchedFields.confirmPassword = true;
+                        validateField(confirmPassword);
+                    });
+
+                    // Add input event listeners for real-time validation of touched fields
+                    name.addEventListener('input', () => validateField(name));
+                    email.addEventListener('input', () => validateField(email));
+                    password.addEventListener('input', () => {
+                        validateField(password);
+                        if (touchedFields.confirmPassword) {
+                            validateField(confirmPassword);
+                        }
+                    });
+                    confirmPassword.addEventListener('input', () => validateField(confirmPassword));
+
+                    // Form submission
+                    form.addEventListener('submit', function(e) {
+                        if (!validateForm(true)) {
+                            e.preventDefault();
+                        }
+                    });
+                </script>
                 
             </div>
         </div>

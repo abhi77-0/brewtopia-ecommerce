@@ -1,5 +1,5 @@
 const validateSignup = (req, res, next) => {
-    let { name, email, password } = req.body;
+    let { name, email, password, confirmPassword } = req.body;
     const errors = [];
 
     // Name validation
@@ -39,15 +39,18 @@ const validateSignup = (req, res, next) => {
         }
     }
 
-    // Age verification validation
-    if (!req.body.ageVerification) {
-        errors.push('You must confirm that you are 21 years or older');
+    // Confirm Password validation
+    if (!confirmPassword) {
+        errors.push('Confirm password is required');
+    } else if (password !== confirmPassword) {
+        errors.push('Passwords do not match');
     }
 
     if (errors.length > 0) {
         return res.render('signup', { 
             error: errors.join(', '),
-            formData: { name, email } // Preserve form data except password
+            formData: { name, email }, // Preserve form data except passwords
+            validationErrors: errors // Send array of errors for more detailed display
         });
     }
 
