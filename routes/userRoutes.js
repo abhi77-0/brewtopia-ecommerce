@@ -20,9 +20,15 @@ const {
 
 const router = express.Router();
 
-// Auth routes
+// Public routes (no authentication required)
 router.get("/signup", (req, res) => {
-    res.render("signup", { error: req.query.error }); 
+    if (req.session.user) {
+        return res.redirect('/users/home');
+    }
+    res.render("signup", { 
+        error: req.query.error,
+        user: null 
+    }); 
 });
 
 router.post("/signup", validateSignup, signup);
@@ -30,6 +36,9 @@ router.post("/signup", validateSignup, signup);
 // Google Auth routes
 router.get('/auth/google',
     (req, res, next) => {
+        if (req.session.user) {
+            return res.redirect('/users/home');
+        }
         passport.authenticate('google', { 
             scope: ['profile', 'email'],
             prompt: 'select_account'
@@ -43,7 +52,6 @@ router.get('/auth/google/callback',
         failureFlash: true
     }),
     (req, res) => {
-        // Create session
         req.session.user = {
             id: req.user._id,
             email: req.user.email,
@@ -53,22 +61,70 @@ router.get('/auth/google/callback',
     }
 );
 
-// Existing routes...
 router.get("/verify-otp", (req, res) => {
-    res.render("verifyOtp"); 
+    if (!req.session.tempUser) {
+        return res.redirect('/users/signup');
+    }
+    res.render("verifyOtp", { user: null }); 
 });
 
 router.post("/verify-otp", verifyOTP);
 
-router.get("/login", loginPage);
+router.get("/login", (req, res) => {
+    if (req.session.user) {
+        return res.redirect('/users/home');
+    }
+    res.render("login", { 
+        error: req.query.error,
+        user: null 
+    });
+});
+
 router.post("/login", validateLogin, login);
 
+// Logout route
+router.get('/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Error destroying session:', err);
+        }
+        res.redirect('/users/login');
+    });
+});
+
 // Forgot Password routes
-router.get("/forgot-password", forgotPasswordPage);
+router.get("/forgot-password", (req, res) => {
+    if (req.session.user) {
+        return res.redirect('/users/home');
+    }
+    res.render("forgotPassword", { user: null });
+});
+
 router.post("/forgot-password", validateForgotPassword, forgotPassword);
 router.post("/reset-password", validateResetPassword, resetPassword);
 
-// Protected routes
+// Products page route - requires authentication
+router.get('/products', isAuthenticated, (req, res) => {
+    res.render('products', {
+        title: 'Brewtopia - Products',
+        user: req.session.user,
+        error: null,
+        categoryFilter: null
+    });
+});
+
+// Category routes - requires authentication
+router.get('/category/:type', isAuthenticated, (req, res) => {
+    const categoryType = req.params.type;
+    res.render('products', {
+        title: `Brewtopia - ${categoryType.charAt(0).toUpperCase() + categoryType.slice(1)} Beers`,
+        user: req.session.user,
+        categoryFilter: categoryType,
+        error: null
+    });
+});
+
+// Protected home route
 router.get('/home', isAuthenticated, (req, res) => {
     res.render('home', { 
         user: req.session.user,
@@ -77,7 +133,12 @@ router.get('/home', isAuthenticated, (req, res) => {
 });
 
 // Resend OTP route
-router.post('/resend-otp', resendOTP);
+router.post('/resend-otp', (req, res) => {
+    if (!req.session.tempUser) {
+        return res.status(400).json({ error: 'No pending verification found' });
+    }
+    resendOTP(req, res);
+});
 
 module.exports = router;
 

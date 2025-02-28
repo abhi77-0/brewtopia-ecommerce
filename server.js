@@ -3,7 +3,8 @@ const path = require("path");
 const session = require('express-session');
 const passport = require('passport');
 const userRoutes = require("./routes/userRoutes");
-const { connectDB } = require("./config/db"); // Import the connectDB function
+const adminRoutes = require("./routes/adminRoutes");
+const { connectDB } = require("./config/db");
 const bcrypt = require("bcrypt");
 require('dotenv').config();
 require('./config/googleAuth');
@@ -16,11 +17,10 @@ app.set("views", path.join(__dirname, "views"));
 
 // Session middleware (add this before routes)
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: 'your-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
@@ -33,18 +33,48 @@ app.use(passport.session());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Static files middleware (if you need to serve static files)
+// Static files middleware
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use("/users", userRoutes);
+// Global middleware to check auth status
+app.use((req, res, next) => {
+    res.locals.isAuthenticated = req.isAuthenticated();
+    res.locals.user = req.user;
+    next();
+});
 
-// Error handling middleware (add this before database connection)
+// Custom middleware to check if user is authenticated
+const isAuthenticated = (req, res, next) => {
+    if (req.isAuthenticated()) {
+        return next();
+    }
+    res.redirect('/users/login');
+};
+
+// Public routes that don't require authentication
+app.get('/', (req, res) => {
+    res.redirect('/users/home');
+});
+
+// Apply authentication check to specific routes
+app.use('/users/products', isAuthenticated);
+app.use('/users/cart', isAuthenticated);
+app.use('/users/wishlist', isAuthenticated);
+app.use('/users/profile', isAuthenticated);
+
+// Use routes
+app.use("/users", userRoutes);
+app.use("/admin", adminRoutes);
+
+// Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).render('error', { 
         error: process.env.NODE_ENV === 'development' 
             ? err.message 
-            : 'Something went wrong!'
+            : 'Something went wrong!',
+        isAuthenticated: req.isAuthenticated(),
+        user: req.user
     });
 });
 
