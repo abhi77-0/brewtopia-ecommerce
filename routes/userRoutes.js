@@ -1,35 +1,49 @@
 const express = require("express");
-const { signup, verifyOTP, loginPage, login } = require("../controllers/userController");
+const { 
+    signup, 
+    verifyOTP, 
+    loginPage, 
+    login, 
+    resendOTP,
+    forgotPasswordPage,
+    forgotPassword,
+    resetPassword
+} = require("../controllers/userController");
 const { isAuthenticated } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-// Render Signup Page
+// Auth routes
 router.get("/signup", (req, res) => {
     res.render("signup"); 
 });
 
-// Handle Signup Form Submission
-router.post("/signup", (req, res) => {
-    console.log("Signup form submitted");
-    signup(req, res);
-});
+router.post("/signup", signup);
 
-// Render OTP Verification Page
 router.get("/verify-otp", (req, res) => {
     res.render("verifyOtp"); 
 });
 
-// Handle OTP Verification Form
 router.post("/verify-otp", verifyOTP);
 
-router.get("/login", loginPage); // Render login page
-router.post("/login", login); // Handle login logic
+router.get("/login", loginPage);
+router.post("/login", login);
+
+// Forgot Password routes
+router.get("/forgot-password", forgotPasswordPage);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 // Protected routes
 router.get('/home', isAuthenticated, (req, res) => {
-    res.render('home', { user: req.session.user });
+    res.render('home', { 
+        user: req.session.user,
+        title: 'Welcome to Brewtopia'
+    });
 });
+
+// Resend OTP route
+router.post('/resend-otp', resendOTP);
 
 module.exports = router;
 
