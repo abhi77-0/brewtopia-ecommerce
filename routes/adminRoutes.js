@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 
-// Admin authentication middleware
+// Middleware to check if user is admin
 const isAdmin = (req, res, next) => {
-    if (req.session.user && req.session.user.isAdmin) {
+    if (req.session.isAdmin) {
         next();
     } else {
         res.redirect('/admin/login');
@@ -12,49 +12,83 @@ const isAdmin = (req, res, next) => {
 
 // Admin login page
 router.get('/login', (req, res) => {
-    if (req.session.user && req.session.user.isAdmin) {
+    if (req.session.isAdmin) {
         return res.redirect('/admin/dashboard');
     }
     res.render('admin/login', { 
         error: req.query.error,
-        user: null
+        title: 'Admin Login'
     });
 });
 
 // Admin login handler
-router.post('/login', async (req, res) => {
+router.post('/login', (req, res) => {
     const { email, password } = req.body;
-    try {
-        // Add your admin authentication logic here
-        // For now, using a simple check (you should replace this with proper DB validation)
-        if (email === 'admin@brewtopia.com' && password === 'admin123') {
-            req.session.user = {
-                id: 'admin1',
-                email: email,
-                name: 'Admin',
-                isAdmin: true
-            };
-            return res.redirect('/admin/dashboard');
-        }
-        res.redirect('/admin/login?error=Invalid credentials');
-    } catch (error) {
-        res.redirect('/admin/login?error=' + encodeURIComponent(error.message));
+    
+    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+        // Set admin session
+        req.session.isAdmin = true;
+        req.session.adminUser = {
+            email: email,
+            role: 'admin'
+        };
+        // Save session before redirect
+        req.session.save((err) => {
+            if (err) {
+                console.error('Session save error:', err);
+                return res.render('admin/login', { 
+                    error: 'Login failed, please try again',
+                    title: 'Admin Login'
+                });
+            }
+            res.redirect('/admin/dashboard');
+        });
+    } else {
+        res.render('admin/login', { 
+            error: 'Invalid credentials',
+            title: 'Admin Login'
+        });
     }
+});
+
+// Admin logout
+router.get('/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Logout error:', err);
+        }
+        res.redirect('/admin/login');
+    });
 });
 
 // Admin dashboard
 router.get('/dashboard', isAdmin, (req, res) => {
-    res.render('admin/dashboard', {
-        user: req.session.user,
-        title: 'Admin Dashboard'
-    });
+    try {
+        res.render('admin/dashboard', {
+            title: 'Admin Dashboard',
+            adminUser: req.session.adminUser,
+            stats: {
+                totalProducts: 0,
+                newOrders: 0,
+                totalUsers: 0,
+                totalRevenue: 0
+            }
+        });
+    } catch (error) {
+        console.error('Dashboard error:', error);
+        res.status(500).render('admin/login', {
+            error: 'Error loading dashboard',
+            title: 'Admin Login'
+        });
+    }
 });
 
-// Product management routes
+// Products management
 router.get('/products', isAdmin, (req, res) => {
     res.render('admin/products', {
-        user: req.session.user,
-        title: 'Manage Products'
+        title: 'Manage Products',
+        adminUser: req.session.adminUser,
+        products: []
     });
 });
 
@@ -70,34 +104,34 @@ router.delete('/products/:id', isAdmin, (req, res) => {
     // Delete product logic
 });
 
+// Users management
+router.get('/users', isAdmin, (req, res) => {
+    res.render('admin/users', {
+        title: 'Manage Users',
+        adminUser: req.session.adminUser,
+        users: []
+    });
+});
+
+// Categories management
+router.get('/categories', isAdmin, (req, res) => {
+    res.render('admin/categories', {
+        title: 'Manage Categories',
+        adminUser: req.session.adminUser,
+        categories: []
+    });
+});
+
 // Order management routes
 router.get('/orders', isAdmin, (req, res) => {
     res.render('admin/orders', {
-        user: req.session.user,
-        title: 'Manage Orders'
+        title: 'Manage Orders',
+        user: req.session.user
     });
 });
 
 router.put('/orders/:id/status', isAdmin, (req, res) => {
     // Update order status logic
-});
-
-// User management routes
-router.get('/users', isAdmin, (req, res) => {
-    res.render('admin/users', {
-        user: req.session.user,
-        title: 'Manage Users'
-    });
-});
-
-// Admin logout
-router.get('/logout', (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            console.error('Error destroying session:', err);
-        }
-        res.redirect('/admin/login');
-    });
 });
 
 module.exports = router; 

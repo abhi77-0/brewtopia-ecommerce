@@ -80,8 +80,8 @@ app.use((err, req, res, next) => {
 
 // Connect to the database
 connectDB().then(() => {
-    // Start the server only after the database connection is established
-    const PORT = process.env.PORT || 3000;
+    // Start the server
+    const PORT = process.env.PORT || 3004;
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
         console.log('Google Auth Configuration:');

@@ -35,28 +35,26 @@ router.post("/signup", validateSignup, signup);
 
 // Google Auth routes
 router.get('/auth/google',
-    (req, res, next) => {
-        if (req.session.user) {
-            return res.redirect('/users/home');
-        }
-        passport.authenticate('google', { 
-            scope: ['profile', 'email'],
-            prompt: 'select_account'
-        })(req, res, next);
-    }
+    passport.authenticate('google', { 
+        scope: ['profile', 'email']
+    })
 );
 
-router.get('/auth/google/callback', 
+router.get('/auth/google/callback',
     passport.authenticate('google', { 
-        failureRedirect: '/users/signup?error=Google authentication failed',
-        failureFlash: true
+        failureRedirect: '/users/login',
+        failureMessage: true
     }),
-    (req, res) => {
+    function(req, res) {
+        // Store user data in session
         req.session.user = {
-            id: req.user._id,
-            email: req.user.email,
-            name: req.user.name
+            id: req.user.id,
+            name: req.user.displayName,
+            email: req.user.emails[0].value,
+            picture: req.user.photos[0].value,
+            isAuthenticated: true
         };
+        // Successful authentication, redirect home
         res.redirect('/users/home');
     }
 );
