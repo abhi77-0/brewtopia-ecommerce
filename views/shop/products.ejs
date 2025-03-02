@@ -1,0 +1,124 @@
+<%- include('../partials/header') %>
+
+<div class="container mt-4">
+    <!-- Category Filter -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Filter by Category</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="/shop/products" class="btn btn-outline-primary <%= !selectedCategory ? 'active' : '' %>">
+                            All Products
+                        </a>
+                        <% if (categories && categories.length > 0) { %>
+                            <% categories.forEach(function(category) { %>
+                                <a href="/shop/products?category=<%= category._id %>" 
+                                   class="btn btn-outline-primary <%= selectedCategory === category._id.toString() ? 'active' : '' %>">
+                                    <%= category.name %>
+                                </a>
+                            <% }); %>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Products Grid -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        <% if (products && products.length > 0) { %>
+            <% products.forEach(function(product) { %>
+                <div class="col">
+                    <div class="card h-100 product-card">
+                        <!-- Product Images -->
+                        <div id="carousel-<%= product._id %>" class="carousel slide" data-bs-ride="carousel">
+                            <div class="carousel-inner">
+                                <% if (product.images && product.images.image1) { %>
+                                    <div class="carousel-item active">
+                                        <img src="<%= product.images.image1 %>" class="d-block w-100" alt="<%= product.name %>">
+                                    </div>
+                                <% } %>
+                                <% if (product.images && product.images.image2) { %>
+                                    <div class="carousel-item">
+                                        <img src="<%= product.images.image2 %>" class="d-block w-100" alt="<%= product.name %>">
+                                    </div>
+                                <% } %>
+                                <% if (product.images && product.images.image3) { %>
+                                    <div class="carousel-item">
+                                        <img src="<%= product.images.image3 %>" class="d-block w-100" alt="<%= product.name %>">
+                                    </div>
+                                <% } %>
+                            </div>
+                            <% if (product.images && Object.keys(product.images).length > 1) { %>
+                                <button class="carousel-control-prev" type="button" data-bs-target="#carousel-<%= product._id %>" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Previous</span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#carousel-<%= product._id %>" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Next</span>
+                                </button>
+                            <% } %>
+                        </div>
+
+                        <div class="card-body">
+                            <h5 class="card-title"><%= product.name %></h5>
+                            <% if (product.category) { %>
+                                <p class="card-text text-muted"><small><%= product.category.name %></small></p>
+                            <% } %>
+                            <p class="card-text"><%= product.description %></p>
+                            
+                            <!-- Variants -->
+                            <div class="variants mb-3">
+                                <% if (product.variants && product.variants['500ml']) { %>
+                                    <div class="variant-item">
+                                        <span class="badge bg-info">500ml</span>
+                                        <span class="price">₹<%= product.variants['500ml'].price %></span>
+                                    </div>
+                                <% } %>
+                                <% if (product.variants && product.variants['650ml']) { %>
+                                    <div class="variant-item mt-1">
+                                        <span class="badge bg-primary">650ml</span>
+                                        <span class="price">₹<%= product.variants['650ml'].price %></span>
+                                    </div>
+                                <% } %>
+                            </div>
+
+                            <a href="/shop/products/<%= product._id %>" class="btn btn-primary w-100">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        <% } else { %>
+            <div class="col-12 text-center py-5">
+                <h3 class="text-muted">No products found</h3>
+                <p class="text-muted">Check back later for new products!</p>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<style>
+    .product-card {
+        transition: transform 0.2s;
+    }
+    .product-card:hover {
+        transform: translateY(-5px);
+    }
+    .carousel-item img {
+        height: 300px;
+        object-fit: cover;
+    }
+    .variant-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .price {
+        font-weight: bold;
+        color: #2c3e50;
+    }
+</style>
+
+<%- include('../partials/footer') %>

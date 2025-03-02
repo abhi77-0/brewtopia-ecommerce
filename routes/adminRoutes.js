@@ -1,9 +1,28 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const categoryController = require('../controllers/categoryController');
+const productController = require('../controllers/productController');
+
+// Multer configuration
+const storage = multer.memoryStorage();
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed!'), false);
+        }
+    }
+});
 
 // Middleware to check if user is admin
 const isAdmin = (req, res, next) => {
-    if (req.session.isAdmin) {
+    if (req.session.adminUser) {
         next();
     } else {
         res.redirect('/admin/login');
@@ -89,26 +108,19 @@ router.get('/dashboard', isAdmin, (req, res) => {
 });
 
 // Products management
-router.get('/products', isAdmin, (req, res) => {
-    res.render('admin/products', {
-        title: 'Manage Products',
-        adminUser: req.session.adminUser,
-        path: '/admin/products',
-        products: []
-    });
-});
-
-router.post('/products/add', isAdmin, (req, res) => {
-    // Add product logic
-});
-
-router.put('/products/:id', isAdmin, (req, res) => {
-    // Update product logic
-});
-
-router.delete('/products/:id', isAdmin, (req, res) => {
-    // Delete product logic
-});
+router.get('/products', isAdmin, productController.getAllProducts);
+router.get('/products/:productId', isAdmin, productController.getProduct);
+router.post('/products/add', isAdmin, upload.fields([
+    { name: 'image1', maxCount: 1 },
+    { name: 'image2', maxCount: 1 },
+    { name: 'image3', maxCount: 1 }
+]), productController.addProduct);
+router.put('/products/:productId', isAdmin, upload.fields([
+    { name: 'image1', maxCount: 1 },
+    { name: 'image2', maxCount: 1 },
+    { name: 'image3', maxCount: 1 }
+]), productController.editProduct);
+router.delete('/products/:productId', isAdmin, productController.deleteProduct);
 
 // Users management
 router.get('/users', isAdmin, (req, res) => {
@@ -121,14 +133,11 @@ router.get('/users', isAdmin, (req, res) => {
 });
 
 // Categories management
-router.get('/categories', isAdmin, (req, res) => {
-    res.render('admin/categories', {
-        title: 'Manage Categories',
-        adminUser: req.session.adminUser,
-        path: '/admin/categories',
-        categories: []
-    });
-});
+router.get('/categories', isAdmin, categoryController.getAllCategories);
+router.get('/categories/:id', isAdmin, categoryController.getCategory);
+router.post('/categories/add', isAdmin, categoryController.addCategory);
+router.put('/categories/:categoryId', isAdmin, categoryController.updateCategory);
+router.delete('/categories/:categoryId', isAdmin, categoryController.deleteCategory);
 
 // Order management routes
 router.get('/orders', isAdmin, (req, res) => {

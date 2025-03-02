@@ -1,0 +1,134 @@
+<%- include('../partials/header') %>
+
+<div class="container mt-4">
+    <div class="row">
+        <!-- Product Images -->
+        <div class="col-md-6">
+            <div id="productCarousel" class="carousel slide" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    <% if (product.images.image1) { %>
+                        <div class="carousel-item active">
+                            <img src="<%= product.images.image1 %>" class="d-block w-100" alt="<%= product.name %>">
+                        </div>
+                    <% } %>
+                    <% if (product.images.image2) { %>
+                        <div class="carousel-item">
+                            <img src="<%= product.images.image2 %>" class="d-block w-100" alt="<%= product.name %>">
+                        </div>
+                    <% } %>
+                    <% if (product.images.image3) { %>
+                        <div class="carousel-item">
+                            <img src="<%= product.images.image3 %>" class="d-block w-100" alt="<%= product.name %>">
+                        </div>
+                    <% } %>
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+            </div>
+
+            <!-- Thumbnail Navigation -->
+            <div class="d-flex justify-content-center mt-3 gap-2">
+                <% if (product.images.image1) { %>
+                    <img src="<%= product.images.image1 %>" class="thumbnail active" onclick="setActiveImage(0)" alt="Thumbnail 1">
+                <% } %>
+                <% if (product.images.image2) { %>
+                    <img src="<%= product.images.image2 %>" class="thumbnail" onclick="setActiveImage(1)" alt="Thumbnail 2">
+                <% } %>
+                <% if (product.images.image3) { %>
+                    <img src="<%= product.images.image3 %>" class="thumbnail" onclick="setActiveImage(2)" alt="Thumbnail 3">
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Product Details -->
+        <div class="col-md-6">
+            <h1 class="mb-2"><%= product.name %></h1>
+            <p class="text-muted mb-4">
+                Category: <%= product.category ? product.category.name : 'Uncategorized' %>
+            </p>
+            
+            <div class="description mb-4">
+                <h5>Description</h5>
+                <p><%= product.description %></p>
+            </div>
+
+            <!-- Variant Selection -->
+            <div class="variants mb-4">
+                <h5>Select Variant</h5>
+                <div class="btn-group w-100" role="group" aria-label="Size variants">
+                    <% if (product.variants['500ml']) { %>
+                        <input type="radio" class="btn-check" name="variant" id="500ml" value="500ml" checked>
+                        <label class="btn btn-outline-primary" for="500ml">
+                            500ml - ₹<%= product.variants['500ml'].price %>
+                            <small class="d-block">Stock: <%= product.variants['500ml'].stock %></small>
+                        </label>
+                    <% } %>
+                    <% if (product.variants['650ml']) { %>
+                        <input type="radio" class="btn-check" name="variant" id="650ml" value="650ml">
+                        <label class="btn btn-outline-primary" for="650ml">
+                            650ml - ₹<%= product.variants['650ml'].price %>
+                            <small class="d-block">Stock: <%= product.variants['650ml'].stock %></small>
+                        </label>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Add to Cart -->
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary btn-lg" onclick="addToCart('<%= product._id %>')">
+                    Add to Cart
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .carousel-item img {
+        height: 400px;
+        object-fit: cover;
+        border-radius: 8px;
+    }
+    .thumbnail {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 4px;
+        cursor: pointer;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+    }
+    .thumbnail:hover, .thumbnail.active {
+        opacity: 1;
+    }
+    .variants .btn-check:checked + .btn-outline-primary {
+        background-color: #0d6efd;
+        color: white;
+    }
+</style>
+
+<script>
+    function setActiveImage(index) {
+        const carousel = new bootstrap.Carousel(document.getElementById('productCarousel'));
+        carousel.to(index);
+        
+        // Update thumbnail active state
+        document.querySelectorAll('.thumbnail').forEach((thumb, i) => {
+            thumb.classList.toggle('active', i === index);
+        });
+    }
+
+    function addToCart(productId) {
+        const selectedVariant = document.querySelector('input[name="variant"]:checked').value;
+        // Add to cart logic here
+        alert('Added to cart: ' + selectedVariant);
+    }
+</script>
+
+<%- include('../partials/footer') %> 

@@ -4,6 +4,7 @@ const session = require('express-session');
 const passport = require('passport');
 const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const shopRoutes = require('./routes/shopRoutes');
 const { connectDB } = require("./config/db");
 const bcrypt = require("bcrypt");
 require('dotenv').config();
@@ -53,7 +54,7 @@ const isAuthenticated = (req, res, next) => {
 
 // Public routes that don't require authentication
 app.get('/', (req, res) => {
-    res.redirect('/users/home');
+    res.redirect('/shop');
 });
 
 // Apply authentication check to specific routes
@@ -65,6 +66,7 @@ app.use('/users/profile', isAuthenticated);
 // Use routes
 app.use("/users", userRoutes);
 app.use("/admin", adminRoutes);
+app.use('/shop', shopRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

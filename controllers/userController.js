@@ -8,18 +8,18 @@ async function signup(req, res) {
 
     try {
         // Check if the user already exists
-        const existingUser = await db.collection("users").findOne({ email });
+    const existingUser = await db.collection("users").findOne({ email });
         if (existingUser) {
             return res.render("signup", { 
                 error: "User already exists. Please login instead."
             });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        await generateOTP(email); // Store OTP in DB
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await generateOTP(email); // Store OTP in DB
 
-        // Temporarily save user data for final signup step after OTP verification
-        await db.collection("pending_users").insertOne({ email, name, password: hashedPassword });
+    // Temporarily save user data for final signup step after OTP verification
+    await db.collection("pending_users").insertOne({ email, name, password: hashedPassword });
 
         // Render OTP verification page
         res.render("verifyOtp", { email }); // Pass the email to the OTP page
@@ -75,7 +75,7 @@ async function verifyOTPController(req, res) {
             return res.render("resetPassword", { email });
         } else {
             // Regular signup flow
-            const pendingUser = await db.collection("pending_users").findOne({ email });
+    const pendingUser = await db.collection("pending_users").findOne({ email });
             if (!pendingUser) {
                 return res.render("verifyOtp", { 
                     email,
@@ -83,9 +83,9 @@ async function verifyOTPController(req, res) {
                 });
             }
 
-            // Move user from "pending_users" to "users"
+    // Move user from "pending_users" to "users"
             const newUser = await db.collection("users").insertOne(pendingUser);
-            await db.collection("pending_users").deleteOne({ email });
+    await db.collection("pending_users").deleteOne({ email });
 
             // Create session for the new user
             req.session.user = {

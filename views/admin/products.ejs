@@ -71,31 +71,29 @@
             margin-bottom: 2rem;
         }
 
-        .product-card .card-header {
-            background-color: #fff;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-            padding: 1.5rem;
-        }
-
-        .table {
-            margin-bottom: 0;
+        .product-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
         }
 
         .table th {
-            border-top: none;
             font-weight: 600;
             color: #2c3e50;
+            border-top: none;
         }
 
         .table td {
             vertical-align: middle;
         }
 
-        .product-image {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 5px;
+        .variant-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.25rem;
+            display: inline-block;
         }
 
         .btn-action {
@@ -104,20 +102,45 @@
             margin: 0 0.25rem;
         }
 
+        /* Image Preview Styles */
+        .image-preview {
+            width: 150px;
+            height: 150px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-size: cover;
+            background-position: center;
+            cursor: pointer;
+        }
+
+        .image-preview i {
+            font-size: 2rem;
+            color: #ddd;
+        }
+
+        .image-preview.has-image i {
+            display: none;
+        }
+
         /* Modal Styles */
-        .modal-content {
-            border-radius: 10px;
-            border: none;
+        .modal-lg {
+            max-width: 1000px;
         }
 
-        .modal-header {
-            background-color: #f8f9fa;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
+        .variant-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
         }
 
-        .modal-footer {
-            background-color: #f8f9fa;
-            border-top: 1px solid rgba(0,0,0,0.1);
+        .variant-section h6 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
         }
     </style>
 </head>
@@ -160,7 +183,7 @@
                         <i class="fas fa-plus me-2"></i>Add New Product
                     </button>
                 </div>
-                
+
                 <div class="product-card">
                     <div class="card-body">
                         <div class="table-responsive">
@@ -170,9 +193,8 @@
                                         <th>Image</th>
                                         <th>Name</th>
                                         <th>Category</th>
-                                        <th>Price</th>
-                                        <th>Stock</th>
-                                        
+                                        <th>Variants</th>
+                                        <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -181,15 +203,35 @@
                                         <% products.forEach(product => { %>
                                             <tr>
                                                 <td>
-                                                    <img src="<%= product.images ? product.images[product.variant].image1 : '/uploads/placeholder.jpg' %>" 
+                                                    <img src="<%= product.images.image1 || 'https://res.cloudinary.com/dr0bl807r/image/upload/v1/brewtopia/placeholder.jpg' %>" 
                                                          alt="<%= product.name %>" 
                                                          class="product-image">
                                                 </td>
-                                                <td><%= product.name %></td>
-                                                <td><%= product.category %></td>
-                                                <td>₹<%= product.price %></td>
-                                                <td><%= product.stock %></td>
-                                                
+                                                <td>
+                                                    <strong><%= product.name %></strong>
+                                                    <br>
+                                                    <small class="text-muted"><%= product.description || '' %></small>
+                                                </td>
+                                                <td><%= product.category ? product.category.name : 'Uncategorized' %></td>
+                                                <td>
+                                                    <% if (product.variants && product.variants['500ml']) { %>
+                                                        <div class="variant-badge bg-info text-white">
+                                                            500ml - ₹<%= product.variants['500ml'].price || 0 %>
+                                                            <small>(Stock: <%= product.variants['500ml'].stock || 0 %>)</small>
+                                                        </div>
+                                                    <% } %>
+                                                    <% if (product.variants && product.variants['650ml']) { %>
+                                                        <div class="variant-badge bg-primary text-white">
+                                                            650ml - ₹<%= product.variants['650ml'].price || 0 %>
+                                                            <small>(Stock: <%= product.variants['650ml'].stock || 0 %>)</small>
+                                                        </div>
+                                                    <% } %>
+                                                </td>
+                                                <td>
+                                                    <span class="badge <%= product.status === 'active' ? 'bg-success' : 'bg-warning' %>">
+                                                        <%= product.status %>
+                                                    </span>
+                                                </td>
                                                 <td>
                                                     <button class="btn btn-info btn-action" onclick="editProduct('<%= product._id %>')">
                                                         <i class="fas fa-edit"></i>
@@ -202,8 +244,8 @@
                                         <% }); %>
                                     <% } else { %>
                                         <tr>
-                                            <td colspan="7" class="text-center py-4">
-                                                <i class="fas fa-box-open fa-3x mb-3 text-muted d-block"></i>
+                                            <td colspan="6" class="text-center py-4">
+                                                <i class="fas fa-beer fa-3x mb-3 text-muted d-block"></i>
                                                 <p class="text-muted">No products found. Add your first product!</p>
                                             </td>
                                         </tr>
@@ -227,7 +269,7 @@
                 </div>
                 <div class="modal-body">
                     <form id="addProductForm">
-                        <div class="row">
+                        <div class="row mb-4">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Product Name</label>
@@ -235,58 +277,195 @@
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Category</label>
-                                    <select name="category" class="form-select" required>
+                                    <select name="category" class="form-control" required>
                                         <option value="">Select Category</option>
-                                        <option value="Strong Beer">Strong Beer</option>
-                                        <option value="Mild Beer">Mild Beer</option>
+                                        <% if (categories && categories.length > 0) { %>
+                                            <% categories.forEach(function(category) { %>
+                                                <option value="<%= category._id %>"><%= category.name %></option>
+                                            <% }); %>
+                                        <% } else { %>
+                                            <option value="" disabled>No categories available</option>
+                                        <% } %>
                                     </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Price (₹)</label>
-                                    <input type="number" name="price" step="0.01" class="form-control" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label">Stock</label>
-                                    <input type="number" name="stock" class="form-control" required>
-                                </div>
-                                
-                                <div class="mb-3">
                                     <label class="form-label">Description</label>
-                                    <textarea name="description" class="form-control" rows="3" required></textarea>
+                                    <textarea name="description" class="form-control" rows="5" required></textarea>
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6 class="mb-3">500ml Variant Images</h6>
+
+                        <!-- Product Images -->
+                        <div class="row mb-4">
+                            <h6>Product Images</h6>
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Main Image</label>
-                                    <input type="file" name="images500ml1" class="form-control" accept="image/*" required>
+                                    <input type="file" name="image1" class="form-control" accept="image/*" required>
+                                    <div class="image-preview" id="preview1">
+                                        <i class="fas fa-image"></i>
+                                    </div>
                                 </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Second Image</label>
-                                    <input type="file" name="images500ml2" class="form-control" accept="image/*" required>
+                                    <input type="file" name="image2" class="form-control" accept="image/*" required>
+                                    <div class="image-preview" id="preview2">
+                                        <i class="fas fa-image"></i>
+                                    </div>
                                 </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Third Image</label>
-                                    <input type="file" name="images500ml3" class="form-control" accept="image/*" required>
+                                    <input type="file" name="image3" class="form-control" accept="image/*" required>
+                                    <div class="image-preview" id="preview3">
+                                        <i class="fas fa-image"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Variants -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="variant-section">
+                                    <h6>500ml Variant</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Price (₹)</label>
+                                        <input type="number" name="price500ml" step="0.01" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Stock</label>
+                                        <input type="number" name="stock500ml" class="form-control" required>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <h6 class="mb-3">650ml Variant Images</h6>
+                                <div class="variant-section">
+                                    <h6>650ml Variant</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Price (₹)</label>
+                                        <input type="number" name="price650ml" step="0.01" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Stock</label>
+                                        <input type="number" name="stock650ml" class="form-control" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Add Product</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div class="modal fade" id="editProductModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProductForm">
+                        <input type="hidden" name="productId">
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Product Name</label>
+                                    <input type="text" name="name" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Category</label>
+                                    <select name="category" class="form-control" required>
+                                        <option value="">Select Category</option>
+                                        <% if (categories && categories.length > 0) { %>
+                                            <% categories.forEach(function(category) { %>
+                                                <option value="<%= category._id %>"><%= category.name %></option>
+                                            <% }); %>
+                                        <% } else { %>
+                                            <option value="" disabled>No categories available</option>
+                                        <% } %>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Description</label>
+                                    <textarea name="description" class="form-control" rows="5" required></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Product Images -->
+                        <div class="row mb-4">
+                            <h6>Product Images</h6>
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Main Image</label>
-                                    <input type="file" name="images650ml1" class="form-control" accept="image/*" required>
+                                    <input type="file" name="image1" class="form-control" accept="image/*">
+                                    <div class="image-preview" id="preview1Edit">
+                                        <i class="fas fa-image"></i>
+                                    </div>
                                 </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Second Image</label>
-                                    <input type="file" name="images650ml2" class="form-control" accept="image/*" required>
+                                    <input type="file" name="image2" class="form-control" accept="image/*">
+                                    <div class="image-preview" id="preview2Edit">
+                                        <i class="fas fa-image"></i>
+                                    </div>
                                 </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label class="form-label">Third Image</label>
-                                    <input type="file" name="images650ml3" class="form-control" accept="image/*" required>
+                                    <input type="file" name="image3" class="form-control" accept="image/*">
+                                    <div class="image-preview" id="preview3Edit">
+                                        <i class="fas fa-image"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Variants -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="variant-section">
+                                    <h6>500ml Variant</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Price (₹)</label>
+                                        <input type="number" name="price500ml" step="0.01" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Stock</label>
+                                        <input type="number" name="stock500ml" class="form-control" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="variant-section">
+                                    <h6>650ml Variant</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Price (₹)</label>
+                                        <input type="number" name="price650ml" step="0.01" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Stock</label>
+                                        <input type="number" name="stock650ml" class="form-control" required>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -294,7 +473,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" form="addProductForm" class="btn btn-primary">Add Product</button>
+                    <button type="submit" form="editProductForm" class="btn btn-primary">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -304,15 +483,254 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        function editProduct(id) {
-            // Edit product logic
+        // Image preview functionality
+        function setupImagePreviews() {
+            document.querySelectorAll('input[type="file"]').forEach(input => {
+                input.addEventListener('change', function(e) {
+                    const preview = document.getElementById('preview' + this.name.replace('image', ''));
+                    if (this.files && this.files[0]) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            preview.style.backgroundImage = `url(${e.target.result})`;
+                            preview.classList.add('has-image');
+                        }
+                        reader.readAsDataURL(this.files[0]);
+                    }
+                });
+            });
         }
 
-        function deleteProduct(id) {
-            if (confirm('Are you sure you want to delete this product?')) {
-                // Delete product logic
+        // Initialize image previews
+        setupImagePreviews();
+
+        // Add Product Form Submit
+        document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+
+            try {
+                // Prepare variants data
+                const formData = new FormData(form);
+                const variants = {
+                    '500ml': {
+                        price: formData.get('price500ml'),
+                        stock: formData.get('stock500ml')
+                    },
+                    '650ml': {
+                        price: formData.get('price650ml'),
+                        stock: formData.get('stock650ml')
+                    }
+                };
+                formData.append('variants', JSON.stringify(variants));
+                
+                // Show loading state
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                submitBtn.disabled = true;
+
+                const response = await fetch('/admin/products/add', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const contentType = response.headers.get('content-type');
+                let data;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    throw new Error('Server returned an invalid response format');
+                }
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to add product');
+                }
+
+                // Show success message
+                alert('Product added successfully!');
+
+                // Close modal and refresh page
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                window.location.reload();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error adding product: ' + error.message);
+                // Reset button state
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Edit Product
+        async function editProduct(id) {
+            try {
+                const response = await fetch(`/admin/products/${id}`);
+                const product = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch product details');
+                }
+
+                // Fill the edit form
+                const form = document.getElementById('editProductForm');
+                form.productId.value = product._id;
+                form.name.value = product.name;
+                form.category.value = product.category._id;
+                form.description.value = product.description;
+
+                // Fill variant details
+                if (product.variants) {
+                    if (product.variants['500ml']) {
+                        form.price500ml.value = product.variants['500ml'].price;
+                        form.stock500ml.value = product.variants['500ml'].stock;
+                        
+                        // Show current images in preview
+                        if (product.variants['500ml'].images) {
+                            const preview1 = document.getElementById('preview1Edit');
+                            const preview2 = document.getElementById('preview2Edit');
+                            const preview3 = document.getElementById('preview3Edit');
+                            
+                            if (product.variants['500ml'].images.image1) {
+                                preview1.style.backgroundImage = `url(${product.variants['500ml'].images.image1})`;
+                                preview1.classList.add('has-image');
+                            }
+                            if (product.variants['500ml'].images.image2) {
+                                preview2.style.backgroundImage = `url(${product.variants['500ml'].images.image2})`;
+                                preview2.classList.add('has-image');
+                            }
+                            if (product.variants['500ml'].images.image3) {
+                                preview3.style.backgroundImage = `url(${product.variants['500ml'].images.image3})`;
+                                preview3.classList.add('has-image');
+                            }
+                        }
+                    }
+                    
+                    if (product.variants['650ml']) {
+                        form.price650ml.value = product.variants['650ml'].price;
+                        form.stock650ml.value = product.variants['650ml'].stock;
+                        
+                        // Show current images in preview
+                        if (product.variants['650ml'].images) {
+                            const preview1 = document.getElementById('preview1Edit');
+                            const preview2 = document.getElementById('preview2Edit');
+                            const preview3 = document.getElementById('preview3Edit');
+                            
+                            if (product.variants['650ml'].images.image1) {
+                                preview1.style.backgroundImage = `url(${product.variants['650ml'].images.image1})`;
+                                preview1.classList.add('has-image');
+                            }
+                            if (product.variants['650ml'].images.image2) {
+                                preview2.style.backgroundImage = `url(${product.variants['650ml'].images.image2})`;
+                                preview2.classList.add('has-image');
+                            }
+                            if (product.variants['650ml'].images.image3) {
+                                preview3.style.backgroundImage = `url(${product.variants['650ml'].images.image3})`;
+                                preview3.classList.add('has-image');
+                            }
+                        }
+                    }
+                }
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
+                modal.show();
+            } catch (error) {
+                alert(error.message);
             }
         }
+
+        // Delete Product
+        async function deleteProduct(id) {
+            if (!confirm('Are you sure you want to delete this product?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/products/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to delete product');
+                }
+
+                window.location.reload();
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        // Edit Product Form Submit
+        document.getElementById('editProductForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            try {
+                const formData = new FormData(form);
+                const productId = formData.get('productId');
+                
+                // Prepare variants data
+                const variants = {
+                    '500ml': {
+                        price: formData.get('price500ml'),
+                        stock: formData.get('stock500ml')
+                    },
+                    '650ml': {
+                        price: formData.get('price650ml'),
+                        stock: formData.get('stock650ml')
+                    }
+                };
+                formData.append('variants', JSON.stringify(variants));
+                
+                // Show loading state
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                submitBtn.disabled = true;
+
+                const response = await fetch(`/admin/products/${productId}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                const contentType = response.headers.get('content-type');
+                let data;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    throw new Error('Server returned an invalid response format');
+                }
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to update product');
+                }
+
+                // Show success message
+                alert('Product updated successfully!');
+
+                // Close modal and refresh page
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                window.location.reload();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error updating product: ' + error.message);
+                // Reset button state
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
     </script>
 </body>
 </html> 

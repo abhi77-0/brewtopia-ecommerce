@@ -69,6 +69,8 @@
             border-radius: 10px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             transition: transform 0.3s;
+            margin-bottom: 2rem;
+            height: 100%;
         }
 
         .category-card:hover {
@@ -76,17 +78,20 @@
         }
 
         .category-card .card-body {
-            padding: 1.5rem;
+            padding: 2rem;
         }
 
         .category-card .card-title {
             color: #2c3e50;
-            margin-bottom: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
         }
 
         .category-card .card-text {
             color: #6c757d;
             font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            min-height: 60px;
         }
 
         .category-card .badge {
@@ -94,13 +99,30 @@
             padding: 0.5rem 0.75rem;
         }
 
-        .btn-link {
-            color: #2c3e50;
-            padding: 0;
+        .category-card .action-buttons {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 0.5rem;
         }
 
-        .btn-link:hover {
-            color: #ffc107;
+        .category-card .btn-action {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .category-card .btn-action i {
+            font-size: 1rem;
+        }
+
+        /* Update the row gutter */
+        .categories-row {
+            --bs-gutter-x: 2rem;
+            --bs-gutter-y: 2rem;
         }
 
         /* Modal Styles */
@@ -160,27 +182,14 @@
                     </button>
                 </div>
 
-                <div class="row">
+                <div class="row categories-row g-4">
                     <% if (categories && categories.length > 0) { %>
                         <% categories.forEach(category => { %>
-                            <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="col-md-6 col-lg-4">
                                 <div class="category-card card">
                                     <div class="card-body">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <h5 class="card-title"><%= category.name %></h5>
-                                            <div class="dropdown">
-                                                <button class="btn btn-link" data-bs-toggle="dropdown">
-                                                    <i class="fas fa-ellipsis-v"></i>
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="#" onclick="editCategory('<%= category._id %>')">
-                                                        <i class="fas fa-edit me-2"></i>Edit
-                                                    </a></li>
-                                                    <li><a class="dropdown-item text-danger" href="#" onclick="deleteCategory('<%= category._id %>')">
-                                                        <i class="fas fa-trash me-2"></i>Delete
-                                                    </a></li>
-                                                </ul>
-                                            </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h5 class="card-title mb-0"><%= category.name %></h5>
                                         </div>
                                         <p class="card-text"><%= category.description %></p>
                                         <div class="mt-3">
@@ -188,6 +197,16 @@
                                                 <i class="fas fa-box me-1"></i>
                                                 <%= category.productCount || 0 %> Products
                                             </span>
+                                        </div>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-outline-primary btn-action" onclick="editCategory('<%= category._id %>')">
+                                                <i class="fas fa-edit"></i>
+                                                Edit
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-action" onclick="deleteCategory('<%= category._id %>')">
+                                                <i class="fas fa-trash"></i>
+                                                Delete
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -218,10 +237,7 @@
                             <label class="form-label">Category Name</label>
                             <input type="text" name="name" class="form-control" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea name="description" class="form-control" rows="3" required></textarea>
-                        </div>
+                      
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -265,15 +281,108 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        function editCategory(id) {
-            // Edit category logic
-            const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
-            modal.show();
+        // Add Category Form Submit
+        document.getElementById('addCategoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                const formData = new FormData(e.target);
+                const response = await fetch('/admin/categories/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: formData.get('name'),
+                        description: formData.get('description')
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to add category');
+                }
+
+                // Close modal and refresh page
+                bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
+                window.location.reload();
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+        // Edit Category
+        async function editCategory(id) {
+            try {
+                const category = await fetch(`/admin/categories/${id}`).then(res => res.json());
+                
+                // Fill the edit form
+                const form = document.getElementById('editCategoryForm');
+                form.categoryId.value = category._id;
+                form.name.value = category.name;
+                form.description.value = category.description;
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
+                modal.show();
+            } catch (error) {
+                alert('Error loading category details');
+            }
         }
 
-        function deleteCategory(id) {
-            if (confirm('Are you sure you want to delete this category?')) {
-                // Delete category logic
+        // Edit Category Form Submit
+        document.getElementById('editCategoryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                const formData = new FormData(e.target);
+                const response = await fetch('/admin/categories/edit', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        categoryId: formData.get('categoryId'),
+                        name: formData.get('name'),
+                        description: formData.get('description')
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to update category');
+                }
+
+                // Close modal and refresh page
+                bootstrap.Modal.getInstance(document.getElementById('editCategoryModal')).hide();
+                window.location.reload();
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+        // Delete Category
+        async function deleteCategory(id) {
+            if (!confirm('Are you sure you want to delete this category? This action cannot be undone if the category has no associated products.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/categories/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to delete category');
+                }
+
+                window.location.reload();
+            } catch (error) {
+                alert(error.message);
             }
         }
     </script>
