@@ -17,7 +17,8 @@ router.get('/login', (req, res) => {
     }
     res.render('admin/login', { 
         error: req.query.error,
-        title: 'Admin Login'
+        title: 'Admin Login',
+        path: '/admin/login'
     });
 });
 
@@ -38,7 +39,8 @@ router.post('/login', (req, res) => {
                 console.error('Session save error:', err);
                 return res.render('admin/login', { 
                     error: 'Login failed, please try again',
-                    title: 'Admin Login'
+                    title: 'Admin Login',
+                    path: '/admin/login'
                 });
             }
             res.redirect('/admin/dashboard');
@@ -46,7 +48,8 @@ router.post('/login', (req, res) => {
     } else {
         res.render('admin/login', { 
             error: 'Invalid credentials',
-            title: 'Admin Login'
+            title: 'Admin Login',
+            path: '/admin/login'
         });
     }
 });
@@ -67,6 +70,7 @@ router.get('/dashboard', isAdmin, (req, res) => {
         res.render('admin/dashboard', {
             title: 'Admin Dashboard',
             adminUser: req.session.adminUser,
+            path: '/admin/dashboard',
             stats: {
                 totalProducts: 0,
                 newOrders: 0,
@@ -78,7 +82,8 @@ router.get('/dashboard', isAdmin, (req, res) => {
         console.error('Dashboard error:', error);
         res.status(500).render('admin/login', {
             error: 'Error loading dashboard',
-            title: 'Admin Login'
+            title: 'Admin Login',
+            path: '/admin/login'
         });
     }
 });
@@ -88,6 +93,7 @@ router.get('/products', isAdmin, (req, res) => {
     res.render('admin/products', {
         title: 'Manage Products',
         adminUser: req.session.adminUser,
+        path: '/admin/products',
         products: []
     });
 });
@@ -109,6 +115,7 @@ router.get('/users', isAdmin, (req, res) => {
     res.render('admin/users', {
         title: 'Manage Users',
         adminUser: req.session.adminUser,
+        path: '/admin/users',
         users: []
     });
 });
@@ -118,6 +125,7 @@ router.get('/categories', isAdmin, (req, res) => {
     res.render('admin/categories', {
         title: 'Manage Categories',
         adminUser: req.session.adminUser,
+        path: '/admin/categories',
         categories: []
     });
 });
@@ -126,7 +134,9 @@ router.get('/categories', isAdmin, (req, res) => {
 router.get('/orders', isAdmin, (req, res) => {
     res.render('admin/orders', {
         title: 'Manage Orders',
-        user: req.session.user
+        adminUser: req.session.adminUser,
+        path: '/admin/orders',
+        orders: []
     });
 });
 
