@@ -268,92 +268,84 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="addProductForm">
+                    <form id="addProductForm" enctype="multipart/form-data">
                         <div class="row mb-4">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Product Name</label>
-                                    <input type="text" name="name" class="form-control" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Category</label>
-                                    <select name="category" class="form-control" required>
-                                        <option value="">Select Category</option>
-                                        <% if (categories && categories.length > 0) { %>
-                                            <% categories.forEach(function(category) { %>
-                                                <option value="<%= category._id %>"><%= category.name %></option>
-                                            <% }); %>
-                                        <% } else { %>
-                                            <option value="" disabled>No categories available</option>
-                                        <% } %>
-                                    </select>
-                                </div>
+                            <!-- Product Name -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Product Name</label>
+                                <input type="text" name="name" class="form-control" required>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Description</label>
-                                    <textarea name="description" class="form-control" rows="5" required></textarea>
-                                </div>
+                            
+                            <!-- Category -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Category</label>
+                                <select name="category" class="form-control" required>
+                                    <option value="">Select Category</option>
+                                    <% categories.forEach(function(category) { %>
+                                        <option value="<%= category._id %>"><%= category.name %></option>
+                                    <% }); %>
+                                </select>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="col-12 mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea name="description" class="form-control" rows="3" required></textarea>
                             </div>
                         </div>
 
                         <!-- Product Images -->
                         <div class="row mb-4">
-                            <h6>Product Images</h6>
+                            <h6 class="mb-3">Product Images</h6>
                             <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Main Image</label>
-                                    <input type="file" name="image1" class="form-control" accept="image/*" required>
-                                    <div class="image-preview" id="preview1">
-                                        <i class="fas fa-image"></i>
-                                    </div>
-                                </div>
+                                <label class="form-label">Image 1</label>
+                                <input type="file" name="image1" class="form-control" accept="image/*" required>
+                                <div class="image-preview mt-2"></div>
                             </div>
                             <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Second Image</label>
-                                    <input type="file" name="image2" class="form-control" accept="image/*" required>
-                                    <div class="image-preview" id="preview2">
-                                        <i class="fas fa-image"></i>
-                                    </div>
-                                </div>
+                                <label class="form-label">Image 2</label>
+                                <input type="file" name="image2" class="form-control" accept="image/*">
+                                <div class="image-preview mt-2"></div>
                             </div>
                             <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">Third Image</label>
-                                    <input type="file" name="image3" class="form-control" accept="image/*" required>
-                                    <div class="image-preview" id="preview3">
-                                        <i class="fas fa-image"></i>
-                                    </div>
-                                </div>
+                                <label class="form-label">Image 3</label>
+                                <input type="file" name="image3" class="form-control" accept="image/*">
+                                <div class="image-preview mt-2"></div>
                             </div>
                         </div>
 
                         <!-- Variants -->
-                        <div class="row">
+                        <div class="row mb-4">
+                            <h6 class="mb-3">Product Variants</h6>
+                            <!-- 500ml Variant -->
                             <div class="col-md-6">
-                                <div class="variant-section">
-                                    <h6>500ml Variant</h6>
-                                    <div class="mb-3">
-                                        <label class="form-label">Price (₹)</label>
-                                        <input type="number" name="price500ml" step="0.01" class="form-control" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Stock</label>
-                                        <input type="number" name="stock500ml" class="form-control" required>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6>500ml Variant</h6>
+                                        <div class="mb-3">
+                                            <label class="form-label">Price (₹)</label>
+                                            <input type="number" name="price500ml" class="form-control" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Stock</label>
+                                            <input type="number" name="stock500ml" class="form-control" required>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                            <!-- 650ml Variant -->
                             <div class="col-md-6">
-                                <div class="variant-section">
-                                    <h6>650ml Variant</h6>
-                                    <div class="mb-3">
-                                        <label class="form-label">Price (₹)</label>
-                                        <input type="number" name="price650ml" step="0.01" class="form-control" required>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Stock</label>
-                                        <input type="number" name="stock650ml" class="form-control" required>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6>650ml Variant</h6>
+                                        <div class="mb-3">
+                                            <label class="form-label">Price (₹)</label>
+                                            <input type="number" name="price650ml" class="form-control" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Stock</label>
+                                            <input type="number" name="stock650ml" class="form-control" required>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -378,7 +370,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="editProductForm">
+                    <form id="editProductForm" enctype="multipart/form-data">
                         <input type="hidden" name="productId">
                         <div class="row mb-4">
                             <div class="col-md-6">
@@ -469,11 +461,12 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                        </div>
                     </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" form="editProductForm" class="btn btn-primary">Save Changes</button>
                 </div>
             </div>
         </div>
@@ -483,12 +476,154 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        // Edit Product function
+        async function editProduct(id) {
+            try {
+                console.log('Fetching product data for ID:', id);
+                const response = await fetch(`/admin/products/${id}`);
+                const product = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch product details');
+                }
+
+                console.log('Product data:', product);
+
+                // Fill the edit form
+                const form = document.getElementById('editProductForm');
+                form.querySelector('input[name="productId"]').value = product._id;
+                form.querySelector('input[name="name"]').value = product.name;
+                form.querySelector('select[name="category"]').value = product.category._id;
+                form.querySelector('textarea[name="description"]').value = product.description;
+
+                // Fill variant details
+                if (product.variants) {
+                    if (product.variants['500ml']) {
+                        form.querySelector('input[name="price500ml"]').value = product.variants['500ml'].price;
+                        form.querySelector('input[name="stock500ml"]').value = product.variants['500ml'].stock;
+                    }
+                    if (product.variants['650ml']) {
+                        form.querySelector('input[name="price650ml"]').value = product.variants['650ml'].price;
+                        form.querySelector('input[name="stock650ml"]').value = product.variants['650ml'].stock;
+                    }
+                }
+
+                // Show current images
+                if (product.images) {
+                    ['1', '2', '3'].forEach(num => {
+                        const preview = document.getElementById(`preview${num}Edit`);
+                        const imageUrl = product.images[`image${num}`];
+                        if (imageUrl) {
+                            preview.style.backgroundImage = `url(${imageUrl})`;
+                            preview.classList.add('has-image');
+                        } else {
+                            preview.style.backgroundImage = '';
+                            preview.classList.remove('has-image');
+                        }
+                    });
+                }
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
+                modal.show();
+            } catch (error) {
+                console.error('Error in editProduct:', error);
+                alert('Error loading product: ' + error.message);
+            }
+        }
+
+        // Delete Product function
+        async function deleteProduct(id) {
+            try {
+                if (!confirm('Are you sure you want to delete this product?')) {
+                    return;
+                }
+
+                console.log('Deleting product:', id);
+                const response = await fetch(`/admin/products/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to delete product');
+                }
+
+                alert('Product deleted successfully!');
+                window.location.reload();
+            } catch (error) {
+                console.error('Error deleting product:', error);
+                alert('Error deleting product: ' + error.message);
+            }
+        }
+
+        // Edit form submit handler
+        document.getElementById('editProductForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log('Edit form submission started');
+            
+            const form = this;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            const productId = form.querySelector('input[name="productId"]').value;
+
+            try {
+                // Prepare variants data
+                const variants = {
+                    '500ml': {
+                        price: form.querySelector('input[name="price500ml"]').value,
+                        stock: form.querySelector('input[name="stock500ml"]').value
+                    },
+                    '650ml': {
+                        price: form.querySelector('input[name="price650ml"]').value,
+                        stock: form.querySelector('input[name="stock650ml"]').value
+                    }
+                };
+
+                // Create FormData and append all form fields
+                const formData = new FormData(form);
+                formData.append('variants', JSON.stringify(variants));
+                
+                // Show loading state
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                submitBtn.disabled = true;
+
+                console.log('Sending update request for product:', productId);
+                const response = await fetch(`/admin/products/${productId}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to update product');
+                }
+
+                alert('Product updated successfully!');
+
+                // Close modal and refresh page
+                const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                window.location.reload();
+            } catch (error) {
+                console.error('Error updating product:', error);
+                alert('Error updating product: ' + error.message);
+                // Reset button state
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
         // Image preview functionality
         function setupImagePreviews() {
             document.querySelectorAll('input[type="file"]').forEach(input => {
                 input.addEventListener('change', function(e) {
-                    const preview = document.getElementById('preview' + this.name.replace('image', ''));
-                    if (this.files && this.files[0]) {
+                    const preview = this.parentElement.querySelector('.image-preview');
+                    if (preview && this.files && this.files[0]) {
                         const reader = new FileReader();
                         reader.onload = function(e) {
                             preview.style.backgroundImage = `url(${e.target.result})`;
@@ -504,46 +639,44 @@
         setupImagePreviews();
 
         // Add Product Form Submit
-        document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+        document.getElementById('addProductForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            const form = e.target;
+            console.log('Add product form submission started');
+
+            const form = this;
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
 
             try {
                 // Prepare variants data
-                const formData = new FormData(form);
                 const variants = {
                     '500ml': {
-                        price: formData.get('price500ml'),
-                        stock: formData.get('stock500ml')
+                        price: form.querySelector('input[name="price500ml"]').value,
+                        stock: form.querySelector('input[name="stock500ml"]').value
                     },
                     '650ml': {
-                        price: formData.get('price650ml'),
-                        stock: formData.get('stock650ml')
+                        price: form.querySelector('input[name="price650ml"]').value,
+                        stock: form.querySelector('input[name="stock650ml"]').value
                     }
                 };
+
+                // Create FormData and append all form fields
+                const formData = new FormData(form);
                 formData.append('variants', JSON.stringify(variants));
-                
+
                 // Show loading state
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
                 submitBtn.disabled = true;
 
+                console.log('Sending request to add product');
                 const response = await fetch('/admin/products/add', {
                     method: 'POST',
                     body: formData
                 });
 
-                const contentType = response.headers.get('content-type');
-                let data;
-                
-                if (contentType && contentType.includes('application/json')) {
-                    data = await response.json();
-                } else {
-                    throw new Error('Server returned an invalid response format');
-                }
-                
+                const data = await response.json();
+                console.log('Response received:', data);
+
                 if (!response.ok) {
                     throw new Error(data.error || 'Failed to add product');
                 }
@@ -558,7 +691,7 @@
                 }
                 window.location.reload();
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error adding product:', error);
                 alert('Error adding product: ' + error.message);
                 // Reset button state
                 submitBtn.innerHTML = originalText;
@@ -566,170 +699,26 @@
             }
         });
 
-        // Edit Product
-        async function editProduct(id) {
-            try {
-                const response = await fetch(`/admin/products/${id}`);
-                const product = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error('Failed to fetch product details');
+        // Image preview functionality
+        function previewImage(input) {
+            const previewContainer = input.parentElement.querySelector('.image-preview');
+            if (previewContainer) {
+                previewContainer.innerHTML = '';
+                if (input.files && input.files[0]) {
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(input.files[0]);
+                    img.className = 'img-thumbnail mt-2';
+                    img.style.maxHeight = '100px';
+                    previewContainer.appendChild(img);
                 }
-
-                // Fill the edit form
-                const form = document.getElementById('editProductForm');
-                form.productId.value = product._id;
-                form.name.value = product.name;
-                form.category.value = product.category._id;
-                form.description.value = product.description;
-
-                // Fill variant details
-                if (product.variants) {
-                    if (product.variants['500ml']) {
-                        form.price500ml.value = product.variants['500ml'].price;
-                        form.stock500ml.value = product.variants['500ml'].stock;
-                        
-                        // Show current images in preview
-                        if (product.variants['500ml'].images) {
-                            const preview1 = document.getElementById('preview1Edit');
-                            const preview2 = document.getElementById('preview2Edit');
-                            const preview3 = document.getElementById('preview3Edit');
-                            
-                            if (product.variants['500ml'].images.image1) {
-                                preview1.style.backgroundImage = `url(${product.variants['500ml'].images.image1})`;
-                                preview1.classList.add('has-image');
-                            }
-                            if (product.variants['500ml'].images.image2) {
-                                preview2.style.backgroundImage = `url(${product.variants['500ml'].images.image2})`;
-                                preview2.classList.add('has-image');
-                            }
-                            if (product.variants['500ml'].images.image3) {
-                                preview3.style.backgroundImage = `url(${product.variants['500ml'].images.image3})`;
-                                preview3.classList.add('has-image');
-                            }
-                        }
-                    }
-                    
-                    if (product.variants['650ml']) {
-                        form.price650ml.value = product.variants['650ml'].price;
-                        form.stock650ml.value = product.variants['650ml'].stock;
-                        
-                        // Show current images in preview
-                        if (product.variants['650ml'].images) {
-                            const preview1 = document.getElementById('preview1Edit');
-                            const preview2 = document.getElementById('preview2Edit');
-                            const preview3 = document.getElementById('preview3Edit');
-                            
-                            if (product.variants['650ml'].images.image1) {
-                                preview1.style.backgroundImage = `url(${product.variants['650ml'].images.image1})`;
-                                preview1.classList.add('has-image');
-                            }
-                            if (product.variants['650ml'].images.image2) {
-                                preview2.style.backgroundImage = `url(${product.variants['650ml'].images.image2})`;
-                                preview2.classList.add('has-image');
-                            }
-                            if (product.variants['650ml'].images.image3) {
-                                preview3.style.backgroundImage = `url(${product.variants['650ml'].images.image3})`;
-                                preview3.classList.add('has-image');
-                            }
-                        }
-                    }
-                }
-
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
-                modal.show();
-            } catch (error) {
-                alert(error.message);
             }
         }
 
-        // Delete Product
-        async function deleteProduct(id) {
-            if (!confirm('Are you sure you want to delete this product?')) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`/admin/products/${id}`, {
-                    method: 'DELETE'
-                });
-
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to delete product');
-                }
-
-                window.location.reload();
-            } catch (error) {
-                alert(error.message);
-            }
-        }
-
-        // Edit Product Form Submit
-        document.getElementById('editProductForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const form = e.target;
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            
-            try {
-                const formData = new FormData(form);
-                const productId = formData.get('productId');
-                
-                // Prepare variants data
-                const variants = {
-                    '500ml': {
-                        price: formData.get('price500ml'),
-                        stock: formData.get('stock500ml')
-                    },
-                    '650ml': {
-                        price: formData.get('price650ml'),
-                        stock: formData.get('stock650ml')
-                    }
-                };
-                formData.append('variants', JSON.stringify(variants));
-                
-                // Show loading state
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
-                submitBtn.disabled = true;
-
-                const response = await fetch(`/admin/products/${productId}`, {
-                    method: 'PUT',
-                    body: formData
-                });
-
-                const contentType = response.headers.get('content-type');
-                let data;
-                
-                if (contentType && contentType.includes('application/json')) {
-                    data = await response.json();
-                } else {
-                    throw new Error('Server returned an invalid response format');
-                }
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to update product');
-                }
-
-                // Show success message
-                alert('Product updated successfully!');
-
-                // Close modal and refresh page
-                const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
-                if (modal) {
-                    modal.hide();
-                }
-                window.location.reload();
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error updating product: ' + error.message);
-                // Reset button state
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
+        // Add image preview listeners
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function() {
+                previewImage(this);
+            });
         });
     </script>
 </body>
