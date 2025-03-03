@@ -287,6 +287,19 @@
                                 </select>
                             </div>
 
+                            <!-- Brand -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Brand</label>
+                                <select name="brand" class="form-control" required>
+                                    <option value="">Select Brand</option>
+                                    <option value="kingfisher">Kingfisher</option>
+                                    <option value="heineken">Heineken</option>
+                                    <option value="budweiser">Budweiser</option>
+                                    <option value="corona">Corona</option>
+                                    <option value="carlsberg">Carlsberg</option>
+                                </select>
+                            </div>
+
                             <!-- Description -->
                             <div class="col-12 mb-3">
                                 <label class="form-label">Description</label>
@@ -391,6 +404,17 @@
                                         <% } %>
                                     </select>
                                 </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Brand</label>
+                                    <select name="brand" class="form-control" required>
+                                        <option value="">Select Brand</option>
+                                        <option value="kingfisher">Kingfisher</option>
+                                        <option value="heineken">Heineken</option>
+                                        <option value="budweiser">Budweiser</option>
+                                        <option value="corona">Corona</option>
+                                        <option value="carlsberg">Carlsberg</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -480,31 +504,46 @@
         async function editProduct(id) {
             try {
                 console.log('Fetching product data for ID:', id);
-                const response = await fetch(`/admin/products/${id}`);
+                const response = await fetch(`/admin/products/${id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server did not return JSON');
+                }
+
                 const product = await response.json();
                 
                 if (!response.ok) {
-                    throw new Error('Failed to fetch product details');
+                    throw new Error(product.error || 'Failed to fetch product details');
                 }
 
                 console.log('Product data:', product);
 
                 // Fill the edit form
                 const form = document.getElementById('editProductForm');
+                
+                // Basic fields
                 form.querySelector('input[name="productId"]').value = product._id;
-                form.querySelector('input[name="name"]').value = product.name;
-                form.querySelector('select[name="category"]').value = product.category._id;
-                form.querySelector('textarea[name="description"]').value = product.description;
+                form.querySelector('input[name="name"]').value = product.name || '';
+                form.querySelector('select[name="category"]').value = product.category?._id || '';
+                form.querySelector('select[name="brand"]').value = product.brand || '';
+                form.querySelector('textarea[name="description"]').value = product.description || '';
 
                 // Fill variant details
                 if (product.variants) {
                     if (product.variants['500ml']) {
-                        form.querySelector('input[name="price500ml"]').value = product.variants['500ml'].price;
-                        form.querySelector('input[name="stock500ml"]').value = product.variants['500ml'].stock;
+                        form.querySelector('input[name="price500ml"]').value = product.variants['500ml'].price || '';
+                        form.querySelector('input[name="stock500ml"]').value = product.variants['500ml'].stock || '';
                     }
                     if (product.variants['650ml']) {
-                        form.querySelector('input[name="price650ml"]').value = product.variants['650ml'].price;
-                        form.querySelector('input[name="stock650ml"]').value = product.variants['650ml'].stock;
+                        form.querySelector('input[name="price650ml"]').value = product.variants['650ml'].price || '';
+                        form.querySelector('input[name="stock650ml"]').value = product.variants['650ml'].stock || '';
                     }
                 }
 
@@ -512,13 +551,15 @@
                 if (product.images) {
                     ['1', '2', '3'].forEach(num => {
                         const preview = document.getElementById(`preview${num}Edit`);
-                        const imageUrl = product.images[`image${num}`];
-                        if (imageUrl) {
-                            preview.style.backgroundImage = `url(${imageUrl})`;
-                            preview.classList.add('has-image');
-                        } else {
-                            preview.style.backgroundImage = '';
-                            preview.classList.remove('has-image');
+                        if (preview) {
+                            const imageUrl = product.images[`image${num}`];
+                            if (imageUrl) {
+                                preview.style.backgroundImage = `url(${imageUrl})`;
+                                preview.classList.add('has-image');
+                            } else {
+                                preview.style.backgroundImage = '';
+                                preview.classList.remove('has-image');
+                            }
                         }
                     });
                 }
@@ -528,7 +569,7 @@
                 modal.show();
             } catch (error) {
                 console.error('Error in editProduct:', error);
-                alert('Error loading product: ' + error.message);
+                alert('Error loading product details. Please try again.');
             }
         }
 
@@ -584,6 +625,12 @@
                 // Create FormData and append all form fields
                 const formData = new FormData(form);
                 formData.append('variants', JSON.stringify(variants));
+
+                // Log form data for debugging
+                console.log('Form data being sent:');
+                for (let [key, value] of formData.entries()) {
+                    console.log(key, ':', value);
+                }
                 
                 // Show loading state
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
@@ -594,6 +641,11 @@
                     method: 'PUT',
                     body: formData
                 });
+
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server did not return JSON');
+                }
 
                 const data = await response.json();
                 

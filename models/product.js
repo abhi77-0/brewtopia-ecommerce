@@ -67,6 +67,11 @@ const productSchema = new Schema({
         type: String,
         enum: ['active', 'inactive'],
         default: 'active'
+    },
+    brand: {
+        type: String,
+        required: true,
+        enum: ['kingfisher', 'heineken', 'budweiser', 'corona', 'carlsberg']
     }
 }, {
     timestamps: true

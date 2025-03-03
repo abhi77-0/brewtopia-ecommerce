@@ -6,31 +6,68 @@ exports.getAllProducts = async (req, res) => {
     try {
         // Get filter parameters
         const categoryId = req.query.category;
+        const minPrice = parseInt(req.query.minPrice) || 100;
+        const brand = req.query.brand;
+        const sort = req.query.sort;
         
         // Build query
         const query = { isDeleted: false };
-        if (categoryId) {
-            query.category = categoryId;
+        if (categoryId) query.category = categoryId;
+        if (brand) query.brand = brand;
+
+        // Price filter for both variants
+        if (minPrice) {
+            query['$or'] = [
+                { 'variants.500ml.price': { $gte: minPrice } },
+                { 'variants.650ml.price': { $gte: minPrice } }
+            ];
         }
 
-        console.log('Query:', query); // Debug log
+        // Build sort options
+        let sortOptions = {};
+        switch(sort) {
+            case 'price-low':
+                sortOptions = { 'variants.500ml.price': 1 };
+                break;
+            case 'price-high':
+                sortOptions = { 'variants.500ml.price': -1 };
+                break;
+            case 'name-asc':
+                sortOptions = { name: 1 };
+                break;
+            case 'name-desc':
+                sortOptions = { name: -1 };
+                break;
+            default:
+                sortOptions = { createdAt: -1 };
+        }
 
         // Fetch active categories for filter
         const categories = await Category.find({ isDeleted: false }).sort({ name: 1 });
         
-        // Fetch products with category populated
+        // First get all products to extract unique brands
+        const allProducts = await Product.find({ isDeleted: false });
+        const brands = [...new Set(allProducts.map(product => product.brand).filter(Boolean))];
+
+        // Then fetch filtered products
         const products = await Product.find(query)
             .populate('category')
-            .sort({ createdAt: -1 });
+            .sort(sortOptions);
 
-        console.log('Found products:', products.length); // Debug log
-        console.log('First product:', products[0]); // Debug log
+        console.log('Query:', query);
+        console.log('Found products:', products.length);
+        console.log('Available brands:', brands);
+        console.log('Selected brand:', brand);
+        console.log('Min price:', minPrice);
 
         res.render('shop/products', {
             title: 'Our Products',
             products,
             categories,
             selectedCategory: categoryId || '',
+            selectedBrand: brand || '',
+            minPrice: minPrice,
+            brands,
             path: '/shop/products'
         });
     } catch (error) {
@@ -40,6 +77,9 @@ exports.getAllProducts = async (req, res) => {
             products: [],
             categories: [],
             selectedCategory: '',
+            selectedBrand: '',
+            minPrice: 100,
+            brands: [],
             error: 'Error fetching products',
             path: '/shop/products'
         });

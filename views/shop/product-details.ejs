@@ -1,133 +1,504 @@
 <%- include('../partials/header') %>
 
-<div class="container mt-4">
-    <div class="row">
-        <!-- Product Images -->
-        <div class="col-md-6">
-            <div id="productCarousel" class="carousel slide" data-bs-ride="carousel">
-                <div class="carousel-inner">
-                    <% if (product.images.image1) { %>
-                        <div class="carousel-item active">
-                            <img src="<%= product.images.image1 %>" class="d-block w-100" alt="<%= product.name %>">
-                        </div>
-                    <% } %>
-                    <% if (product.images.image2) { %>
-                        <div class="carousel-item">
-                            <img src="<%= product.images.image2 %>" class="d-block w-100" alt="<%= product.name %>">
-                        </div>
-                    <% } %>
-                    <% if (product.images.image3) { %>
-                        <div class="carousel-item">
-                            <img src="<%= product.images.image3 %>" class="d-block w-100" alt="<%= product.name %>">
-                        </div>
-                    <% } %>
+<style>
+    .product-details-container {
+        padding: 2rem 0;
+        background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%);
+        min-height: calc(100vh - 160px);
+    }
+
+    .product-image-section {
+        position: relative;
+        border-radius: 15px;
+        overflow: hidden;
+        background: white;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .main-image-container {
+        position: relative;
+        width: 100%;
+        padding-top: 100%; /* Creates a perfect square */
+        background-color: #f8f9fa;
+    }
+
+    .main-image-container img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain; /* Changed to contain to show full image */
+        padding: 1rem; /* Add some padding around the image */
+    }
+
+    .thumbnail-container {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: white;
+        border-radius: 12px;
+        margin-top: 0.75rem;
+        justify-content: center;
+    }
+
+    .thumbnail {
+        position: relative;
+        width: 60px;
+        height: 60px;
+        border-radius: 8px;
+        cursor: pointer;
+        opacity: 0.6;
+        transition: all 0.3s ease;
+        object-fit: contain;
+        background-color: #f8f9fa;
+        padding: 0.25rem;
+    }
+
+    .thumbnail:hover, .thumbnail.active {
+        opacity: 1;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .product-info-section {
+        background: white;
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .product-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.75rem;
+    }
+
+    .product-category {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        background: #FF980015;
+        color: #FF9800;
+        border-radius: 20px;
+        font-weight: 500;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+    }
+
+    .product-description {
+        font-size: 1rem;
+        line-height: 1.6;
+        color: #6c757d;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .variant-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .variant-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.75rem;
+    }
+
+    .variant-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .variant-card {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .variant-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .variant-card.selected {
+        border-color: #FF9800;
+        background: #FF980010;
+    }
+
+    .variant-size {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+
+    .variant-price {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #FF9800;
+    }
+
+    .variant-stock {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+
+    .action-buttons {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .btn-add-to-cart {
+        background: #FF9800;
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-add-to-cart:hover {
+        background: #F57C00;
+        transform: translateY(-2px);
+    }
+
+    .btn-wishlist {
+        background: #f8f9fa;
+        border: none;
+        width: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: #FF9800;
+        transition: all 0.3s ease;
+    }
+
+    .btn-wishlist:hover {
+        background: #FF980015;
+        transform: translateY(-2px);
+    }
+
+    .btn-wishlist.active {
+        background: #FF980015;
+        color: #FF9800;
+    }
+
+    .success-animation {
+        animation: successPop 0.3s ease-out;
+    }
+
+    @keyframes successPop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+
+    /* Add navbar styles from home page */
+    .navbar {
+        background: #ffffff;
+        padding: 1rem 0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .navbar-brand {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #FF9800 !important;
+    }
+
+    .search-bar {
+        max-width: 500px;
+        width: 100%;
+    }
+
+    .search-input {
+        border-radius: 20px;
+        padding-left: 1rem;
+        padding-right: 3rem;
+        border: 1px solid #ddd;
+    }
+
+    .search-btn {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #666;
+    }
+
+    .nav-icon {
+        color: #666;
+        font-size: 1.2rem;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .nav-icon:hover {
+        color: #FF9800;
+        background: rgba(255, 152, 0, 0.1);
+    }
+
+    .badge-notification {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background-color: #FF9800;
+        color: white;
+        border-radius: 50%;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        color: #666;
+        padding: 0.5rem;
+        border-radius: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .user-profile:hover {
+        background: rgba(255, 152, 0, 0.1);
+        color: #FF9800;
+    }
+
+    .user-profile img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .dropdown-menu {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border: none;
+        padding: 0.5rem;
+    }
+
+    .dropdown-item {
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+    }
+
+    .dropdown-item:hover {
+        background: rgba(255, 152, 0, 0.1);
+        color: #FF9800;
+    }
+
+    /* Footer Styles */
+    .footer {
+        margin-top: auto;
+        background: #343a40;
+        color: white;
+    }
+
+    .footer h5 {
+        color: #fff;
+        font-weight: 600;
+    }
+
+    .footer a {
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    .footer a:hover {
+        color: #FF9800 !important;
+    }
+
+    .social-links a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.1);
+        transition: all 0.3s ease;
+    }
+
+    .social-links a:hover {
+        background: #FF9800;
+        transform: translateY(-3px);
+    }
+
+    .newsletter-form .form-control {
+        background: rgba(255,255,255,0.1);
+        border: none;
+        color: #fff;
+        padding: 0.75rem;
+    }
+
+    .newsletter-form .form-control::placeholder {
+        color: rgba(255,255,255,0.5);
+    }
+
+    .bg-darker {
+        background: #1a1a1a;
+    }
+
+    .payment-methods {
+        max-height: 30px;
+        opacity: 0.7;
+    }
+</style>
+
+<div class="product-details-container">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Product Images Section -->
+            <div class="col-lg-6">
+                <div class="product-image-section">
+                    <div class="main-image-container">
+                        <img id="mainImage" 
+                             src="<%= product.images.image1 || 'https://via.placeholder.com/400x400?text=No+Image' %>" 
+                             alt="<%= product.name %>">
+                    </div>
+                    <div class="thumbnail-container">
+                        <% if (product.images.image1) { %>
+                            <img src="<%= product.images.image1 %>" 
+                                 class="thumbnail active" 
+                                 onclick="changeImage(this, '<%= product.images.image1 %>')" 
+                                 alt="Thumbnail 1">
+                        <% } %>
+                        <% if (product.images.image2) { %>
+                            <img src="<%= product.images.image2 %>" 
+                                 class="thumbnail" 
+                                 onclick="changeImage(this, '<%= product.images.image2 %>')" 
+                                 alt="Thumbnail 2">
+                        <% } %>
+                        <% if (product.images.image3) { %>
+                            <img src="<%= product.images.image3 %>" 
+                                 class="thumbnail" 
+                                 onclick="changeImage(this, '<%= product.images.image3 %>')" 
+                                 alt="Thumbnail 3">
+                        <% } %>
+                    </div>
                 </div>
-                <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Previous</span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
-                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Next</span>
-                </button>
             </div>
 
-            <!-- Thumbnail Navigation -->
-            <div class="d-flex justify-content-center mt-3 gap-2">
-                <% if (product.images.image1) { %>
-                    <img src="<%= product.images.image1 %>" class="thumbnail active" onclick="setActiveImage(0)" alt="Thumbnail 1">
-                <% } %>
-                <% if (product.images.image2) { %>
-                    <img src="<%= product.images.image2 %>" class="thumbnail" onclick="setActiveImage(1)" alt="Thumbnail 2">
-                <% } %>
-                <% if (product.images.image3) { %>
-                    <img src="<%= product.images.image3 %>" class="thumbnail" onclick="setActiveImage(2)" alt="Thumbnail 3">
-                <% } %>
-            </div>
-        </div>
-
-        <!-- Product Details -->
-        <div class="col-md-6">
-            <h1 class="mb-2"><%= product.name %></h1>
-            <p class="text-muted mb-4">
-                Category: <%= product.category ? product.category.name : 'Uncategorized' %>
-            </p>
-            
-            <div class="description mb-4">
-                <h5>Description</h5>
-                <p><%= product.description %></p>
-            </div>
-
-            <!-- Variant Selection -->
-            <div class="variants mb-4">
-                <h5>Select Variant</h5>
-                <div class="btn-group w-100" role="group" aria-label="Size variants">
-                    <% if (product.variants['500ml']) { %>
-                        <input type="radio" class="btn-check" name="variant" id="500ml" value="500ml" checked>
-                        <label class="btn btn-outline-primary" for="500ml">
-                            500ml - ₹<%= product.variants['500ml'].price %>
-                            <small class="d-block">Stock: <%= product.variants['500ml'].stock %></small>
-                        </label>
+            <!-- Product Info Section -->
+            <div class="col-lg-6">
+                <div class="product-info-section">
+                    <h1 class="product-title"><%= product.name %></h1>
+                    <% if (product.category) { %>
+                        <div class="product-category">
+                            <%= product.category.name %>
+                        </div>
                     <% } %>
-                    <% if (product.variants['650ml']) { %>
-                        <input type="radio" class="btn-check" name="variant" id="650ml" value="650ml">
-                        <label class="btn btn-outline-primary" for="650ml">
-                            650ml - ₹<%= product.variants['650ml'].price %>
-                            <small class="d-block">Stock: <%= product.variants['650ml'].stock %></small>
-                        </label>
-                    <% } %>
+                    
+                    <p class="product-description"><%= product.description %></p>
+
+                    <div class="variant-section">
+                        <h3 class="variant-title">Select Size</h3>
+                        <div class="variant-options">
+                            <% if (product.variants['500ml']) { %>
+                                <div class="variant-card" onclick="selectVariant(this, '500ml')">
+                                    <div class="variant-size">500ml</div>
+                                    <div class="variant-price">₹<%= product.variants['500ml'].price %></div>
+                                    <div class="variant-stock">
+                                        Stock: <%= product.variants['500ml'].stock %>
+                                    </div>
+                                </div>
+                            <% } %>
+                            <% if (product.variants['650ml']) { %>
+                                <div class="variant-card" onclick="selectVariant(this, '650ml')">
+                                    <div class="variant-size">650ml</div>
+                                    <div class="variant-price">₹<%= product.variants['650ml'].price %></div>
+                                    <div class="variant-stock">
+                                        Stock: <%= product.variants['650ml'].stock %>
+                                    </div>
+                                </div>
+                            <% } %>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn-add-to-cart" onclick="addToCart()">
+                            Add to Cart
+                        </button>
+                        <button class="btn-wishlist" onclick="toggleWishlist(this)">
+                            <i class="far fa-heart"></i>
+                        </button>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Add to Cart -->
-            <div class="d-grid gap-2">
-                <button class="btn btn-primary btn-lg" onclick="addToCart('<%= product._id %>')">
-                    Add to Cart
-                </button>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    .carousel-item img {
-        height: 400px;
-        object-fit: cover;
-        border-radius: 8px;
-    }
-    .thumbnail {
-        width: 80px;
-        height: 80px;
-        object-fit: cover;
-        border-radius: 4px;
-        cursor: pointer;
-        opacity: 0.6;
-        transition: opacity 0.2s;
-    }
-    .thumbnail:hover, .thumbnail.active {
-        opacity: 1;
-    }
-    .variants .btn-check:checked + .btn-outline-primary {
-        background-color: #0d6efd;
-        color: white;
-    }
-</style>
-
 <script>
-    function setActiveImage(index) {
-        const carousel = new bootstrap.Carousel(document.getElementById('productCarousel'));
-        carousel.to(index);
+    let selectedVariant = null;
+
+    function changeImage(thumbnail, imageUrl) {
+        // Update main image
+        document.getElementById('mainImage').src = imageUrl;
         
         // Update thumbnail active state
-        document.querySelectorAll('.thumbnail').forEach((thumb, i) => {
-            thumb.classList.toggle('active', i === index);
+        document.querySelectorAll('.thumbnail').forEach(thumb => {
+            thumb.classList.remove('active');
         });
+        thumbnail.classList.add('active');
     }
 
-    function addToCart(productId) {
-        const selectedVariant = document.querySelector('input[name="variant"]:checked').value;
-        // Add to cart logic here
-        alert('Added to cart: ' + selectedVariant);
+    function selectVariant(element, size) {
+        // Remove selected class from all variants
+        document.querySelectorAll('.variant-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        
+        // Add selected class to clicked variant
+        element.classList.add('selected');
+        selectedVariant = size;
+    }
+
+    function addToCart() {
+        if (!selectedVariant) {
+            alert('Please select a size');
+            return;
+        }
+
+        const button = document.querySelector('.btn-add-to-cart');
+        button.classList.add('success-animation');
+        button.textContent = 'Added to Cart';
+        
+        setTimeout(() => {
+            button.classList.remove('success-animation');
+            button.textContent = 'Add to Cart';
+        }, 2000);
+
+        // Add your cart logic here
+    }
+
+    function toggleWishlist(button) {
+        button.classList.toggle('active');
+        const icon = button.querySelector('i');
+        icon.classList.toggle('far');
+        icon.classList.toggle('fas');
+        
+        // Add your wishlist logic here
     }
 </script>
 

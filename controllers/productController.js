@@ -116,7 +116,7 @@ exports.addProduct = async (req, res) => {
 exports.editProduct = async (req, res) => {
     try {
         const { productId } = req.params;
-        const { name, description, category } = req.body;
+        const { name, description, category, brand } = req.body;
         const variants = JSON.parse(req.body.variants);
 
         const product = await Product.findById(productId);
@@ -124,37 +124,48 @@ exports.editProduct = async (req, res) => {
             return res.status(404).json({ error: 'Product not found' });
         }
 
-        // Upload new images if provided
-        const uploadPromises = [];
-        const newImages = {};
-        
-        if (req.files) {
-            for (let i = 1; i <= 3; i++) {
-                const imageField = `image${i}`;
-                if (req.files[imageField] && req.files[imageField][0]) {
-                    const uploadResult = await handleUpload(req.files[imageField][0]);
-                    newImages[`image${i}`] = uploadResult.secure_url;
-                }
-            }
-        }
-
-        // Update product
+        // Update basic fields
         product.name = name;
         product.description = description;
         product.category = category;
+        product.brand = brand;
         product.variants = variants;
-        
-        // Only update images that were uploaded
-        product.images = {
-            ...product.images,
-            ...newImages
-        };
+
+        // Upload new images if provided
+        if (req.files) {
+            const newImages = {};
+            for (let i = 1; i <= 3; i++) {
+                const imageField = `image${i}`;
+                if (req.files[imageField] && req.files[imageField][0]) {
+                    try {
+                        const result = await handleUpload(req.files[imageField][0]);
+                        newImages[imageField] = result.secure_url;
+                    } catch (uploadError) {
+                        console.error(`Error uploading ${imageField}:`, uploadError);
+                    }
+                }
+            }
+
+            // Only update images that were uploaded
+            product.images = {
+                ...product.images,
+                ...newImages
+            };
+        }
+
+        console.log('Updating product with data:', {
+            name,
+            description,
+            category,
+            brand,
+            variants
+        });
 
         await product.save();
         res.json({ message: 'Product updated successfully', product });
     } catch (error) {
         console.error('Error updating product:', error);
-        res.status(500).json({ error: 'Error updating product' });
+        res.status(500).json({ error: error.message || 'Error updating product' });
     }
 };
 
