@@ -392,6 +392,40 @@
         max-height: 30px;
         opacity: 0.7;
     }
+
+    .out-of-stock-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+        font-weight: 600;
+        z-index: 2;
+    }
+
+    .variant-item.out-of-stock {
+        opacity: 0.6;
+        background: #f8f9fa;
+    }
+
+    .stock-status {
+        color: #dc3545;
+        font-size: 0.8rem;
+        margin-left: 0.5rem;
+    }
+
+    .btn-secondary:disabled {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        opacity: 0.65;
+        cursor: not-allowed;
+    }
 </style>
 
 <div class="shop-container">
@@ -467,7 +501,7 @@
                     <% if (products && products.length > 0) { %>
                         <% products.forEach(function(product) { %>
                             <div class="col">
-                                <div class="card product-card">
+                                <div class="card product-card" data-product-id="<%= product._id %>">
                                     <div class="product-carousel">
                                         <div id="carousel-<%= product._id %>" class="carousel slide" data-bs-ride="carousel">
                                             <div class="carousel-inner">
@@ -510,6 +544,24 @@
                                                 </button>
                                             <% } %>
                                         </div>
+                                        
+                                        <% 
+                                        let isOutOfStock = true;
+                                        if (product.variants) {
+                                            isOutOfStock = !(
+                                                (product.variants['500ml'] && product.variants['500ml'].stock > 0) || 
+                                                (product.variants['650ml'] && product.variants['650ml'].stock > 0)
+                                            );
+                                        } else {
+                                            isOutOfStock = !(product.stock > 0);
+                                        }
+                                        %>
+
+                                        <% if (isOutOfStock) { %>
+                                            <div class="out-of-stock-overlay">
+                                                <span>Out of Stock</span>
+                                            </div>
+                                        <% } %>
                                     </div>
                                     
                                     <div class="card-body">
@@ -522,21 +574,37 @@
                                         
                                         <div class="variants mb-3">
                                             <% if (product.variants && product.variants['500ml']) { %>
-                                                <div class="variant-item">
+                                                <div class="variant-item <%= product.variants['500ml'].stock <= 0 ? 'out-of-stock' : '' %>"
+                                                     data-variant-size="500ml"
+                                                     data-price="<%= product.variants['500ml'].price %>">
                                                     <span class="size">500ml</span>
-                                                    <span class="price">₹<%= product.variants['500ml'].price %></span>
+                                                    <div class="variant-info">
+                                                        <span class="price">₹<%= product.variants['500ml'].price %></span>
+                                                        <% if (product.variants['500ml'].stock <= 0) { %>
+                                                            <small class="stock-status">(Out of Stock)</small>
+                                                        <% } %>
+                                                    </div>
                                                 </div>
                                             <% } %>
                                             <% if (product.variants && product.variants['650ml']) { %>
-                                                <div class="variant-item">
+                                                <div class="variant-item <%= product.variants['650ml'].stock <= 0 ? 'out-of-stock' : '' %>"
+                                                     data-variant-size="650ml"
+                                                     data-price="<%= product.variants['650ml'].price %>">
                                                     <span class="size">650ml</span>
-                                                    <span class="price">₹<%= product.variants['650ml'].price %></span>
+                                                    <div class="variant-info">
+                                                        <span class="price">₹<%= product.variants['650ml'].price %></span>
+                                                        <% if (product.variants['650ml'].stock <= 0) { %>
+                                                            <small class="stock-status">(Out of Stock)</small>
+                                                        <% } %>
+                                                    </div>
                                                 </div>
                                             <% } %>
                                         </div>
 
-                                        <a href="/shop/products/<%= product._id %>" class="btn btn-primary w-100">
-                                            View Details
+                                        <a href="/shop/products/<%= product._id %>" 
+                                           class="btn <%= isOutOfStock ? 'btn-secondary' : 'btn-primary' %> w-100"
+                                           <%= isOutOfStock ? 'disabled' : '' %>>
+                                            <%= isOutOfStock ? 'Out of Stock' : 'View Details' %>
                                         </a>
                                     </div>
                                 </div>
@@ -584,6 +652,97 @@
 
     function applyPriceFilter() {
         applyFilters();
+    }
+
+    // WebSocket connection
+    const ws = new WebSocket(`ws://${window.location.host}`);
+    
+    ws.onopen = function() {
+        console.log('Connected to WebSocket server');
+    };
+
+    ws.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        if (data.type === 'stockUpdate') {
+            updateProductStock(data.productId, data.variantSize, data.newStock);
+        }
+    };
+
+    ws.onerror = function(error) {
+        console.error('WebSocket error:', error);
+    };
+
+    ws.onclose = function() {
+        console.log('Disconnected from WebSocket server');
+        // Try to reconnect after 5 seconds
+        setTimeout(() => {
+            window.location.reload();
+        }, 5000);
+    };
+
+    // Function to update product stock display
+    function updateProductStock(productId, variantSize, newStock) {
+        const productCard = document.querySelector(`[data-product-id="${productId}"]`);
+        if (!productCard) return;
+
+        console.log('Updating stock for product:', productId, 'variant:', variantSize, 'new stock:', newStock);
+
+        const variantElement = productCard.querySelector(`[data-variant-size="${variantSize}"]`);
+        if (variantElement) {
+            if (newStock <= 0) {
+                console.log('Setting variant to out of stock');
+                variantElement.classList.add('out-of-stock');
+                const variantInfo = variantElement.querySelector('.variant-info');
+                if (variantInfo) {
+                    const price = variantElement.dataset.price;
+                    variantInfo.innerHTML = `
+                        <span class="price">₹${price}</span>
+                        <small class="stock-status">(Out of Stock)</small>
+                    `;
+                }
+            } else {
+                console.log('Setting variant to in stock');
+                variantElement.classList.remove('out-of-stock');
+                const variantInfo = variantElement.querySelector('.variant-info');
+                if (variantInfo) {
+                    const price = variantElement.dataset.price;
+                    variantInfo.innerHTML = `<span class="price">₹${price}</span>`;
+                }
+            }
+        }
+
+        // Check if all variants are out of stock
+        const variants = productCard.querySelectorAll('.variant-item');
+        const allVariantsOutOfStock = Array.from(variants)
+            .every(v => v.classList.contains('out-of-stock'));
+
+        console.log('All variants out of stock:', allVariantsOutOfStock);
+
+        // Update product card appearance
+        const carousel = productCard.querySelector('.product-carousel');
+        let outOfStockOverlay = productCard.querySelector('.out-of-stock-overlay');
+        const viewDetailsBtn = productCard.querySelector('.btn');
+
+        if (allVariantsOutOfStock) {
+            console.log('Showing out of stock overlay');
+            if (!outOfStockOverlay) {
+                outOfStockOverlay = document.createElement('div');
+                outOfStockOverlay.className = 'out-of-stock-overlay';
+                outOfStockOverlay.innerHTML = '<span>Out of Stock</span>';
+                carousel.appendChild(outOfStockOverlay);
+            }
+            viewDetailsBtn.className = 'btn btn-secondary w-100';
+            viewDetailsBtn.disabled = true;
+            viewDetailsBtn.textContent = 'Out of Stock';
+        } else {
+            console.log('Removing out of stock overlay');
+            if (outOfStockOverlay) {
+                outOfStockOverlay.remove();
+            }
+            viewDetailsBtn.className = 'btn btn-primary w-100';
+            viewDetailsBtn.disabled = false;
+            viewDetailsBtn.textContent = 'View Details';
+        }
     }
 </script>
 

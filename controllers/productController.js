@@ -187,4 +187,79 @@ exports.deleteProduct = async (req, res) => {
         console.error('Error deleting product:', error);
         res.status(500).json({ error: 'Error deleting product' });
     }
+};
+
+// Get product details
+exports.getProductDetails = async (req, res) => {
+    try {
+        const productId = req.params.id;
+        console.log('Fetching product details for:', productId);
+
+        const product = await Product.findById(productId)
+            .populate('category')
+            .lean();
+
+        if (!product) {
+            console.log('Product not found');
+            return res.status(404).render('error', {
+                message: 'Product not found'
+            });
+        }
+
+        console.log('Found product:', {
+            id: product._id,
+            name: product.name,
+            category: product.category?._id,
+            brand: product.brand
+        });
+
+        // Build query for similar products
+        const similarProductsQuery = {
+            _id: { $ne: productId },  // Exclude current product
+            isDeleted: false
+        };
+
+        // Add category or brand condition if they exist
+        if (product.category?._id || product.brand) {
+            similarProductsQuery.$or = [];
+            
+            if (product.category?._id) {
+                similarProductsQuery.$or.push({ category: product.category._id });
+            }
+            
+            if (product.brand) {
+                similarProductsQuery.$or.push({ brand: product.brand });
+            }
+        }
+
+        console.log('Similar products query:', JSON.stringify(similarProductsQuery, null, 2));
+
+        // Find similar products
+        const similarProducts = await Product.find(similarProductsQuery)
+            .populate('category')
+            .limit(4)
+            .lean();
+
+        console.log(`Found ${similarProducts.length} similar products`);
+        console.log('Similar products:', similarProducts.map(p => ({
+            id: p._id,
+            name: p.name,
+            category: p.category?.name,
+            brand: p.brand
+        })));
+
+        res.render('shop/product-details', {
+            title: product.name,
+            product,
+            similarProducts,
+            user: req.session.user
+        });
+
+    } catch (error) {
+        console.error('Error in getProductDetails:', error);
+        res.status(500).render('error', {
+            message: 'Error loading product details',
+            error: error.message
+        });
+    }
 }; 

@@ -1,42 +1,46 @@
 const bcrypt = require("bcryptjs");
-const { getDB } = require("../config/db");
+const User = require("../models/userModel");
+const PendingUser = require("../models/pendingUserModel");
+const OTP = require("../models/otpModel");
 const { generateOTP, verifyOTP } = require("../config/otpService");
 
 async function signup(req, res) {
     const { name, email, password } = req.body;
-    const db = getDB();
 
     try {
-        // Check if the user already exists
-    const existingUser = await db.collection("users").findOne({ email });
+        // Check if user exists
+        const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.render("signup", { 
                 error: "User already exists. Please login instead."
             });
         }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    await generateOTP(email); // Store OTP in DB
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await generateOTP(email);
 
-    // Temporarily save user data for final signup step after OTP verification
-    await db.collection("pending_users").insertOne({ email, name, password: hashedPassword });
+        // Save pending user
+        await PendingUser.create({ 
+            email, 
+            name, 
+            password: hashedPassword 
+        });
 
-        // Render OTP verification page
-        res.render("verifyOtp", { email }); // Pass the email to the OTP page
+        res.render("verifyOtp", { email });
     } catch (error) {
         console.error("Signup error:", error);
-        res.status(500).json({ message: "Internal server error" });
+        res.render("signup", { 
+            error: "Error during signup. Please try again." 
+        });
     }
 }
 
 async function verifyOTPController(req, res) {
     const { email, otp } = req.body;
-    const db = getDB();
     const isPasswordReset = req.session.resetEmail === email;
 
     try {
-        // Get the OTP document from the database
-        const otpDoc = await db.collection("otps").findOne({ email });
+        const otpDoc = await OTP.findOne({ email });
         
         if (!otpDoc) {
             return res.render("verifyOtp", { 
@@ -45,21 +49,15 @@ async function verifyOTPController(req, res) {
             });
         }
 
-        // Check if OTP has expired (1 minute = 60000 milliseconds)
-        const now = new Date();
-        const otpCreatedTime = new Date(otpDoc.createdAt);
-        const timeDiff = now - otpCreatedTime;
-        
-        if (timeDiff > 60000) {
-            // Delete expired OTP
-            await db.collection("otps").deleteOne({ email });
+        // Check OTP expiration
+        if (otpDoc.isExpired()) {
+            await OTP.deleteOne({ email });
             return res.render("verifyOtp", { 
                 email,
                 error: "OTP has expired. Please request a new one."
             });
         }
 
-        // Verify the OTP
         if (!(await verifyOTP(email, otp))) {
             return res.render("verifyOtp", { 
                 email,
@@ -67,36 +65,36 @@ async function verifyOTPController(req, res) {
             });
         }
 
-        // Clean up used OTP
-        await db.collection("otps").deleteOne({ email });
+        await OTP.deleteOne({ email });
 
         if (isPasswordReset) {
-            // If this is a password reset flow, redirect to reset password page
             return res.render("resetPassword", { email });
-        } else {
-            // Regular signup flow
-    const pendingUser = await db.collection("pending_users").findOne({ email });
-            if (!pendingUser) {
-                return res.render("verifyOtp", { 
-                    email,
-                    error: "No pending registration found"
-                });
-            }
-
-    // Move user from "pending_users" to "users"
-            const newUser = await db.collection("users").insertOne(pendingUser);
-    await db.collection("pending_users").deleteOne({ email });
-
-            // Create session for the new user
-            req.session.user = {
-                id: newUser.insertedId,
-                email: pendingUser.email,
-                name: pendingUser.name
-            };
-
-            // Redirect to home page after successful verification
-            res.redirect("/users/home");
         }
+
+        const pendingUser = await PendingUser.findOne({ email });
+        if (!pendingUser) {
+            return res.render("verifyOtp", { 
+                email,
+                error: "No pending registration found"
+            });
+        }
+
+        // Create verified user
+        const newUser = await User.create({
+            email: pendingUser.email,
+            name: pendingUser.name,
+            password: pendingUser.password
+        });
+
+        await PendingUser.deleteOne({ email });
+
+        req.session.user = {
+            id: newUser._id,
+            email: newUser.email,
+            name: newUser.name
+        };
+
+        res.redirect("/");
     } catch (error) {
         console.error("OTP verification error:", error);
         res.render("verifyOtp", { 
@@ -106,45 +104,195 @@ async function verifyOTPController(req, res) {
     }
 }
 
-async function loginPage(req, res) {
-    res.render("login"); // Ensure this function is defined
+function getLoginPage(req, res) {
+    res.render("login", { 
+        error: null, 
+        success: null 
+    });
+}
+
+function getSignupPage(req, res) {
+    res.render("signup", { 
+        error: null 
+    });
 }
 
 async function login(req, res) {
     const { email, password } = req.body;
-    const db = getDB();
 
     try {
-        // Find the user by email
-        const user = await db.collection("users").findOne({ email });
+        const user = await User.findOne({ email });
         if (!user) {
             return res.render("login", { error: "Invalid email or password" });
         }
 
-        // Compare the password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.render("login", { error: "Invalid email or password" });
         }
 
-        // Create session for the user
         req.session.user = { 
             id: user._id, 
             email: user.email,
             name: user.name 
         };
 
-        // Redirect to home page after successful login
-        res.redirect("/users/home");
+        res.redirect("/");
     } catch (error) {
         console.error("Login error:", error);
         res.render("login", { error: "An error occurred during login" });
     }
 }
 
+function logout(req, res) {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error("Logout error:", err);
+        }
+        res.redirect("/users/login");
+    });
+}
+
+async function getProfile(req, res) {
+    try {
+        const user = await User.findById(req.session.user.id).select('-password');
+        if (!user) {
+            return res.redirect("/users/login");
+        }
+
+        res.render("profile", { user });
+    } catch (error) {
+        console.error("Get profile error:", error);
+        res.redirect("/users/login");
+    }
+}
+
+async function updateProfile(req, res) {
+    const { name, email } = req.body;
+
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.session.user.id,
+            { $set: { name, email } },
+            { new: true }
+        );
+
+        req.session.user = {
+            ...req.session.user,
+            name: user.name,
+            email: user.email
+        };
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Update profile error:", error);
+        res.status(500).json({ error: "Failed to update profile" });
+    }
+}
+
+async function changePassword(req, res) {
+    const { currentPassword, newPassword } = req.body;
+
+    try {
+        const user = await User.findById(req.session.user.id);
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+        if (!isMatch) {
+            return res.status(400).json({ error: "Current password is incorrect" });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        await user.save();
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Change password error:", error);
+        res.status(500).json({ error: "Failed to change password" });
+    }
+}
+
+function forgotPasswordPage(req, res) {
+    res.render("forgotPassword", { error: null });
+}
+
+async function forgotPassword(req, res) {
+    const { email } = req.body;
+
+    try {
+        console.log('Searching for user with email:', email);
+        const user = await User.findOne({ email });
+        
+        if (!user) {
+            console.log('No user found with email:', email);
+            return res.render("forgotPassword", { 
+                error: "No account found with this email address." 
+            });
+        }
+
+        console.log('User found, generating OTP');
+        // Delete any existing OTP
+        await OTP.deleteOne({ email });
+        
+        // Generate new OTP
+        await generateOTP(email);
+        
+        // Store email in session for password reset flow
+        req.session.resetEmail = email;
+
+        console.log('Rendering verifyOtp page');
+        res.render("verifyOtp", { 
+            email,
+            resetPassword: true,
+            error: null
+        });
+    } catch (error) {
+        console.error("Forgot password error:", error);
+        res.render("forgotPassword", { 
+            error: "An error occurred. Please try again." 
+        });
+    }
+}
+
+async function resetPassword(req, res) {
+    const { email, password, confirmPassword } = req.body;
+
+    try {
+        if (password !== confirmPassword) {
+            return res.render("resetPassword", {
+                email,
+                error: "Passwords do not match"
+            });
+        }
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.render("resetPassword", {
+                email,
+                error: "User not found"
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        user.password = hashedPassword;
+        await user.save();
+
+        delete req.session.resetEmail;
+
+        res.render("login", {
+            success: "Password has been reset successfully. Please login with your new password."
+        });
+    } catch (error) {
+        console.error("Password reset error:", error);
+        res.render("resetPassword", {
+            email,
+            error: "An error occurred while resetting your password"
+        });
+    }
+}
+
 async function resendOTP(req, res) {
     const { email } = req.body;
-    const db = getDB();
     const MAX_RESEND_ATTEMPTS = 3;
 
     try {
@@ -155,8 +303,7 @@ async function resendOTP(req, res) {
             });
         }
 
-        // Check if there's a pending registration
-        const pendingUser = await db.collection("pending_users").findOne({ email });
+        const pendingUser = await PendingUser.findOne({ email });
         if (!pendingUser) {
             return res.status(400).json({ 
                 success: false,
@@ -164,8 +311,7 @@ async function resendOTP(req, res) {
             });
         }
 
-        // Check resend attempts
-        const otpDoc = await db.collection("otps").findOne({ email });
+        const otpDoc = await OTP.findOne({ email });
         const resendCount = otpDoc?.resendCount || 0;
 
         if (resendCount >= MAX_RESEND_ATTEMPTS) {
@@ -176,16 +322,14 @@ async function resendOTP(req, res) {
             });
         }
 
-        // Delete existing OTP
-        await db.collection("otps").deleteOne({ email });
+        await OTP.deleteOne({ email });
 
-        // Generate and store new OTP with incremented resend count
         try {
             await generateOTP(email);
-            // Update the resend count
-            await db.collection("otps").updateOne(
+            await OTP.updateOne(
                 { email },
-                { $set: { resendCount: resendCount + 1 } }
+                { $set: { resendCount: resendCount + 1 } },
+                { upsert: true }
             );
             
             const remainingAttempts = MAX_RESEND_ATTEMPTS - (resendCount + 1);
@@ -210,100 +354,16 @@ async function resendOTP(req, res) {
     }
 }
 
-async function forgotPasswordPage(req, res) {
-    res.render('forgotPassword');
-}
-
-async function forgotPassword(req, res) {
-    const { email } = req.body;
-    const db = getDB();
-
-    try {
-        // Check if user exists
-        const user = await db.collection("users").findOne({ email });
-        if (!user) {
-            return res.render("forgotPassword", { 
-                error: "No account found with this email address." 
-            });
-        }
-
-        // Delete any existing OTP for this email
-        await db.collection("otps").deleteOne({ email });
-
-        // Generate and send new OTP
-        await generateOTP(email);
-
-        // Store the email in session for verification
-        req.session.resetEmail = email;
-
-        // Redirect to OTP verification page
-        res.render("verifyOtp", { 
-            email,
-            resetPassword: true,
-            success: "OTP has been sent to your email address."
-        });
-
-    } catch (error) {
-        console.error("Forgot password error:", error);
-        res.render("forgotPassword", { 
-            error: "An error occurred. Please try again." 
-        });
-    }
-}
-
-async function resetPassword(req, res) {
-    const { email, password, confirmPassword } = req.body;
-    const db = getDB();
-
-    try {
-        // Validate passwords match
-        if (password !== confirmPassword) {
-            return res.render("resetPassword", {
-                email,
-                error: "Passwords do not match"
-            });
-        }
-
-        // Find the user
-        const user = await db.collection("users").findOne({ email });
-        if (!user) {
-            return res.render("resetPassword", {
-                email,
-                error: "User not found"
-            });
-        }
-
-        // Hash the new password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Update the user's password
-        await db.collection("users").updateOne(
-            { email },
-            { $set: { password: hashedPassword } }
-        );
-
-        // Clear the reset email from session
-        delete req.session.resetEmail;
-
-        // Redirect to login with success message
-        res.render("login", {
-            success: "Password has been reset successfully. Please login with your new password."
-        });
-
-    } catch (error) {
-        console.error("Password reset error:", error);
-        res.render("resetPassword", {
-            email,
-            error: "An error occurred while resetting your password"
-        });
-    }
-}
-
-module.exports = { 
-    signup, 
-    verifyOTP: verifyOTPController, 
-    loginPage, 
+module.exports = {
+    signup,
     login,
+    logout,
+    getLoginPage,
+    getSignupPage,
+    getProfile,
+    updateProfile,
+    changePassword,
+    verifyOTP: verifyOTPController,
     resendOTP,
     forgotPasswordPage,
     forgotPassword,
