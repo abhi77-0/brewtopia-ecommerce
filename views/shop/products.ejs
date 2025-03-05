@@ -492,6 +492,18 @@
                             </select>
                         </div>
                     </div>
+
+                    <!-- Sort By Filter -->
+                    <div class="filter-section">
+                        <h5 class="filter-title">Sort By</h5>
+                        <select class="form-select" id="sortSelect" onchange="applyFilters()">
+                            <option value="">Default</option>
+                            <option value="price-low" <%= sort === 'price-low' ? 'selected' : '' %>>Price: Low to High</option>
+                            <option value="price-high" <%= sort === 'price-high' ? 'selected' : '' %>>Price: High to Low</option>
+                            <option value="name-asc" <%= sort === 'name-asc' ? 'selected' : '' %>>A - Z</option>
+                            <option value="name-desc" <%= sort === 'name-desc' ? 'selected' : '' %>>Z - A</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -636,11 +648,13 @@
         const categoryId = document.querySelector('input[name="category"]:checked')?.value || '';
         const minPrice = document.getElementById('minPrice').value;
         const brand = document.getElementById('brandSelect').value;
+        const sort = document.getElementById('sortSelect').value;
         
         let url = '/shop/products?';
         if (categoryId) url += `category=${categoryId}&`;
         if (minPrice && minPrice > 100) url += `minPrice=${minPrice}&`;
         if (brand) url += `brand=${brand}&`;
+        if (sort) url += `sort=${sort}&`;
         
         window.location.href = url.slice(0, -1);
     }

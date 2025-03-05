@@ -68,7 +68,8 @@ exports.getAllProducts = async (req, res) => {
             selectedBrand: brand || '',
             minPrice: minPrice,
             brands,
-            path: '/shop/products'
+            path: '/shop/products',
+            sort: sort || ''
         });
     } catch (error) {
         console.error('Error fetching products:', error);
