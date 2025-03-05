@@ -107,12 +107,12 @@
     <div class="container">
         <div class="auth-container">
             <h2 class="form-title">Verify OTP</h2>
-            <% if (typeof error !== 'undefined') { %>
+            <!-- <% if (typeof error !== 'undefined') { %>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <%= error %>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-            <% } %>
+            <% } %> -->
             <form action="/users/verify-otp" method="POST" id="otpForm">
                 <div class="mb-3">
                     <label class="form-label">Enter OTP</label>

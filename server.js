@@ -15,6 +15,9 @@ require('./config/googleAuth');
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+// Add this AFTER your session middleware and passport initialization
+const userMiddleware = require('./middlewares/userMiddleware');
+app.use(userMiddleware);
 
 // Set view engine (EJS in this example)
 app.set("view engine", "ejs");
@@ -42,11 +45,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Global middleware to check auth status
-app.use((req, res, next) => {
-    res.locals.isAuthenticated = req.isAuthenticated();
-    res.locals.user = req.user;
-    next();
-});
+const { setUserLocals } = require('./middlewares/authMiddleware');
+app.use(setUserLocals);
 
 // WebSocket connection handling
 wss.on('connection', function connection(ws) {

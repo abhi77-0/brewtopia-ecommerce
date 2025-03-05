@@ -4,7 +4,18 @@ const PendingUser = require("../models/pendingUserModel");
 const OTP = require("../models/otpModel");
 const { generateOTP, verifyOTP } = require("../config/otpService");
 
-async function signup(req, res) {
+// Signup Handlers
+exports.renderSignupPage = (req, res) => {
+    if (req.session.user) {
+        return res.redirect('/users/home');
+    }
+    res.render("signup", { 
+        error: req.query.error,
+        user: null 
+    }); 
+};
+
+exports.handleSignup = async (req, res) => {
     const { name, email, password } = req.body;
 
     try {
@@ -33,9 +44,17 @@ async function signup(req, res) {
             error: "Error during signup. Please try again." 
         });
     }
-}
+};
 
-async function verifyOTPController(req, res) {
+// OTP Verification Handlers
+exports.renderVerifyOtpPage = (req, res) => {
+    if (!req.session.tempUser) {
+        return res.redirect('/users/signup');
+    }
+    res.render("verifyOtp", { user: null }); 
+};
+
+exports.handleVerifyOtp = async (req, res) => {
     const { email, otp } = req.body;
     const isPasswordReset = req.session.resetEmail === email;
 
@@ -79,6 +98,13 @@ async function verifyOTPController(req, res) {
             });
         }
 
+
+
+
+
+
+
+
         // Create verified user
         const newUser = await User.create({
             email: pendingUser.email,
@@ -94,7 +120,7 @@ async function verifyOTPController(req, res) {
             name: newUser.name
         };
 
-        res.redirect("/");
+        res.redirect("/users/home");
     } catch (error) {
         console.error("OTP verification error:", error);
         res.render("verifyOtp", { 
@@ -102,22 +128,20 @@ async function verifyOTPController(req, res) {
             error: "An error occurred during verification"
         });
     }
-}
+};
 
-function getLoginPage(req, res) {
+// Login Handlers
+exports.renderLoginPage = (req, res) => {
+    if (req.session.user) {
+        return res.redirect('/users/home');
+    }
     res.render("login", { 
-        error: null, 
-        success: null 
+        error: req.query.error,
+        user: null 
     });
-}
+};
 
-function getSignupPage(req, res) {
-    res.render("signup", { 
-        error: null 
-    });
-}
-
-async function login(req, res) {
+exports.handleLogin = async (req, res) => {
     const { email, password } = req.body;
 
     try {
@@ -142,95 +166,38 @@ async function login(req, res) {
         console.error("Login error:", error);
         res.render("login", { error: "An error occurred during login" });
     }
-}
+};
 
-function logout(req, res) {
+// Logout Handler
+exports.handleLogout = (req, res) => {
     req.session.destroy((err) => {
         if (err) {
-            console.error("Logout error:", err);
+            console.error('Error destroying session:', err);
         }
-        res.redirect("/users/login");
+        res.redirect('/users/login');
     });
-}
+};
 
-async function getProfile(req, res) {
-    try {
-        const user = await User.findById(req.session.user.id).select('-password');
-        if (!user) {
-            return res.redirect("/users/login");
-        }
-
-        res.render("profile", { user });
-    } catch (error) {
-        console.error("Get profile error:", error);
-        res.redirect("/users/login");
+// Forgot Password Handlers
+exports.renderForgotPasswordPage = (req, res) => {
+    if (req.session.user) {
+        return res.redirect('/users/home');
     }
-}
+    res.render("forgotPassword", { user: null });
+};
 
-async function updateProfile(req, res) {
-    const { name, email } = req.body;
-
-    try {
-        const user = await User.findByIdAndUpdate(
-            req.session.user.id,
-            { $set: { name, email } },
-            { new: true }
-        );
-
-        req.session.user = {
-            ...req.session.user,
-            name: user.name,
-            email: user.email
-        };
-
-        res.json({ success: true });
-    } catch (error) {
-        console.error("Update profile error:", error);
-        res.status(500).json({ error: "Failed to update profile" });
-    }
-}
-
-async function changePassword(req, res) {
-    const { currentPassword, newPassword } = req.body;
-
-    try {
-        const user = await User.findById(req.session.user.id);
-        const isMatch = await bcrypt.compare(currentPassword, user.password);
-
-        if (!isMatch) {
-            return res.status(400).json({ error: "Current password is incorrect" });
-        }
-
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        user.password = hashedPassword;
-        await user.save();
-
-        res.json({ success: true });
-    } catch (error) {
-        console.error("Change password error:", error);
-        res.status(500).json({ error: "Failed to change password" });
-    }
-}
-
-function forgotPasswordPage(req, res) {
-    res.render("forgotPassword", { error: null });
-}
-
-async function forgotPassword(req, res) {
+exports.handleForgotPassword = async (req, res) => {
     const { email } = req.body;
 
     try {
-        console.log('Searching for user with email:', email);
         const user = await User.findOne({ email });
         
         if (!user) {
-            console.log('No user found with email:', email);
             return res.render("forgotPassword", { 
                 error: "No account found with this email address." 
             });
         }
 
-        console.log('User found, generating OTP');
         // Delete any existing OTP
         await OTP.deleteOne({ email });
         
@@ -240,7 +207,6 @@ async function forgotPassword(req, res) {
         // Store email in session for password reset flow
         req.session.resetEmail = email;
 
-        console.log('Rendering verifyOtp page');
         res.render("verifyOtp", { 
             email,
             resetPassword: true,
@@ -252,9 +218,9 @@ async function forgotPassword(req, res) {
             error: "An error occurred. Please try again." 
         });
     }
-}
+};
 
-async function resetPassword(req, res) {
+exports.handleResetPassword = async (req, res) => {
     const { email, password, confirmPassword } = req.body;
 
     try {
@@ -289,9 +255,10 @@ async function resetPassword(req, res) {
             error: "An error occurred while resetting your password"
         });
     }
-}
+};
 
-async function resendOTP(req, res) {
+// Resend OTP Handler
+exports.handleResendOtp = async (req, res) => {
     const { email } = req.body;
     const MAX_RESEND_ATTEMPTS = 3;
 
@@ -303,11 +270,15 @@ async function resendOTP(req, res) {
             });
         }
 
+        // Check both PendingUser and User collections
         const pendingUser = await PendingUser.findOne({ email });
-        if (!pendingUser) {
+        const existingUser = await User.findOne({ email });
+
+        // If no pending user and no existing user, return error
+        if (!pendingUser && !existingUser) {
             return res.status(400).json({ 
                 success: false,
-                message: "No pending registration found" 
+                message: "No pending registration or user found" 
             });
         }
 
@@ -322,10 +293,14 @@ async function resendOTP(req, res) {
             });
         }
 
+        // Delete any existing OTP for this email
         await OTP.deleteOne({ email });
 
         try {
+            // Generate new OTP
             await generateOTP(email);
+
+            // Update or create OTP document with resend count
             await OTP.updateOne(
                 { email },
                 { $set: { resendCount: resendCount + 1 } },
@@ -352,20 +327,30 @@ async function resendOTP(req, res) {
             message: "Failed to resend OTP. Please try again." 
         });
     }
-}
+};
+// Additional Page Rendering Handlers
+exports.renderProductsPage = (req, res) => {
+    res.render('products', {
+        title: 'Brewtopia - Products',
+       
+        error: null,
+        categoryFilter: null
+    });
+};
 
-module.exports = {
-    signup,
-    login,
-    logout,
-    getLoginPage,
-    getSignupPage,
-    getProfile,
-    updateProfile,
-    changePassword,
-    verifyOTP: verifyOTPController,
-    resendOTP,
-    forgotPasswordPage,
-    forgotPassword,
-    resetPassword
+exports.renderCategoryPage = (req, res) => {
+    const categoryType = req.params.type;
+    res.render('products', {
+        title: `Brewtopia - ${categoryType.charAt(0).toUpperCase() + categoryType.slice(1)} Beers`,
+        
+        categoryFilter: categoryType,
+        error: null
+    });
+};
+
+exports.renderHomePage = (req, res) => {
+    res.render('home', { 
+      
+        title: 'Welcome to Brewtopia'
+    });
 };

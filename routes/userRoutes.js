@@ -1,14 +1,20 @@
 const express = require("express");
 const passport = require('passport');
 const { 
-    signup, 
-    verifyOTP, 
-    loginPage, 
-    login, 
-    resendOTP,
-    forgotPasswordPage,
-    forgotPassword,
-    resetPassword
+    renderSignupPage,
+    handleSignup, 
+    renderVerifyOtpPage,
+    handleVerifyOtp, 
+    renderLoginPage, 
+    handleLogin,
+    handleLogout,
+    renderForgotPasswordPage,
+    handleForgotPassword,
+    handleResetPassword,
+    handleResendOtp,
+    renderProductsPage,
+    renderCategoryPage,
+    renderHomePage
 } = require("../controllers/userController");
 const { isAuthenticated } = require('../middlewares/authMiddleware');
 const { 
@@ -20,18 +26,25 @@ const {
 
 const router = express.Router();
 
-// Public routes (no authentication required)
-router.get("/signup", (req, res) => {
-    if (req.session.user) {
-        return res.redirect('/users/home');
-    }
-    res.render("signup", { 
-        error: req.query.error,
-        user: null 
-    }); 
-});
+// Public routes
+router.get("/signup", renderSignupPage);
+router.post("/signup", validateSignup, handleSignup);
 
-router.post("/signup", validateSignup, signup);
+router.get("/verify-otp", renderVerifyOtpPage);
+router.post("/verify-otp", handleVerifyOtp);
+
+router.get("/login", renderLoginPage);
+router.post("/login", validateLogin, handleLogin);
+
+router.get('/logout', handleLogout);
+
+// Forgot Password routes
+router.get("/forgot-password", renderForgotPasswordPage);
+router.post("/forgot-password", validateForgotPassword, handleForgotPassword);
+router.post("/reset-password", validateResetPassword, handleResetPassword);
+
+// Resend OTP route
+router.post('/resend-otp', handleResendOtp);
 
 // Google Auth routes
 router.get('/auth/google',
@@ -59,84 +72,9 @@ router.get('/auth/google/callback',
     }
 );
 
-router.get("/verify-otp", (req, res) => {
-    if (!req.session.tempUser) {
-        return res.redirect('/users/signup');
-    }
-    res.render("verifyOtp", { user: null }); 
-});
-
-router.post("/verify-otp", verifyOTP);
-
-router.get("/login", (req, res) => {
-    if (req.session.user) {
-        return res.redirect('/users/home');
-    }
-    res.render("login", { 
-        error: req.query.error,
-        user: null 
-    });
-});
-
-router.post("/login", validateLogin, login);
-
-// Logout route
-router.get('/logout', (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            console.error('Error destroying session:', err);
-        }
-        res.redirect('/users/login');
-    });
-});
-
-// Forgot Password routes
-router.get("/forgot-password", (req, res) => {
-    if (req.session.user) {
-        return res.redirect('/users/home');
-    }
-    res.render("forgotPassword", { user: null });
-});
-
-router.post("/forgot-password", validateForgotPassword, forgotPassword);
-router.post("/reset-password", validateResetPassword, resetPassword);
-
-// Products page route - requires authentication
-router.get('/products', isAuthenticated, (req, res) => {
-    res.render('products', {
-        title: 'Brewtopia - Products',
-        user: req.session.user,
-        error: null,
-        categoryFilter: null
-    });
-});
-
-// Category routes - requires authentication
-router.get('/category/:type', isAuthenticated, (req, res) => {
-    const categoryType = req.params.type;
-    res.render('products', {
-        title: `Brewtopia - ${categoryType.charAt(0).toUpperCase() + categoryType.slice(1)} Beers`,
-        user: req.session.user,
-        categoryFilter: categoryType,
-        error: null
-    });
-});
-
-// Protected home route
-router.get('/home', isAuthenticated, (req, res) => {
-    res.render('home', { 
-        user: req.session.user,
-        title: 'Welcome to Brewtopia'
-    });
-});
-
-// Resend OTP route
-router.post('/resend-otp', (req, res) => {
-    if (!req.session.tempUser) {
-        return res.status(400).json({ error: 'No pending verification found' });
-    }
-    resendOTP(req, res);
-});
+// Protected routes
+router.get('/products', isAuthenticated, renderProductsPage);
+router.get('/category/:type', isAuthenticated, renderCategoryPage);
+router.get('/home', isAuthenticated, renderHomePage);
 
 module.exports = router;
-

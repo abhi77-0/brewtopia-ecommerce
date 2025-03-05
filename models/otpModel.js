@@ -1,40 +1,31 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
 
-const otpSchema = new Schema({
+const otpSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
-        trim: true,
-        lowercase: true
+        unique: true
     },
     otp: {
         type: String,
         required: true
     },
-    createdAt: {
+    expiresAt: {
         type: Date,
-        default: Date.now,
-        expires: 300 // OTP expires after 5 minutes
-    },
-    resendCount: {
-        type: Number,
-        default: 0
+        required: true,
+        default: () => new Date(Date.now() + 10 * 60 * 1000) // 10 minutes from now
     }
+}, { 
+    timestamps: true 
 });
 
-// Add methods
+// Method to check if OTP is expired
 otpSchema.methods.isExpired = function() {
-    const now = new Date();
-    const createdAt = this.createdAt;
-    const diffInSeconds = (now - createdAt) / 1000;
-    return diffInSeconds > 300; // 5 minutes
+    return new Date() > this.expiresAt;
 };
 
-// Add indexes
-otpSchema.index({ email: 1 });
-otpSchema.index({ createdAt: 1 }, { expireAfterSeconds: 300 });
+module.exports = mongoose.model('OTP', otpSchema);
 
-const OTP = mongoose.model('OTP', otpSchema);
 
-module.exports = OTP; 
+
+

@@ -1,50 +1,92 @@
-const { getDB } = require("./db");
-const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
+const OTP = require('../models/otpModel');
+const nodemailer = require('nodemailer');
 
-// Generate and store OTP in MongoDB
+// Generate a random 6-digit OTP
+function generateRandomOTP() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 async function generateOTP(email) {
-    const db = getDB();
-    const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // Expire in 5 minutes
+    try {
+        // Generate OTP
+        const otp = generateRandomOTP();
 
-    // Save OTP to DB (upsert: update if exists, insert if not)
-    await db.collection("otps").updateOne(
-        { email },
-        { $set: { otp, expiresAt } },
-        { upsert: true }
-    );
+        // Remove any existing OTP for this email
+        await OTP.deleteOne({ email });
 
-    // Send OTP via email
-    await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Your OTP Code",
-        text: `Your OTP is: ${otp}`
+        // Create new OTP document
+        await OTP.create({
+            email,
+            otp: otp,
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes expiry
+        });
+
+        // Send OTP via email
+        await sendOTPEmail(email, otp);
+
+        return otp;
+    } catch (error) {
+        console.error('Error generating OTP:', error);
+        throw error;
+    }
+}
+
+async function verifyOTP(email, userOTP) {
+    try {
+        // Find OTP document
+        const otpDoc = await OTP.findOne({ email });
+        
+        if (!otpDoc) {
+            return false;
+        }
+
+        // Comprehensive OTP matching
+        const isOTPMatch = 
+            otpDoc.otp === userOTP || 
+            otpDoc.otp === parseInt(userOTP) || 
+            otpDoc.otp.toString() === userOTP;
+        
+        const isNotExpired = new Date() <= otpDoc.expiresAt;
+
+        if (isOTPMatch && isNotExpired) {
+            // Delete the OTP after successful verification
+            await OTP.deleteOne({ email });
+            return true;
+        }
+
+        return false;
+    } catch (error) {
+        console.error('Error verifying OTP:', error);
+        return false;
+    }
+}
+
+async function sendOTPEmail(email, otp) {
+    // Configure your email transporter
+    const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+        }
     });
 
-    return otp;
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Your OTP for Brewtopia',
+        text: `Your OTP is: ${otp}. It will expire in 10 minutes.`
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+    } catch (error) {
+        console.error('Error sending OTP email:', error);
+    }
 }
 
-// Verify OTP from MongoDB
-async function verifyOTP(email, enteredOTP) {
-    const db = getDB();
-    const otpRecord = await db.collection("otps").findOne({ email });
-
-    if (!otpRecord) return false; // No OTP found
-    if (otpRecord.otp !== parseInt(enteredOTP)) return false; // Incorrect OTP
-    if (new Date() > otpRecord.expiresAt) return false; // OTP expired
-
-    // Delete OTP after successful verification
-    await db.collection("otps").deleteOne({ email });
-    return true;
-}
-
-module.exports = { generateOTP, verifyOTP };
+module.exports = {
+    generateOTP,
+    verifyOTP
+};
