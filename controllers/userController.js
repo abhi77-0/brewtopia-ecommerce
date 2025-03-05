@@ -137,7 +137,7 @@ async function login(req, res) {
             name: user.name 
         };
 
-        res.redirect("/");
+        res.redirect("/users/home");
     } catch (error) {
         console.error("Login error:", error);
         res.render("login", { error: "An error occurred during login" });
