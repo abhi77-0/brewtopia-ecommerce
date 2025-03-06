@@ -3,6 +3,9 @@ const router = express.Router();
 const multer = require('multer');
 const categoryController = require('../controllers/categoryController');
 const productController = require('../controllers/productController');
+const User = require('../models/userModel'); // Adjust the path as necessary
+const Category = require('../models/category'); // Assuming you have a Category model
+const Product = require('../models/product'); // Assuming you have a Product model
 
 // Multer configuration
 const storage = multer.memoryStorage();
@@ -122,18 +125,77 @@ router.put('/products/:productId', isAdmin, upload.fields([
 ]), productController.editProduct);
 router.delete('/products/:productId', isAdmin, productController.deleteProduct);
 
+// Route to hide a product
+router.put('/products/:productId/hide', isAdmin, async (req, res) => {
+    const { productId } = req.params;
+
+    try {
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({ error: 'Product not found' });
+        }
+
+        // Toggle the hidden status
+        product.hidden = !product.hidden;
+        await product.save();
+
+        res.status(200).json({ message: `Product has been ${product.hidden ? 'hidden' : 'unhidden'}.` });
+    } catch (error) {
+        console.error('Error hiding product:', error);
+        res.status(500).json({ error: 'Failed to hide product' });
+    }
+});
+
 // Users management
-router.get('/users', isAdmin, (req, res) => {
-    res.render('admin/users', {
-        title: 'Manage Users',
-        adminUser: req.session.adminUser,
-        path: '/admin/users',
-        users: []
-    });
+router.get('/users', isAdmin, async (req, res) => {
+    try {
+        const users = await User.find(); // Fetch all users from the database
+        res.render('admin/users', {
+            title: 'Manage Users',
+            adminUser: req.session.adminUser,
+            path: '/admin/users',
+            users: users // Pass users to the EJS template
+        });
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).render('admin/users', {
+            title: 'Manage Users',
+            adminUser: req.session.adminUser,
+            path: '/admin/users',
+            users: [] // Pass an empty array on error
+        });
+    }
 });
 
 // Categories management
-router.get('/categories', isAdmin, categoryController.getAllCategories);
+router.get('/categories', isAdmin, async (req, res) => {
+    try {
+        const categories = await Category.find(); // Fetch all categories from the database
+        const categoriesWithCounts = await Promise.all(categories.map(async (category) => {
+            const productCount = await Product.countDocuments({ category: category._id }); // Count products in each category
+            return {
+                ...category.toObject(),
+                productCount: productCount
+            };
+        }));
+
+        res.render('admin/categories', {
+            title: 'Manage Categories',
+            adminUser: req.session.adminUser,
+            path: '/admin/categories',
+            categories: categoriesWithCounts // Pass categories with product counts to the EJS template
+        });
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        res.status(500).render('admin/categories', {
+            title: 'Manage Categories',
+            adminUser: req.session.adminUser,
+            path: '/admin/categories',
+            categories: [] // Pass an empty array on error
+        });
+    }
+});
+
 router.get('/categories/:id', isAdmin, categoryController.getCategory);
 router.post('/categories/add', isAdmin, categoryController.addCategory);
 router.put('/categories/:categoryId', isAdmin, categoryController.updateCategory);
@@ -151,6 +213,26 @@ router.get('/orders', isAdmin, (req, res) => {
 
 router.put('/orders/:id/status', isAdmin, (req, res) => {
     // Update order status logic
+});
+
+// Route to block/unblock a user
+router.put('/users/:id/block', async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        user.blocked = !user.blocked; // Toggle the blocked status
+        await user.save();
+
+        res.json({ message: `User has been ${user.blocked ? 'blocked' : 'unblocked'}` });
+    } catch (error) {
+        console.error('Error toggling user status:', error);
+        res.status(500).json({ error: 'Failed to toggle user status' });
+    }
 });
 
 module.exports = router; 

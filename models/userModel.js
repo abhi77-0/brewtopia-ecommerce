@@ -33,6 +33,10 @@ const userSchema = new Schema({
     },
     lastLogin: {
         type: Date
+    },
+    blocked: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

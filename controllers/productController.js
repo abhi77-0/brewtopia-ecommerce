@@ -262,4 +262,16 @@ exports.getProductDetails = async (req, res) => {
             error: error.message
         });
     }
+};
+
+// Function to get all products for users
+exports.getAllProductsForUser = async (req, res) => {
+    try {
+        // Fetch only products that are not hidden
+        const products = await Product.find({ hidden: false }); // Only fetch products that are not hidden
+        res.render('user/products', { products }); // Render the user products page with the fetched products
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        res.status(500).send('Error fetching products');
+    }
 }; 

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>User Management</title>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>User Management</h2>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="userTable">
+                <!-- User rows will be populated here -->
+            </tbody>
+        </table>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        // Fetch users and populate the table
+        fetch('/api/users')
+            .then(response => response.json())
+            .then(users => {
+                const userTable = document.getElementById('userTable');
+                users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user._id}</td>
+                        <td>${user.name}</td>
+                        <td>${user.email}</td>
+                        <td>${user.isBlocked ? 'Blocked' : 'Active'}</td>
+                        <td>
+                            <button class="btn btn-${user.isBlocked ? 'success' : 'danger'}" onclick="toggleBlock('${user._id}', ${user.isBlocked})">
+                                ${user.isBlocked ? 'Unblock' : 'Block'}
+                            </button>
+                        </td>
+                    `;
+                    userTable.appendChild(row);
+                });
+            });
+
+        function toggleBlock(userId, isBlocked) {
+            fetch(`/api/users/${userId}/toggle`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    // Refresh the user table after toggling
+                    location.reload();
+                });
+        }
+    </script>
+</body>
+</html> 

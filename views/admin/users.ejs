@@ -200,11 +200,9 @@
                             <table class="table">
                                 <thead>
                                     <tr>
-                                        <th>Profile</th>
+                                        <th>ID</th>
                                         <th>Name</th>
                                         <th>Email</th>
-                                        <th>Join Date</th>
-                                        <th>Orders</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -213,33 +211,20 @@
                                     <% if (users && users.length > 0) { %>
                                         <% users.forEach(user => { %>
                                             <tr>
-                                                <td>
-                                                    <img src="<%= user.avatar || '/uploads/default-avatar.jpg' %>" 
-                                                         alt="<%= user.name %>" 
-                                                         class="user-avatar">
-                                                </td>
+                                                <td><%= user._id %></td>
                                                 <td><%= user.name %></td>
                                                 <td><%= user.email %></td>
-                                                <td><%= new Date(user.createdAt).toLocaleDateString() %></td>
-                                                <td><%= user.orderCount || 0 %></td>
+                                                <td><%= user.blocked ? 'Blocked' : 'Active' %></td>
                                                 <td>
-                                                    <span class="badge <%= user.status === 'active' ? 'bg-success' : 'bg-warning' %>">
-                                                        <%= user.status %>
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <button class="btn btn-info btn-action" onclick="viewUserDetails('<%= user._id %>')">
-                                                        <i class="fas fa-eye"></i>
-                                                    </button>
-                                                    <button class="btn btn-warning btn-action" onclick="toggleUserStatus('<%= user._id %>')">
-                                                        <i class="fas <%= user.status === 'active' ? 'fa-ban' : 'fa-check' %>"></i>
+                                                    <button class="btn btn-warning" onclick="toggleBlockUser('<%= user._id %>', <%= user.blocked %>)">
+                                                        <%= user.blocked ? 'Unblock' : 'Block' %>
                                                     </button>
                                                 </td>
                                             </tr>
                                         <% }); %>
                                     <% } else { %>
                                         <tr>
-                                            <td colspan="7" class="text-center py-4">
+                                            <td colspan="5" class="text-center py-4">
                                                 <i class="fas fa-users fa-3x mb-3 text-muted d-block"></i>
                                                 <p class="text-muted">No users found.</p>
                                             </td>
@@ -294,15 +279,32 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        function viewUserDetails(id) {
-            // View user details logic
-            const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
-            modal.show();
-        }
+        async function toggleBlockUser(userId, isBlocked) {
+            const action = isBlocked ? 'unblock' : 'block';
+            const confirmMessage = isBlocked ? 'Are you sure you want to unblock this user?' : 'Are you sure you want to block this user?';
 
-        function toggleUserStatus(id) {
-            if (confirm('Are you sure you want to change this user\'s status?')) {
-                // Toggle user status logic
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/users/${userId}/block`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to toggle user status');
+                }
+
+                alert(data.message);
+                window.location.reload(); // Refresh the page to see the changes
+            } catch (error) {
+                console.error('Error toggling user status:', error);
+                alert('Error: ' + error.message);
             }
         }
     </script>

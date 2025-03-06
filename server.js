@@ -1,8 +1,7 @@
-
 require('dotenv').config();
 const express = require("express");
-const path = require("path");
 const session = require('express-session');
+const path = require("path");
 const passport = require('passport');
 const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
@@ -27,12 +26,10 @@ app.set("views", path.join(__dirname, "views"));
 
 // Session middleware (add this before routes)
 app.use(session({
-    secret: 'your-secret-key',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: {
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
+    cookie: { maxAge: 6 * 60 * 60 * 1000 }
 }));
 
 // Initialize Passport and restore authentication state from session
