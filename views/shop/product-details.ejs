@@ -1,5 +1,14 @@
 <%- include('../partials/header') %>
 
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/users/home">Home</a></li>
+        <li class="breadcrumb-item"><a href="/shop/products">Products</a></li>
+        <li class="breadcrumb-item active" aria-current="page"><%= product.name %></li>
+    </ol>
+</nav>
+
+
 <style>
     .product-details-container {
         padding: 2rem 0;
@@ -492,6 +501,16 @@
                             <%= product.category.name %>
                         </div>
                     <% } %>
+                    <div class="product-rating mb-3">
+                        <span class="star-rating">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="far fa-star"></i> <!-- Use 'far' for empty stars -->
+                        </span>
+                        <span class="rating-text">(4.0)</span> <!-- Dummy rating text -->
+                    </div>
                     
                     <p class="product-description"><%= product.description %></p>
 
