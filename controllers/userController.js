@@ -143,6 +143,11 @@ exports.handleLogin = async (req, res) => {
             return res.render("login", { error: "Invalid email or password" });
         }
 
+        // Check if the user is blocked
+        if (user.blocked) {
+            return res.render("login", { error: "Your account is blocked. Please contact support." });
+        }
+
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.render("login", { error: "Invalid email or password" });
