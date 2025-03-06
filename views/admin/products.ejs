@@ -210,7 +210,6 @@
                                                 <td>
                                                     <strong><%= product.name %></strong>
                                                     <br>
-                                                    <small class="text-muted"><%= product.description || '' %></small>
                                                 </td>
                                                 <td><%= product.category ? product.category.name : 'Uncategorized' %></td>
                                                 <td>
@@ -235,9 +234,6 @@
                                                 <td>
                                                     <button class="btn btn-info btn-action" onclick="editProduct('<%= product._id %>')">
                                                         <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-danger btn-action" onclick="deleteProduct('<%= product._id %>')">
-                                                        <i class="fas fa-trash"></i>
                                                     </button>
                                                 </td>
                                             </tr>
@@ -570,32 +566,6 @@
             } catch (error) {
                 console.error('Error in editProduct:', error);
                 alert('Error loading product details. Please try again.');
-            }
-        }
-
-        // Delete Product function
-        async function deleteProduct(id) {
-            try {
-                if (!confirm('Are you sure you want to delete this product?')) {
-                    return;
-                }
-
-                console.log('Deleting product:', id);
-                const response = await fetch(`/admin/products/${id}`, {
-                    method: 'DELETE'
-                });
-
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to delete product');
-                }
-
-                alert('Product deleted successfully!');
-                window.location.reload();
-            } catch (error) {
-                console.error('Error deleting product:', error);
-                alert('Error deleting product: ' + error.message);
             }
         }
 
