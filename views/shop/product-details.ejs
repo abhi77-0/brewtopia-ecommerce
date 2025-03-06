@@ -397,6 +397,9 @@
         overflow: hidden;
         transition: transform 0.2s;
         text-align: center; /* Center align text */
+        position: relative; /* For positioning the wishlist icon */
+        padding: 1rem; /* Add padding for better spacing */
+        height: 300px; /* Set a fixed height for the card */
     }
 
     .product-card:hover {
@@ -410,7 +413,7 @@
 
     .product-image-container {
         position: relative;
-        height: 200px; /* Fixed height for uniformity */
+        height: 250px; /* Increased height for better visibility */
         overflow: hidden;
     }
 
@@ -419,6 +422,7 @@
         height: 100%;
         object-fit: cover; /* Ensure the image covers the container */
         transition: transform 0.3s;
+        border-radius: 10px; /* Optional: Add rounded corners */
     }
 
     .product-name {
@@ -462,14 +466,41 @@
     }
 
     .btn-outline-primary {
-        color: #ff6b6b;
-        border-color: #ff6b6b;
+        color: #FF9800;
+        border: 1px solid #FF9800;
+        background: transparent;
+        transition: background 0.3s;
     }
 
     .btn-outline-primary:hover {
-        background-color: #ff6b6b;
-        border-color: #ff6b6b;
+        background: #FF9800;
         color: white;
+    }
+
+    .btn-primary {
+        background: #FF9800;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        transition: background 0.3s;
+    }
+
+    .btn-primary:hover {
+        background: #F57C00;
+    }
+
+    .filter-options {
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-options .form-label {
+        font-weight: bold;
+    }
+
+    .filter-options .form-select {
+        border-radius: 5px;
+        padding: 0.5rem;
     }
 </style>
 
@@ -569,13 +600,13 @@
 
 <!-- Similar Products Section -->
 <section class="similar-products">
-    <h3>Similar Products</h3>
+    <h3 class="section-title">Similar Products</h3>
     
     <div class="products-grid">
       <% if (typeof similarProducts !== 'undefined' && similarProducts.length > 0) { %>
         <% similarProducts.forEach(similarProduct => { %>
           <div class="product-card">
-            <a href="/products/<%= similarProduct._id %>" class="product-link">
+            <a href="/shop/products/<%= similarProduct._id %>" class="product-link">
               <div class="product-image-container">
                 <img src="<%= similarProduct.images.image1 || 'https://via.placeholder.com/300x300?text=No+Image' %>" alt="<%= similarProduct.name %>" class="product-image">
               </div>
@@ -583,17 +614,23 @@
               <p class="price">
                 <% if (similarProduct.variants && (similarProduct.variants['500ml'] || similarProduct.variants['650ml'])) { %>
                     <% if (similarProduct.variants['500ml']) { %>
-                      $<%= similarProduct.variants['500ml'].price.toFixed(2) %> (500ml)
+                      ₹<%= similarProduct.variants['500ml'].price.toFixed(2) %> (500ml)
                     <% } %>
                     <% if (similarProduct.variants['500ml'] && similarProduct.variants['650ml']) { %> | <% } %>
                     <% if (similarProduct.variants['650ml']) { %>
-                      $<%= similarProduct.variants['650ml'].price.toFixed(2) %> (650ml)
+                      ₹<%= similarProduct.variants['650ml'].price.toFixed(2) %> (650ml)
                     <% } %>
                   <% } else { %>
                     Price unavailable
                   <% } %>
               </p>
             </a>
+            <div class="action-buttons">
+                <button class="btn btn-outline-primary" onclick="addToWishlist('<%= similarProduct._id %>')">
+                    <i class="fas fa-heart"></i>
+                </button>
+                <a href="/shop/products/<%= similarProduct._id %>" class="btn btn-primary">View Details</a>
+            </div>
           </div>
         <% }); %>
       <% } else { %>
@@ -673,4 +710,5 @@
     });
 </script>
 
+<%- include('../partials/footer') %> 
 <%- include('../partials/footer') %> 

@@ -261,7 +261,7 @@ exports.getProductDetails = async (req, res) => {
 exports.getAllProductsForUser = async (req, res) => {
     try {
         // Fetch only products that are not hidden
-        const products = await Product.find({ hidden: false }); // Only fetch products that are not hidden
+        const products = await Product.find({ status:'active' }); // Only fetch products that are not hidden
         res.render('user/products', { products }); // Render the user products page with the fetched products
     } catch (error) {
         console.error('Error fetching products:', error);
