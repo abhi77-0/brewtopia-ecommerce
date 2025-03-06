@@ -1,3 +1,5 @@
+
+require('dotenv').config();
 const express = require("express");
 const path = require("path");
 const session = require('express-session');
@@ -9,7 +11,7 @@ const { connectDB } = require("./config/db");
 const bcrypt = require("bcrypt");
 const http = require('http');
 const WebSocket = require('ws');
-require('dotenv').config();
+const cloudinary = require('./config/cloudinary');
 require('./config/googleAuth');
 
 const app = express();
@@ -123,6 +125,7 @@ app.use((err, req, res, next) => {
         user: req.user
     });
 });
+
 
 // Connect to the database
 connectDB().then(() => {
