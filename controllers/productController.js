@@ -235,25 +235,18 @@ exports.getProductDetails = async (req, res) => {
         console.log('Similar products query:', JSON.stringify(similarProductsQuery, null, 2));
 
         // Find similar products
-        const similarProducts = await Product.find(similarProductsQuery)
-            .populate('category')
-            .limit(4)
-            .lean();
-
-        console.log(`Found ${similarProducts.length} similar products`);
-        console.log('Similar products:', similarProducts.map(p => ({
-            id: p._id,
-            name: p.name,
-            category: p.category?.name,
-            brand: p.brand
-        })));
-
-        res.render('shop/product-details', {
-            title: product.name,
+        const similarProducts = await Product.find({
+            category: product.category,
+            _id: { $ne: productId }, // exclude current product
+            visibility: true // assuming you only want to show visible products
+          }).limit(4); // limit to 4 similar products
+          
+          // Render the product details page with product and similar products
+          res.render('/shop/product-details', {
             product,
             similarProducts,
-            user: req.session.user
-        });
+            title: product.name
+          });
 
     } catch (error) {
         console.error('Error in getProductDetails:', error);

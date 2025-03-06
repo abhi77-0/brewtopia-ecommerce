@@ -379,10 +379,58 @@
         opacity: 0.7;
     }
 
-    .similar-products-section {
-        background-color: #f8f9fa;
+    .similar-products {
         padding: 2rem 0;
-        border-radius: 8px;
+        background-color: #f8f9fa;
+    }
+
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Responsive grid */
+        gap: 1.5rem; /* Space between cards */
+    }
+
+    .product-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.2s;
+        text-align: center; /* Center align text */
+    }
+
+    .product-card:hover {
+        transform: translateY(-5px); /* Lift effect on hover */
+    }
+
+    .product-link {
+        text-decoration: none;
+        color: inherit; /* Inherit color from parent */
+    }
+
+    .product-image-container {
+        position: relative;
+        height: 200px; /* Fixed height for uniformity */
+        overflow: hidden;
+    }
+
+    .product-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* Ensure the image covers the container */
+        transition: transform 0.3s;
+    }
+
+    .product-name {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+    }
+
+    .price {
+        font-size: 1rem;
+        color: #28a745; /* Green color for price */
+        margin-bottom: 0.5rem;
     }
 
     .section-title {
@@ -402,33 +450,6 @@
         background-color: #ff6b6b;
     }
 
-    .product-card {
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        transition: transform 0.2s, box-shadow 0.2s;
-        background: white;
-    }
-
-    .product-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-
-    .product-image-container {
-        position: relative;
-        height: 200px;
-        overflow: hidden;
-        border-radius: 8px 8px 0 0;
-    }
-
-    .product-image {
-        width: 100%;
-    height: 100%;
-    object-fit: contain; /* Changed from cover to contain */
-    object-position: center;
-    padding: 0.5rem;
-    }
-
     .brand-badge {
         position: absolute;
         top: 10px;
@@ -438,12 +459,6 @@
         border-radius: 4px;
         font-size: 0.8rem;
         font-weight: 600;
-    }
-
-    .price {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #ff6b6b;
     }
 
     .btn-outline-primary {
@@ -553,54 +568,39 @@
 </div>
 
 <!-- Similar Products Section -->
-<% if (typeof similarProducts !== 'undefined' && similarProducts && similarProducts.length > 0) { %>
-<section class="similar-products-section my-5">
-    <div class="container">
-        <h3 class="section-title mb-4">Similar Products</h3>
-        <div class="row">
-            <% similarProducts.forEach(function(similarProduct) { %>
-                <div class="col-md-3 col-sm-6 mb-4">
-                    <div class="product-card h-100">
-                        <div class="product-image-container">
-                            <% if (similarProduct.images && similarProduct.images.image1) { %>
-                                <img src="<%= similarProduct.images.image1 %>" 
-                                     class="card-img-top product-image" 
-                                     alt="<%= similarProduct.name %>"
-                                     loading="lazy">
-                            <% } else { %>
-                                <img src="https://via.placeholder.com/400x400?text=No+Image" 
-                                     class="card-img-top product-image" 
-                                     alt="No image available"
-                                     loading="lazy">
-                            <% } %>
-                            <% if (similarProduct.brand) { %>
-                                <span class="brand-badge"><%= similarProduct.brand %></span>
-                            <% } %>
-                        </div>
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title text-truncate"><%= similarProduct.name %></h5>
-                            <p class="card-text mb-1">
-                                <% if (similarProduct.category) { %>
-                                    <small class="text-muted"><%= similarProduct.category.name %></small>
-                                <% } %>
-                            </p>
-                            <div class="price-section mt-auto">
-                                <% if (similarProduct.variants && similarProduct.variants['500ml']) { %>
-                                    <span class="price">₹<%= similarProduct.variants['500ml'].price.toFixed(2) %></span>
-                                <% } else if (similarProduct.variants && similarProduct.variants['650ml']) { %>
-                                    <span class="price">₹<%= similarProduct.variants['650ml'].price.toFixed(2) %></span>
-                                <% } %>
-                            </div>
-                            <a href="/products/<%= similarProduct._id %>" class="btn btn-outline-primary mt-2">View Details</a>
-                        </div>
-                    </div>
-                </div>
-            <% }); %>
-        </div>
+<section class="similar-products">
+    <h3>Similar Products</h3>
+    
+    <div class="products-grid">
+      <% if (typeof similarProducts !== 'undefined' && similarProducts.length > 0) { %>
+        <% similarProducts.forEach(similarProduct => { %>
+          <div class="product-card">
+            <a href="/products/<%= similarProduct._id %>" class="product-link">
+              <div class="product-image-container">
+                <img src="<%= similarProduct.images.image1 || 'https://via.placeholder.com/300x300?text=No+Image' %>" alt="<%= similarProduct.name %>" class="product-image">
+              </div>
+              <h4 class="product-name"><%= similarProduct.name %></h4>
+              <p class="price">
+                <% if (similarProduct.variants && (similarProduct.variants['500ml'] || similarProduct.variants['650ml'])) { %>
+                    <% if (similarProduct.variants['500ml']) { %>
+                      $<%= similarProduct.variants['500ml'].price.toFixed(2) %> (500ml)
+                    <% } %>
+                    <% if (similarProduct.variants['500ml'] && similarProduct.variants['650ml']) { %> | <% } %>
+                    <% if (similarProduct.variants['650ml']) { %>
+                      $<%= similarProduct.variants['650ml'].price.toFixed(2) %> (650ml)
+                    <% } %>
+                  <% } else { %>
+                    Price unavailable
+                  <% } %>
+              </p>
+            </a>
+          </div>
+        <% }); %>
+      <% } else { %>
+        <p>No similar products found</p>
+      <% } %>
     </div>
 </section>
-<% } %>
-
 <script>
     let selectedVariant = null;
 

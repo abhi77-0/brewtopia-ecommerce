@@ -102,10 +102,22 @@ exports.getProductDetails = async (req, res) => {
                 path: '/shop/products'
             });
         }
+        let similarProducts = [];
+        
+        if (product.category) {
+            similarProducts = await Product.find({
+                category: product.category._id, // Using the ID from the populated category
+                _id: { $ne: product._id }, // Exclude current product
+                isDeleted: false
+            }).limit(4);
+        }
+        
+        console.log('Similar products found:', similarProducts.length);
 
         res.render('shop/product-details', {
             title: product.name,
             product,
+            similarProducts: similarProducts, // Explicitly name the variable
             path: '/shop/products'
         });
     } catch (error) {
