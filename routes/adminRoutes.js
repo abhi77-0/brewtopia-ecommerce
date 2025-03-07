@@ -199,7 +199,7 @@ router.get('/categories', isAdmin, async (req, res) => {
 router.get('/categories/:id', isAdmin, categoryController.getCategory);
 router.post('/categories/add', isAdmin, categoryController.addCategory);
 router.put('/categories/:categoryId', isAdmin, categoryController.updateCategory);
-router.delete('/categories/:categoryId', isAdmin, categoryController.deleteCategory);
+// router.delete('/categories/:categoryId', isAdmin, categoryController.deleteCategory);
 
 // Order management routes
 router.get('/orders', isAdmin, (req, res) => {

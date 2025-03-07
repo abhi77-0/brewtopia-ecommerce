@@ -9,14 +9,11 @@ const shopRoutes = require('./routes/shopRoutes');
 const { connectDB } = require("./config/db");
 const bcrypt = require("bcrypt");
 const http = require('http');
-const WebSocket = require('ws');
 const cloudinary = require('./config/cloudinary');
 require('./config/googleAuth');
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
-// Add this AFTER your session middleware and passport initialization
 const userMiddleware = require('./middlewares/userMiddleware');
 app.use(userMiddleware);
 
@@ -47,26 +44,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const { setUserLocals } = require('./middlewares/authMiddleware');
 app.use(setUserLocals);
 
-// WebSocket connection handling
-wss.on('connection', function connection(ws) {
-    console.log('New WebSocket client connected');
-    
-    ws.on('error', console.error);
-});
 
-// Function to broadcast stock updates to all connected clients
-function broadcastStockUpdate(productId, variantSize, newStock) {
-    wss.clients.forEach(function each(client) {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-                type: 'stockUpdate',
-                productId,
-                variantSize,
-                newStock
-            }));
-        }
-    });
-}
 
 // Add stock update endpoint
 app.post('/admin/products/update-stock', async (req, res) => {
@@ -129,11 +107,6 @@ connectDB().then(() => {
     // Start the server
     const PORT = process.env.PORT || 3004;
     server.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
-        console.log('WebSocket server is running');
-        console.log('Google Auth Configuration:');
-        console.log('- Client ID exists:', !!process.env.GOOGLE_CLIENT_ID);
-        console.log('- Client Secret exists:', !!process.env.GOOGLE_CLIENT_SECRET);
         console.log('- Callback URL:', 'http://localhost:' + PORT + '/users/auth/google/callback');
     });
 }).catch(err => {

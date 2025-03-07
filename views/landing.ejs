@@ -144,15 +144,11 @@
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav ms-auto">
                     <% if (isAuthenticated) { %>
+                        
                         <li class="nav-item">
-                            <a class="nav-link" href="/shop">Shop</a>
+                            <a class="nav-link" href="/users/signup">Profile</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/users/profile">Profile</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/users/logout">Logout</a>
-                        </li>
+                       
                     <% } else { %>
                         <li class="nav-item">
                             <a class="nav-link" href="/users/login">Login</a>
@@ -173,7 +169,7 @@
                 <div class="col-lg-6">
                     <h1 class="banner-title">Discover Your Perfect Brew</h1>
                     <p class="banner-text">Explore our handpicked selection of premium craft beers from around the world.</p>
-                    <a href="/users/login" class="btn btn-light btn-lg">Start Shopping</a>
+                    <a href="/users/signup" class="btn btn-light btn-lg">Start Shopping</a>
                 </div>
                 <div class="col-lg-6">
                     <img src="https://images.unsplash.com/photo-1584225064785-c62a8b43d148?ixlib=rb-4.0.3" 

@@ -101,34 +101,23 @@ exports.updateCategory = async (req, res) => {
     }
 };
 
-// Delete category
-exports.deleteCategory = async (req, res) => {
+exports.toggleCategoryStatus = async (req, res) => {
+    const { categoryId } = req.params;
+
     try {
-        const category = await Category.findById(req.params.categoryId);
-        
-        if (!category || category.isDeleted) {
+        const category = await Category.findById(categoryId);
+        if (!category) {
             return res.status(404).json({ error: 'Category not found' });
         }
 
-        // Check if category is being used by any products
-        const productsUsingCategory = await Product.find({ 
-            category: req.params.categoryId,
-            isDeleted: false
-        });
-
-        if (productsUsingCategory.length > 0) {
-            return res.status(400).json({ 
-                error: 'Cannot delete category as it is being used by products. Remove or reassign products first.' 
-            });
-        }
-
-        // Soft delete
-        category.isDeleted = true;
+        // Toggle the isDeleted status
+        category.isDeleted = !category.isDeleted;
         await category.save();
 
-        res.json({ message: 'Category deleted successfully' });
+        res.status(200).json({ message: `Category has been ${category.isDeleted ? 'blocked' : 'unblocked'}.` });
     } catch (error) {
-        console.error('Error deleting category:', error);
-        res.status(500).json({ error: 'Error deleting category' });
+        console.error('Error toggling category status:', error);
+        res.status(500).json({ error: 'Failed to toggle category status' });
     }
-}; 
+};
+
