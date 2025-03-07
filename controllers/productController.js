@@ -74,7 +74,7 @@ exports.getProduct = async (req, res) => {
 // Add new product
 exports.addProduct = async (req, res) => {
     try {
-        const { name, description, category } = req.body;
+        const { name, description, category,brand } = req.body;
         const variants = JSON.parse(req.body.variants);
 
         // Upload images to Cloudinary
@@ -94,6 +94,7 @@ exports.addProduct = async (req, res) => {
         const product = new Product({
             name,
             description,
+            brand,
             category,
             variants,
             images: {
