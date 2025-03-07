@@ -480,25 +480,6 @@
                         </div>
                     </div>
 
-                    <!-- Price Filter -->
-                    <div class="filter-section">
-                        <h5 class="filter-title">Price Range</h5>
-                        <div class="price-range">
-                            <input type="range" class="price-slider form-range" id="minPrice" 
-                                   min="100" max="500" step="50" 
-                                   value="<%= minPrice || 100 %>">
-                            <div class="d-flex justify-content-between mt-2">
-                                <span class="price-value">₹<span id="priceValue"><%= minPrice || 100 %></span></span>
-                                <span>₹500</span>
-                            </div>
-                            <div class="mt-3">
-                                <button class="btn btn-primary btn-sm w-100" onclick="applyPriceFilter()">
-                                    Apply Filter
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Brand Filter -->
                     <div class="filter-section">
                         <h5 class="filter-title">Brands</h5>
@@ -527,6 +508,25 @@
                             <option value="name-asc" <%= sort === 'name-asc' ? 'selected' : '' %>>A - Z</option>
                             <option value="name-desc" <%= sort === 'name-desc' ? 'selected' : '' %>>Z - A</option>
                         </select>
+                    </div>
+
+                    <!-- Price Filter -->
+                    <div class="filter-section">
+                        <h5 class="filter-title">Price Range</h5>
+                        <div class="price-range">
+                            <input type="range" class="price-slider form-range" id="minPrice" 
+                                   min="100" max="500" step="50" 
+                                   value="<%= minPrice || 100 %>">
+                            <div class="d-flex justify-content-between mt-2">
+                                <span class="price-value">₹<span id="priceValue"><%= minPrice || 100 %></span></span>
+                                <span>₹500</span>
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-primary btn-sm w-100" onclick="applyPriceFilter()">
+                                    Apply Filter
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
