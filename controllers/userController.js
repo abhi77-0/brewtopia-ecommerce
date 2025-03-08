@@ -331,7 +331,6 @@ exports.handleResendOtp = async (req, res) => {
 exports.renderProductsPage = (req, res) => {
     res.render('products', {
         title: 'Brewtopia - Products',
-       
         error: null,
         categoryFilter: null
     });
@@ -341,7 +340,6 @@ exports.renderCategoryPage = (req, res) => {
     const categoryType = req.params.type;
     res.render('products', {
         title: `Brewtopia - ${categoryType.charAt(0).toUpperCase() + categoryType.slice(1)} Beers`,
-        
         categoryFilter: categoryType,
         error: null
     });
@@ -349,7 +347,6 @@ exports.renderCategoryPage = (req, res) => {
 
 exports.renderHomePage = (req, res) => {
     res.render('home', { 
-      
         title: 'Welcome to Brewtopia'
     });
 };
@@ -384,4 +381,18 @@ exports.blockUser = async (req, res) => {
         console.error('Error blocking user:', error);
         res.status(500).json({ error: 'Failed to block/unblock user' });
     }
+};
+
+// Google Auth callback handler
+exports.handleGoogleCallback = (req, res) => {
+    // Store user data in session
+    req.session.user = {
+        id: req.user.id,
+        name: req.user.displayName,
+        email: req.user.emails[0].value,
+        picture: req.user.photos[0].value,
+        isAuthenticated: true
+    };
+    // Successful authentication, redirect home
+    res.redirect('/users/home');
 };

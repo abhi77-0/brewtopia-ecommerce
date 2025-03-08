@@ -449,6 +449,38 @@
         margin-left: 5px;
         font-size: 1rem;
     }
+
+    /* Pagination styles */
+    .pagination {
+        margin-top: 2rem;
+    }
+    
+    .page-link {
+        color: #FF9800;
+        border-color: #dee2e6;
+        padding: 0.5rem 1rem;
+        margin: 0 0.2rem;
+        border-radius: 8px;
+    }
+    
+    .page-item.active .page-link {
+        background-color: #FF9800;
+        border-color: #FF9800;
+        color: white;
+    }
+    
+    .page-link:hover {
+        color: #F57C00;
+        background-color: rgba(255, 152, 0, 0.1);
+        border-color: #dee2e6;
+    }
+    
+    .page-item.disabled .page-link {
+        color: #6c757d;
+        pointer-events: none;
+        background-color: #fff;
+        border-color: #dee2e6;
+    }
 </style>
 
 <div class="shop-container">
@@ -653,6 +685,34 @@
                         </div>
                     <% } %>
                 </div>
+                
+                <!-- Pagination -->
+                <% if (pagination && pagination.totalPages > 1) { %>
+                    <nav aria-label="Product pagination" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item <%= !pagination.hasPrevPage ? 'disabled' : '' %>">
+                                <a class="page-link" href="<%= !pagination.hasPrevPage ? '#' : constructPageUrl(pagination.prevPage) %>" 
+                                   <%= !pagination.hasPrevPage ? 'tabindex="-1" aria-disabled="true"' : '' %>>
+                                    Previous
+                                </a>
+                            </li>
+                            
+                            <% for(let i = 1; i <= pagination.totalPages; i++) { %>
+                                <li class="page-item <%= pagination.page === i ? 'active' : '' %>">
+                                    <a class="page-link" href="<%= constructPageUrl(i) %>">
+                                        <%= i %>
+                                    </a>
+                                </li>
+                            <% } %>
+                            
+                            <li class="page-item <%= !pagination.hasNextPage ? 'disabled' : '' %>">
+                                <a class="page-link" href="<%= !pagination.hasNextPage ? '#' : constructPageUrl(pagination.nextPage) %>">
+                                    Next
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                <% } %>
             </div>
         </div>
     </div>
@@ -679,8 +739,10 @@
         if (minPrice && minPrice > 100) url += `minPrice=${minPrice}&`;
         if (brand) url += `brand=${brand}&`;
         if (sort) url += `sort=${sort}&`;
+        // Reset to page 1 when filters change
+        url += 'page=1';
         
-        window.location.href = url.slice(0, -1);
+        window.location.href = url;
     }
 
     // Add event listeners
@@ -781,6 +843,13 @@
             viewDetailsBtn.disabled = false;
             viewDetailsBtn.textContent = 'View Details';
         }
+    }
+
+    // Function to construct pagination URLs
+    function constructPageUrl(page) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', page);
+        return url.toString();
     }
 </script>
 

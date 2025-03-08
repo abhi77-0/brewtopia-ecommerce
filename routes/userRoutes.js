@@ -1,21 +1,6 @@
 const express = require("express");
 const passport = require('passport');
-const { 
-    renderSignupPage,
-    handleSignup, 
-    renderVerifyOtpPage,
-    handleVerifyOtp, 
-    renderLoginPage, 
-    handleLogin,
-    handleLogout,
-    renderForgotPasswordPage,
-    handleForgotPassword,
-    handleResetPassword,
-    handleResendOtp,
-    renderProductsPage,
-    renderCategoryPage,
-    renderHomePage
-} = require("../controllers/userController");
+const userController = require("../controllers/userController");
 const { isAuthenticated } = require('../middlewares/authMiddleware');
 const { 
     validateSignup, 
@@ -27,24 +12,24 @@ const {
 const router = express.Router();
 
 // Public routes
-router.get("/signup", renderSignupPage);
-router.post("/signup", validateSignup, handleSignup);
+router.get("/signup", userController.renderSignupPage);
+router.post("/signup", validateSignup, userController.handleSignup);
 
-router.get("/verify-otp", renderVerifyOtpPage);
-router.post("/verify-otp", handleVerifyOtp);
+router.get("/verify-otp", userController.renderVerifyOtpPage);
+router.post("/verify-otp", userController.handleVerifyOtp);
 
-router.get("/login", renderLoginPage);
-router.post("/login", validateLogin, handleLogin);
+router.get("/login", userController.renderLoginPage);
+router.post("/login", validateLogin, userController.handleLogin);
 
-router.get('/logout', handleLogout);
+router.get('/logout', userController.handleLogout);
 
 // Forgot Password routes
-router.get("/forgot-password", renderForgotPasswordPage);
-router.post("/forgot-password", validateForgotPassword, handleForgotPassword);
-router.post("/reset-password", validateResetPassword, handleResetPassword);
+router.get("/forgot-password", userController.renderForgotPasswordPage);
+router.post("/forgot-password", validateForgotPassword, userController.handleForgotPassword);
+router.post("/reset-password", validateResetPassword, userController.handleResetPassword);
 
 // Resend OTP route
-router.post('/resend-otp', handleResendOtp);
+router.post('/resend-otp', userController.handleResendOtp);
 
 // Google Auth routes
 router.get('/auth/google',
@@ -58,23 +43,12 @@ router.get('/auth/google/callback',
         failureRedirect: '/users/login',
         failureMessage: true
     }),
-    function(req, res) {
-        // Store user data in session
-        req.session.user = {
-            id: req.user.id,
-            name: req.user.displayName,
-            email: req.user.emails[0].value,
-            picture: req.user.photos[0].value,
-            isAuthenticated: true
-        };
-        // Successful authentication, redirect home
-        res.redirect('/users/home');
-    }
+    userController.handleGoogleCallback
 );
 
 // Protected routes
-router.get('/products', isAuthenticated, renderProductsPage);
-router.get('/category/:type', isAuthenticated, renderCategoryPage);
-router.get('/home', isAuthenticated, renderHomePage);
+router.get('/products', isAuthenticated, userController.renderProductsPage);
+router.get('/category/:type', isAuthenticated, userController.renderCategoryPage);
+router.get('/home', isAuthenticated, userController.renderHomePage);
 
 module.exports = router;

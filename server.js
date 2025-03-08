@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require("express");
 const session = require('express-session');
+const nocache = require(`nocache`);
 const path = require("path");
 const passport = require('passport');
 const userRoutes = require("./routes/userRoutes");
@@ -44,6 +45,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Global middleware to check auth status
 const { setUserLocals } = require('./middlewares/authMiddleware');
 app.use(setUserLocals);
+app.use( nocache() );
 
 
 

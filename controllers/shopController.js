@@ -10,6 +10,11 @@ exports.getAllProducts = async (req, res) => {
         const brand = req.query.brand;
         const sort = req.query.sort;
         
+        // Pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 3; // 9 products per page (3x3 grid)
+        const skip = (page - 1) * limit;
+        
         // Build query
         const query = { isDeleted: false };
         if (categoryId) query.category = categoryId;
@@ -49,16 +54,40 @@ exports.getAllProducts = async (req, res) => {
         const allProducts = await Product.find({ isDeleted: false });
         const brands = [...new Set(allProducts.map(product => product.brand).filter(Boolean))];
 
-        // Then fetch filtered products
+        // Get total count for pagination
+        const totalProducts = await Product.countDocuments(query);
+        const totalPages = Math.ceil(totalProducts / limit);
+
+        // Then fetch filtered products with pagination
         const products = await Product.find(query)
             .populate('category')
-            .sort(sortOptions);
+            .sort(sortOptions)
+            .skip(skip)
+            .limit(limit);
+
+        // Create a function to construct page URLs
+        const constructPageUrl = (pageNum) => {
+            // Start with the base URL
+            let url = '/shop/products?';
+            
+            // Add all current query parameters except page
+            if (categoryId) url += `category=${categoryId}&`;
+            if (minPrice && minPrice > 100) url += `minPrice=${minPrice}&`;
+            if (brand) url += `brand=${brand}&`;
+            if (sort) url += `sort=${sort}&`;
+            
+            // Add the page parameter
+            url += `page=${pageNum}`;
+            
+            return url;
+        };
 
         console.log('Query:', query);
         console.log('Found products:', products.length);
         console.log('Available brands:', brands);
         console.log('Selected brand:', brand);
         console.log('Min price:', minPrice);
+        console.log('Page:', page, 'of', totalPages);
 
         res.render('shop/products', {
             title: 'Our Products',
@@ -69,7 +98,18 @@ exports.getAllProducts = async (req, res) => {
             minPrice: minPrice,
             brands,
             path: '/shop/products',
-            sort: sort || ''
+            sort: sort || '',
+            pagination: {
+                page,
+                limit,
+                totalProducts,
+                totalPages,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1,
+                nextPage: page + 1,
+                prevPage: page - 1
+            },
+            constructPageUrl // Pass the function to the template
         });
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -112,7 +152,6 @@ exports.getProductDetails = async (req, res) => {
             }).limit(4);
         }
         
-        console.log('Similar products found:', similarProducts.length);
 
         res.render('shop/product-details', {
             title: product.name,
