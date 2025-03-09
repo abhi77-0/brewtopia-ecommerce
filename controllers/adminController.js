@@ -186,24 +186,32 @@ const getCategories = async (req, res) => {
 
 // Product management controllers
 const toggleProductVisibility = async (req, res) => {
-    const { productId } = req.params;
-
     try {
+        const productId = req.params.id;
+        
+        // Find the product
         const product = await Product.findById(productId);
+        
         if (!product) {
-            return res.status(404).json({ error: 'Product not found' });
+            req.flash('error', 'Product not found');
+            return res.redirect('/admin/products');
         }
-
-        product.hidden = !product.hidden;
+        
+        // Toggle the visibility
+        product.isVisible = !product.isVisible;
+        
+        // Save the updated product
         await product.save();
-
-        res.status(200).json({ 
-            message: `Product has been ${product.hidden ? 'hidden' : 'unhidden'}.`,
-            hidden: product.hidden
-        });
+        
+        // Send success message
+        req.flash('success', `Product "${product.name}" is now ${product.isVisible ? 'visible' : 'hidden'} to customers`);
+        
+        // Redirect back to products list
+        res.redirect('/admin/products');
     } catch (error) {
         console.error('Error toggling product visibility:', error);
-        res.status(500).json({ error: 'Failed to update product visibility' });
+        req.flash('error', 'Failed to update product visibility');
+        res.redirect('/admin/products');
     }
 };
 

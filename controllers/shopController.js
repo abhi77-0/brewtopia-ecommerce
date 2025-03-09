@@ -9,16 +9,26 @@ exports.getAllProducts = async (req, res) => {
         const minPrice = parseInt(req.query.minPrice) || 100;
         const brand = req.query.brand;
         const sort = req.query.sort;
+        const searchTerm = req.query.search || '';
         
         // Pagination parameters
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 3; // 9 products per page (3x3 grid)
+        const limit = parseInt(req.query.limit) || 9;
         const skip = (page - 1) * limit;
         
-        // Build query
-        const query = { isDeleted: false };
+        // Build query - only show visible and not deleted products
+        const query = { 
+            isDeleted: false,
+            isVisible: true  // Only show visible products
+        };
+        
         if (categoryId) query.category = categoryId;
         if (brand) query.brand = brand;
+        
+        // Add search term to query if provided
+        if (searchTerm) {
+            query.name = { $regex: searchTerm, $options: 'i' };
+        }
 
         // Price filter for both variants
         if (minPrice) {
@@ -132,7 +142,8 @@ exports.getProductDetails = async (req, res) => {
     try {
         const product = await Product.findOne({
             _id: req.params.productId,
-            isDeleted: false
+            isDeleted: false,
+            isVisible: true  // Only show visible products
         }).populate('category');
 
         if (!product) {
@@ -166,5 +177,29 @@ exports.getProductDetails = async (req, res) => {
             error: 'Error fetching product details',
             path: '/shop/products'
         });
+    }
+};
+
+// Update search autocomplete to only show visible products
+exports.searchProductsAutocomplete = async (req, res) => {
+    try {
+        const searchTerm = req.query.term;
+        
+        if (!searchTerm || searchTerm.length < 2) {
+            return res.json([]);
+        }
+        
+        // Search for visible products matching the search term
+        const products = await Product.find({
+            name: { $regex: searchTerm, $options: 'i' },
+            isDeleted: false,
+            isVisible: true  // Only show visible products
+        })
+        .select('name images _id')
+        .limit(5);
+        
+        // ... rest of your existing code ...
+    } catch (error) {
+        // ... existing error handling ...
     }
 }; 

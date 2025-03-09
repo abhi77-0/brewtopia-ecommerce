@@ -195,21 +195,24 @@
                                         <th>Category</th>
                                         <th>Variants</th>
                                         <th>Status</th>
+                                        <th>Visibility</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <% if (products && products.length > 0) { %>
                                         <% products.forEach(product => { %>
-                                            <tr>
+                                            <tr class="<%= !product.isVisible ? 'table-secondary' : '' %>">
                                                 <td>
                                                     <img src="<%= product.images.image1 || 'https://res.cloudinary.com/dr0bl807r/image/upload/v1/brewtopia/placeholder.jpg' %>" 
                                                          alt="<%= product.name %>" 
                                                          class="product-image">
                                                 </td>
                                                 <td>
-                                                    <strong><%= product.name %></strong>
-                                                    <br>
+                                                    <% if (!product.isVisible) { %>
+                                                        <span class="badge bg-secondary">Hidden</span>
+                                                    <% } %>
+                                                    <%= product.name %>
                                                 </td>
                                                 <td><%= product.category ? product.category.name : 'Uncategorized' %></td>
                                                 <td>
@@ -227,9 +230,17 @@
                                                     <% } %>
                                                 </td>
                                                 <td>
-                                                    <span class="badge <%= product.status === 'active' ? 'bg-success' : 'bg-warning' %>">
-                                                        <%= product.status %>
+                                                    <span class="badge <%= product.isVisible ? 'bg-success' : 'bg-danger' %>">
+                                                        <%= product.isVisible ? 'Active' : 'Inactive' %>
                                                     </span>
+                                                </td>
+                                                <td>
+                                                    <form action="/admin/products/toggle-visibility/<%= product._id %>" method="POST" class="d-inline">
+                                                        <button type="submit" class="btn btn-sm <%= product.isVisible ? 'btn-outline-danger' : 'btn-outline-success' %>">
+                                                            <i class="fas <%= product.isVisible ? 'fa-eye-slash' : 'fa-eye' %>"></i>
+                                                            <%= product.isVisible ? 'Hide' : 'Show' %>
+                                                        </button>
+                                                    </form>
                                                 </td>
                                                 <td>
                                                     <button class="btn btn-info btn-action" onclick="editProduct('<%= product._id %>')">

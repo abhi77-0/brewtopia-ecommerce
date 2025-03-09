@@ -59,15 +59,11 @@ const productSchema = new Schema({
             }
         }
     },
-    isDeleted: {
+    isVisible: {
         type: Boolean,
-        default: false
+        default: true
     },
-    status: {
-        type: String,
-        enum: ['active', 'blocked'],
-        default: 'active'
-    },
+    
     brand: {
         type: String,
         required: true,

@@ -27,6 +27,9 @@ router.put('/products/:productId', isAdmin, productImageUpload, productControlle
 router.delete('/products/:productId', isAdmin, productController.deleteProduct);
 router.put('/products/:productId/hide', isAdmin, adminController.toggleProductVisibility);
 
+// Toggle product visibility
+router.post('/products/toggle-visibility/:id', isAdmin, adminController.toggleProductVisibility);
+
 // User Management Routes
 router.get('/users', isAdmin, adminController.getUsers);
 router.put('/users/:id/block', isAdmin, adminController.toggleUserBlockStatus);

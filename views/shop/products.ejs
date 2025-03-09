@@ -754,31 +754,6 @@
         applyFilters();
     }
 
-    // WebSocket connection
-    const ws = new WebSocket(`ws://${window.location.host}`);
-    
-    ws.onopen = function() {
-        console.log('Connected to WebSocket server');
-    };
-
-    ws.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        if (data.type === 'stockUpdate') {
-            updateProductStock(data.productId, data.variantSize, data.newStock);
-        }
-    };
-
-    ws.onerror = function(error) {
-        console.error('WebSocket error:', error);
-    };
-
-    ws.onclose = function() {
-        console.log('Disconnected from WebSocket server');
-        // Try to reconnect after 5 seconds
-        setTimeout(() => {
-            window.location.reload();
-        }, 5000);
-    };
 
     // Function to update product stock display
     function updateProductStock(productId, variantSize, newStock) {

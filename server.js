@@ -11,6 +11,7 @@ const { connectDB } = require("./config/db");
 const bcrypt = require("bcrypt");
 const http = require('http');
 const cloudinary = require('./config/cloudinary');
+const flash = require('connect-flash');
 require('./config/googleAuth');
 
 const app = express();
@@ -46,7 +47,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 const { setUserLocals } = require('./middlewares/authMiddleware');
 app.use(setUserLocals);
 app.use( nocache() );
+// Set up flash middleware
+app.use(flash());
 
+// Make flash messages available to all templates
+app.use((req, res, next) => {
+    res.locals.success_messages = req.flash('success');
+    res.locals.error_messages = req.flash('error');
+    next();
+});
 
 
 // Add stock update endpoint
