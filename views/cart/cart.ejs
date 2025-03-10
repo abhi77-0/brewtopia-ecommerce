@@ -1,0 +1,321 @@
+<%- include('../partials/header') %>
+
+<div class="cart-page">
+    <div class="container">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="cart-title">Shopping Cart</h1>
+                <div class="cart-breadcrumb">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="/users/home">Home</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Cart</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="cart-items-container">
+                    <% if (!hasItems) { %>
+                        <div class="cart-empty text-center py-5">
+                            <div class="empty-cart-icon">
+                                <i class="fas fa-shopping-cart fa-4x text-muted"></i>
+                            </div>
+                            <h3 class="mt-4">Your cart is empty</h3>
+                            <p class="text-muted">Looks like you haven't added anything to your cart yet.</p>
+                            <a href="/users/products" class="btn btn-primary mt-3">
+                                <i class="fas fa-arrow-left me-2"></i>Continue Shopping
+                            </a>
+                        </div>
+                    <% } else { %>
+                        <div class="cart-header d-none d-md-flex">
+                            <div class="row w-100">
+                                <div class="col-md-6">Product</div>
+                                <div class="col-md-2">Price</div>
+                                <div class="col-md-2">Quantity</div>
+                                <div class="col-md-2">Total</div>
+                            </div>
+                        </div>
+                        
+                        <% cart.items.forEach(item => { %>
+                            <div class="cart-item" data-product-id="<%= item.product._id %>">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6 d-flex align-items-center">
+                                        <div class="item-image">
+                                            <img src="<%= item.product.image || '/images/product-placeholder.jpg' %>" alt="<%= item.product.name %>">
+                                        </div>
+                                        <div class="item-details">
+                                            <h5 class="item-name"><%= item.product.name %></h5>
+                                            <% if (item.product.category) { %>
+                                                <p class="item-variant text-muted">Category: <%= item.product.category %></p>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <div class="item-price">
+                                            <span class="d-md-none">Price: </span>₹<%= item.product.price %>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <div class="item-quantity">
+                                            <div class="quantity-selector">
+                                                <button class="quantity-btn minus" onclick="updateQuantity('<%= item.product._id %>', <%= item.quantity - 1 %>)">-</button>
+                                                <input type="number" value="<%= item.quantity %>" min="1" max="5" readonly>
+                                                <button class="quantity-btn plus" onclick="updateQuantity('<%= item.product._id %>', <%= item.quantity + 1 %>)" <%= item.quantity >= 5 ? 'disabled' : '' %>>+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-2">
+                                        <div class="item-total">
+                                            <span class="d-md-none">Total: </span>₹<%= item.total %>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-12 text-end text-md-start mt-2 mt-md-0">
+                                        <button class="btn btn-sm btn-outline-danger remove-item" onclick="removeItem('<%= item.product._id %>')">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } %>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="cart-summary">
+                    <h3 class="summary-title">Order Summary</h3>
+                    <div class="summary-item d-flex justify-content-between">
+                        <span>Subtotal (<%= itemCount %> items)</span>
+                        <span>₹<%= subtotal %></span>
+                    </div>
+                    <div class="summary-item d-flex justify-content-between">
+                        <span>Shipping</span>
+                        <span>₹<%= shipping %></span>
+                    </div>
+                    <div class="summary-item d-flex justify-content-between">
+                        <span>Tax</span>
+                        <span>₹<%= tax %></span>
+                    </div>
+                    <div class="summary-total d-flex justify-content-between">
+                        <span>Total</span>
+                        <span>₹<%= total %></span>
+                    </div>
+                    <button class="btn btn-primary btn-block checkout-btn" <%= !hasItems ? 'disabled' : '' %>>
+                        Proceed to Checkout
+                    </button>
+                    <div class="mt-3">
+                        <a href="/users/products" class="btn btn-outline-secondary btn-block">
+                            Continue Shopping
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function updateQuantity(productId, quantity) {
+    if (quantity < 1 || quantity > 5) return;
+    
+    try {
+        const response = await fetch('/cart/update', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ productId, quantity })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Error updating cart');
+        }
+    } catch (error) {
+        console.error('Error updating cart:', error);
+        alert('Error updating cart');
+    }
+}
+
+async function removeItem(productId) {
+    if (!confirm('Are you sure you want to remove this item?')) return;
+    
+    try {
+        const response = await fetch(`/cart/remove/${productId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Error removing item');
+        }
+    } catch (error) {
+        console.error('Error removing item:', error);
+        alert('Error removing item');
+    }
+}
+</script>
+
+<style>
+.cart-page {
+    padding: 40px 0;
+    background-color: #f8f9fa;
+    min-height: 70vh;
+}
+
+.cart-title {
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.cart-breadcrumb {
+    margin-bottom: 30px;
+}
+
+.cart-items-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+.cart-header {
+    background-color: #f8f9fa;
+    padding: 15px;
+    font-weight: 600;
+    border-bottom: 1px solid #eee;
+}
+
+.cart-item {
+    padding: 20px 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.item-image {
+    width: 80px;
+    height: 80px;
+    margin-right: 15px;
+}
+
+.item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.item-name {
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.item-variant {
+    font-size: 14px;
+    margin-bottom: 0;
+}
+
+.quantity-selector {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    width: fit-content;
+}
+
+.quantity-btn {
+    background: #f8f9fa;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.quantity-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.quantity-selector input {
+    width: 40px;
+    border: none;
+    text-align: center;
+    padding: 5px 0;
+}
+
+.cart-summary {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 20px;
+    position: sticky;
+    top: 20px;
+}
+
+.summary-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.summary-item {
+    margin-bottom: 15px;
+    font-size: 15px;
+}
+
+.summary-total {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    font-weight: 600;
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+.btn-block {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.checkout-btn {
+    padding: 12px;
+    font-weight: 600;
+}
+
+.empty-cart-icon {
+    color: #ccc;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 767px) {
+    .cart-item {
+        padding: 15px 10px;
+    }
+    
+    .item-image {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .item-name {
+        font-size: 14px;
+    }
+    
+    .cart-title {
+        font-size: 24px;
+    }
+}
+</style>
+
+<%- include('../partials/footer') %> 

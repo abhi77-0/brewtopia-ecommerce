@@ -76,34 +76,49 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
-        <div class="container">
-            <!-- Brand -->
-            <a class="navbar-brand" href="/users/home">
-                <i class="fas fa-beer me-2"></i>Brewtopia
-            </a>
-
-            <!-- Toggle Button
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
-                <span class="navbar-toggler-icon"></span>
-            </button> -->
-
-            <!-- Navbar Content -->
-            <div class="collapse navbar-collapse" id="navbarContent">
-                <!-- Search Bar -->
-                <form class="search-bar mx-lg-auto position-relative">
-                    <input type="search" 
-                           class="form-control search-input" 
-                           placeholder="Search for beers..."
-                           aria-label="Search">
-                    <button type="submit" class="search-btn">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </form>
-
-                <%- include('./navigation') %>
+    <header>
+        <nav class="navbar navbar-expand-lg">
+            <div class="container">
+                <!-- Logo and brand -->
+                <a class="navbar-brand" href="/users/home">
+                    <img src="/images/logo.png" alt="Brewtopia">
+                </a>
+                
+                <!-- Navbar toggler for mobile -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                
+                <!-- Navbar content -->
+                <div class="collapse navbar-collapse" id="navbarContent">
+                    <!-- Navigation links -->
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/users/home">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/users/products">Products</a>
+                        </li>
+                        <!-- Other navigation links -->
+                    </ul>
+                    
+                    <!-- Search bar - hide on cart page -->
+                    <% if (!locals.hideSearch) { %>
+                    <form class="d-flex search-form me-3">
+                        <input class="form-control" type="search" placeholder="Search products...">
+                        <button class="btn btn-search" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                    <% } %>
+                    
+                    <!-- User navigation icons -->
+                    <%- include('./navigation') %>
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
+    </header>
+    
+    <main>
 </body>
 </html> 
