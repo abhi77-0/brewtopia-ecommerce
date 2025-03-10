@@ -1,197 +1,38 @@
 const mongoose = require('mongoose');
 const Product = require('../models/product');
 const Category = require('../models/category');
-const cloudinary = require('../config/cloudinary');
-const { handleUpload } = require('../utils/cloudinaryUpload');
 const { Readable } = require('stream');
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs').promises;
 
-// Helper function to upload buffer to Cloudinary
-const uploadToCloudinary = async (buffer, folder) => {
-    return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-            { folder: `brewtopia/${folder}` },
-            (error, result) => {
-                if (error) reject(error);
-                else resolve(result.secure_url);
-            }
-        );
-        
-        const bufferStream = new Readable();
-        bufferStream.push(buffer);
-        bufferStream.push(null);
-        bufferStream.pipe(stream);
-    });
-};
-
-// Get all products
-exports.getAllProducts = async (req, res) => {
+// Function to get all products for users
+const getAllProductsForUser = async (req, res) => {
     try {
-        const categories = await Category.find({ isDeleted: false }).sort({ name: 1 });
-        const products = await Product.find({ isDeleted: false })
-            .populate('category')
-            .sort({ createdAt: -1 });
-
-        res.render('admin/products', {
-            title: 'Manage Products',
+        // Fetch only products that are not hidden and active
+        const products = await Product.find({ 
+            status: 'active',
+            isVisible: true,
+            isDeleted: false
+        })
+        .populate('category')
+        .sort({ createdAt: -1 });
+        
+        res.render('user/products', { 
             products,
-            categories,
-            adminUser: req.session.adminUser,
-            path: '/admin/products'
+            title: 'Our Products'
         });
     } catch (error) {
         console.error('Error fetching products:', error);
-        res.status(500).render('admin/products', {
-            title: 'Manage Products',
-            error: 'Error fetching products',
-            products: [],
-            categories: [],
-            adminUser: req.session.adminUser,
-            path: '/admin/products'
+        res.status(500).render('error', {
+            message: 'Error loading products',
+            error: error.message
         });
     }
 };
 
-// Get single product
-exports.getProduct = async (req, res) => {
-    try {
-        const product = await Product.findById(req.params.productId)
-            .populate('category');
-        
-        if (!product || product.isDeleted) {
-            return res.status(404).json({ error: 'Product not found' });
-        }
-
-        res.json(product);
-    } catch (error) {
-        console.error('Error fetching product:', error);
-        res.status(500).json({ error: 'Error fetching product details' });
-    }
-};
-
-// Add new product
-exports.addProduct = async (req, res) => {
-    try {
-        const { name, description, category,brand } = req.body;
-        const variants = JSON.parse(req.body.variants);
-
-        // Upload images to Cloudinary
-        const uploadPromises = [];
-        if (req.files) {
-            for (let i = 1; i <= 3; i++) {
-                const imageField = `image${i}`;
-                if (req.files[imageField] && req.files[imageField][0]) {
-                    uploadPromises.push(handleUpload(req.files[imageField][0]));
-                }
-            }
-        }
-
-        const uploadedImages = await Promise.all(uploadPromises);
-        
-        // Create product with uploaded image URLs
-        const product = new Product({
-            name,
-            description,
-            brand,
-            category,
-            variants,
-            images: {
-                image1: uploadedImages[0]?.secure_url || null,
-                image2: uploadedImages[1]?.secure_url || null,
-                image3: uploadedImages[2]?.secure_url || null
-            },
-            status: 'active'
-        });
-
-        await product.save();
-        res.status(201).json({ message: 'Product added successfully', product });
-    } catch (error) {
-        console.error('Error adding product:', error);
-        res.status(500).json({ error: 'Error adding product' });
-    }
-};
-
-// Edit product
-exports.editProduct = async (req, res) => {
-    try {
-        const { productId } = req.params;
-        const { name, description, category, brand } = req.body;
-        const variants = JSON.parse(req.body.variants);
-
-        const product = await Product.findById(productId);
-        if (!product || product.isDeleted) {
-            return res.status(404).json({ error: 'Product not found' });
-        }
-
-        // Update basic fields
-        product.name = name;
-        product.description = description;
-        product.category = category;
-        product.brand = brand;
-        product.variants = variants;
-
-        // Upload new images if provided
-        if (req.files) {
-            const newImages = {};
-            for (let i = 1; i <= 3; i++) {
-                const imageField = `image${i}`;
-                if (req.files[imageField] && req.files[imageField][0]) {
-                    try {
-                        const result = await handleUpload(req.files[imageField][0]);
-                        newImages[imageField] = result.secure_url;
-                    } catch (uploadError) {
-                        console.error(`Error uploading ${imageField}:`, uploadError);
-                    }
-                }
-            }
-
-            // Only update images that were uploaded
-            product.images = {
-                ...product.images,
-                ...newImages
-            };
-        }
-
-        console.log('Updating product with data:', {
-            name,
-            description,
-            category,
-            brand,
-            variants
-        });
-
-        await product.save();
-        res.json({ message: 'Product updated successfully', product });
-    } catch (error) {
-        console.error('Error updating product:', error);
-        res.status(500).json({ error: error.message || 'Error updating product' });
-    }
-};
-
-// Delete product
-exports.deleteProduct = async (req, res) => {
-    try {
-        const product = await Product.findById(req.params.productId);
-        
-        if (!product || product.isDeleted) {
-            return res.status(404).json({ error: 'Product not found' });
-        }
-
-        // Soft delete
-        product.isDeleted = true;
-        await product.save();
-
-        res.json({ message: 'Product deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting product:', error);
-        res.status(500).json({ error: 'Error deleting product' });
-    }
-};
-
-// Get product details
-exports.getProductDetails = async (req, res) => {
+// Get product details for user view
+const getProductDetails = async (req, res) => {
     try {
         const productId = req.params.id;
         console.log('Fetching product details for:', productId);
@@ -200,8 +41,8 @@ exports.getProductDetails = async (req, res) => {
             .populate('category')
             .lean();
 
-        if (!product) {
-            console.log('Product not found');
+        if (!product || product.isDeleted || !product.isVisible) {
+            console.log('Product not found or not visible');
             return res.status(404).render('error', {
                 message: 'Product not found'
             });
@@ -217,7 +58,9 @@ exports.getProductDetails = async (req, res) => {
         // Build query for similar products
         const similarProductsQuery = {
             _id: { $ne: productId },  // Exclude current product
-            isDeleted: false
+            isDeleted: false,
+            isVisible: true,
+            status: 'active'
         };
 
         // Add category or brand condition if they exist
@@ -236,18 +79,16 @@ exports.getProductDetails = async (req, res) => {
         console.log('Similar products query:', JSON.stringify(similarProductsQuery, null, 2));
 
         // Find similar products
-        const similarProducts = await Product.find({
-            category: product.category,
-            _id: { $ne: productId }, // exclude current product
-            visibility: true // assuming you only want to show visible products
-          }).limit(4); // limit to 4 similar products
+        const similarProducts = await Product.find(similarProductsQuery)
+            .populate('category')
+            .limit(4); 
           
-          // Render the product details page with product and similar products
-          res.render('/shop/product-details', {
+        // Render the product details page with product and similar products
+        res.render('/shop/product-details', {
             product,
             similarProducts,
             title: product.name
-          });
+        });
 
     } catch (error) {
         console.error('Error in getProductDetails:', error);
@@ -258,14 +99,147 @@ exports.getProductDetails = async (req, res) => {
     }
 };
 
-// Function to get all products for users
-exports.getAllProductsForUser = async (req, res) => {
+// Get products by category
+const getProductsByCategory = async (req, res) => {
     try {
-        // Fetch only products that are not hidden
-        const products = await Product.find({ status:'active' }); // Only fetch products that are not hidden
-        res.render('user/products', { products }); // Render the user products page with the fetched products
+        const categoryId = req.params.categoryId;
+        
+        // Verify the category exists
+        const category = await Category.findById(categoryId);
+        if (!category || category.isDeleted) {
+            return res.status(404).render('error', {
+                message: 'Category not found'
+            });
+        }
+        
+        // Find products in this category that are visible
+        const products = await Product.find({
+            category: categoryId,
+            isVisible: true,
+            isDeleted: false,
+            status: 'active'
+        }).populate('category');
+        
+        res.render('user/category-products', {
+            category,
+            products,
+            title: `${category.name} Products`
+        });
     } catch (error) {
-        console.error('Error fetching products:', error);
-        res.status(500).send('Error fetching products');
+        console.error('Error fetching category products:', error);
+        res.status(500).render('error', {
+            message: 'Error loading category products',
+            error: error.message
+        });
     }
-}; 
+};
+
+// Search products
+const searchProducts = async (req, res) => {
+    try {
+        const searchTerm = req.query.q;
+        
+        if (!searchTerm) {
+            return res.redirect('/products');
+        }
+        
+        // Create search regex for case-insensitive search
+        const searchRegex = new RegExp(searchTerm, 'i');
+        
+        // Find products matching the search term
+        const products = await Product.find({
+            isVisible: true,
+            isDeleted: false,
+            status: 'active',
+            $or: [
+                { name: searchRegex },
+                { description: searchRegex },
+                { brand: searchRegex }
+            ]
+        }).populate('category');
+        
+        res.render('user/search-results', {
+            searchTerm,
+            products,
+            title: `Search Results: ${searchTerm}`
+        });
+    } catch (error) {
+        console.error('Error searching products:', error);
+        res.status(500).render('error', {
+            message: 'Error searching products',
+            error: error.message
+        });
+    }
+};
+
+// Filter products by price range
+const filterProducts = async (req, res) => {
+    try {
+        const { minPrice, maxPrice, category, brand } = req.query;
+        
+        // Build filter query
+        const filterQuery = {
+            isVisible: true,
+            isDeleted: false,
+            status: 'active'
+        };
+        
+        // Add price range if provided
+        if (minPrice !== undefined && maxPrice !== undefined) {
+            filterQuery['variants.price'] = { 
+                $gte: parseFloat(minPrice), 
+                $lte: parseFloat(maxPrice) 
+            };
+        }
+        
+        // Add category filter if provided
+        if (category) {
+            filterQuery.category = category;
+        }
+        
+        // Add brand filter if provided
+        if (brand) {
+            filterQuery.brand = brand;
+        }
+        
+        // Get filtered products
+        const products = await Product.find(filterQuery).populate('category');
+        
+        // For AJAX requests, return JSON
+        if (req.xhr) {
+            return res.json({ products });
+        }
+        
+        // For regular requests, render the filtered products page
+        res.render('user/filtered-products', {
+            products,
+            filters: {
+                minPrice,
+                maxPrice,
+                category,
+                brand
+            },
+            title: 'Filtered Products'
+        });
+    } catch (error) {
+        console.error('Error filtering products:', error);
+        
+        if (req.xhr) {
+            return res.status(500).json({ error: 'Error filtering products' });
+        }
+        
+        res.status(500).render('error', {
+            message: 'Error filtering products',
+            error: error.message
+        });
+    }
+};
+
+// Export all functions
+module.exports = {
+    getAllProductsForUser,
+    getProductDetails,
+    getProductsByCategory,
+    searchProducts,
+    filterProducts
+};

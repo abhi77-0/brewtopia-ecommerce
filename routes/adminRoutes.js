@@ -19,13 +19,14 @@ router.get('/logout', adminController.adminLogout);
 // Admin Dashboard Route
 router.get('/dashboard', isAdmin, adminController.getDashboard);
 
+
 // Product Management Routes
-router.get('/products', isAdmin, productController.getAllProducts);
-router.get('/products/:productId', isAdmin, productController.getProduct);
-router.post('/products/add', isAdmin, productImageUpload, productController.addProduct);
-router.put('/products/:productId', isAdmin, productImageUpload, productController.editProduct);
-router.delete('/products/:productId', isAdmin, productController.deleteProduct);
-router.put('/products/:productId/hide', isAdmin, adminController.toggleProductVisibility);
+router.get('/products', isAdmin, adminController.getAdminProducts);
+router.get('/products/:productId', isAdmin, adminController.getAdminProductDetail);
+router.post('/products/add', isAdmin, productImageUpload, adminController.addProduct);
+router.put('/products/:productId', isAdmin, productImageUpload, adminController.editProduct);
+router.delete('/products/:productId', isAdmin, adminController.deleteProduct);
+router.put('/products/:id/visibility', isAdmin, adminController.toggleProductVisibility);
 
 // Toggle product visibility
 router.post('/products/toggle-visibility/:id', isAdmin, adminController.toggleProductVisibility);
