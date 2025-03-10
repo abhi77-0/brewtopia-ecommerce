@@ -45,18 +45,31 @@
                                 <div class="row align-items-center">
                                     <div class="col-md-6 d-flex align-items-center">
                                         <div class="item-image">
-                                            <img src="<%= item.product.image || '/images/product-placeholder.jpg' %>" alt="<%= item.product.name %>">
+                                            <% if (item.product && item.product.images) { %>
+                                                <img src="<%= item.product.images.image1 || '/images/product-placeholder.jpg' %>" 
+                                                     alt="<%= item.product.name %>">
+                                            <% } else { %>
+                                                <img src="/images/product-placeholder.jpg" alt="Product image not available">
+                                            <% } %>
                                         </div>
                                         <div class="item-details">
-                                            <h5 class="item-name"><%= item.product.name %></h5>
-                                            <% if (item.product.category) { %>
-                                                <p class="item-variant text-muted">Category: <%= item.product.category %></p>
-                                            <% } %>
+                                            <h5 class="item-name"><%= item.product ? item.product.name : 'Product Unavailable' %></h5>
+                                            <p class="item-variant text-muted">
+                                                Size: <%= item.variant %> 
+                                                <% if (item.product && item.product.brand) { %>
+                                                    | Brand: <%= item.product.brand %>
+                                                <% } %>
+                                            </p>
                                         </div>
                                     </div>
                                     <div class="col-6 col-md-2">
                                         <div class="item-price">
-                                            <span class="d-md-none">Price: </span>₹<%= item.product.price %>
+                                            <span class="d-md-none">Price: </span>₹<%= 
+                                                (item.product && 
+                                                 item.product.variants && 
+                                                 item.product.variants[item.variant] && 
+                                                 item.product.variants[item.variant].price) || 0 
+                                            %>
                                         </div>
                                     </div>
                                     <div class="col-6 col-md-2">

@@ -11,13 +11,18 @@ const cartItemSchema = new mongoose.Schema({
         required: true,
         min: 1,
         max: 5
+    },
+    variant: {
+        type: String,
+        required: true,
+        enum: ['500ml', '650ml']
     }
 });
 
 const cartSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "user",
+        ref: "User",
         required: true
     },
     items: [cartItemSchema],
