@@ -27,16 +27,38 @@ const userSchema = new Schema({
         type: Boolean,
         default: true
     },
-    isDeleted: {
-        type: Boolean,
-        default: false
+    phone: {
+        type: String,
+        trim: true
     },
+    profileImage: {
+        type: String,
+        default: '/images/default-profile.png'
+    },
+    addresses: [{
+        type: Schema.Types.ObjectId,
+        ref: 'Address'
+    }],
     lastLogin: {
         type: Date
     },
     blocked: {
         type: Boolean,
         default: false
+    },
+    // For email verification
+    newEmail: String,
+    emailVerificationToken: String,
+    emailVerificationExpires: Date,
+    // For password reset
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+    googleId: {
+        type: String,
+        sparse: true
+    },
+    picture: {
+        type: String
     }
 }, {
     timestamps: true

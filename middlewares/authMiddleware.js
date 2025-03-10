@@ -1,7 +1,14 @@
 module.exports = {
     // Existing authentication check
     isAuthenticated: (req, res, next) => {
-        if (req.isAuthenticated() || req.session.user) {
+        // Add console.log for debugging
+        console.log('Session:', req.session);
+        console.log('User:', req.user);
+        
+        if (req.session.user || req.user) {
+            // Ensure user data is available in locals for views
+            res.locals.user = req.session.user || req.user;
+            res.locals.isAuthenticated = true;
             return next();
         }
         res.redirect('/users/login');

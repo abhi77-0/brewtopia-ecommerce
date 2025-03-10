@@ -12,7 +12,7 @@
         </a>
         <ul class="dropdown-menu dropdown-menu-end">
             <% if (locals.isAuthenticated) { %>
-                <li><a class="dropdown-item" href="/profile"><i class="fas fa-user me-2"></i>Profile</a></li>
+                <li><a class="dropdown-item" href="/users/profile"><i class="fas fa-user me-2"></i>Profile</a></li>
                 <li><a class="dropdown-item" href="/orders"><i class="fas fa-box me-2"></i>Orders</a></li>
                 <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i>Settings</a></li>
                 <li><hr class="dropdown-divider"></li>
@@ -24,7 +24,7 @@
         </ul>
     </li>
     <li class="nav-item">
-        <a class="nav-link nav-icon" href="/wishlist" title="Wishlist">
+        <a class="nav-link nav-icon" href="/users/profile" title="Wishlist">
             <i class="fas fa-heart"></i>
             <span class="badge-notification">0</span>
         </a>

@@ -9,7 +9,7 @@ exports.renderSignupPage = (req, res) => {
     if (req.session.user) {
         return res.redirect('/users/home');
     }
-    res.render("signup", { 
+    res.render("users/signup", { 
         error: req.query.error,
         user: null 
     }); 
@@ -128,7 +128,7 @@ exports.renderLoginPage = (req, res) => {
     if (req.session.user) {
         return res.redirect('/users/home');
     }
-    res.render("login", { 
+    res.render('users/login', { 
         error: req.query.error,
         user: null 
     });
@@ -329,7 +329,7 @@ exports.handleResendOtp = async (req, res) => {
 
 // Additional Page Rendering Handlers
 exports.renderProductsPage = (req, res) => {
-    res.render('products', {
+    res.render('users/products', {
         title: 'Brewtopia - Products',
         error: null,
         categoryFilter: null
@@ -338,7 +338,7 @@ exports.renderProductsPage = (req, res) => {
 
 exports.renderCategoryPage = (req, res) => {
     const categoryType = req.params.type;
-    res.render('products', {
+    res.render('users/products', {
         title: `Brewtopia - ${categoryType.charAt(0).toUpperCase() + categoryType.slice(1)} Beers`,
         categoryFilter: categoryType,
         error: null
@@ -346,7 +346,7 @@ exports.renderCategoryPage = (req, res) => {
 };
 
 exports.renderHomePage = (req, res) => {
-    res.render('home', { 
+    res.render('users/home', { 
         title: 'Welcome to Brewtopia'
     });
 };
@@ -395,4 +395,41 @@ exports.handleGoogleCallback = (req, res) => {
     };
     // Successful authentication, redirect home
     res.redirect('/users/home');
+};
+
+// Add this to your userController.js file if it's not already there
+exports.getProfile = async (req, res) => {
+    try {
+        // Log for debugging
+        console.log('Session in getProfile:', req.session);
+        console.log('User in getProfile:', req.user);
+
+        // Check both session user and passport user
+        const userData = req.session.user || req.user;
+        
+        if (!userData) {
+            return res.redirect('/users/login');
+        }
+
+        // Find user in database
+        const user = await User.findOne({
+            $or: [
+                { _id: userData.id },
+                { email: userData.email }
+            ]
+        });
+
+        if (!user) {
+            return res.redirect('/users/login');
+        }
+
+        res.render('users/profile', {
+            title: 'My Profile',
+            user: user,
+            isAuthenticated: true
+        });
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        res.redirect('/users/login');
+    }
 };

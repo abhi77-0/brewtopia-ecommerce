@@ -11,9 +11,9 @@ const categorySchema = new mongoose.Schema({
         unique: true
     },
     
-    isDeleted: {
+    isVisible: {
         type: Boolean,
-        default: false
+        default: true
     }
 }, {
     timestamps: true,

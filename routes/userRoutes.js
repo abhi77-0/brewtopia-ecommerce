@@ -39,16 +39,25 @@ router.get('/auth/google',
 );
 
 router.get('/auth/google/callback',
-    passport.authenticate('google', { 
-        failureRedirect: '/users/login',
-        failureMessage: true
-    }),
-    userController.handleGoogleCallback
+    passport.authenticate('google', { failureRedirect: '/users/login' }),
+    (req, res) => {
+        // Store user data in session
+        req.session.user = {
+            id: req.user._id,
+            name: req.user.name,
+            email: req.user.email,
+            picture: req.user.picture,
+            googleId: req.user.googleId,
+            isAuthenticated: true
+        };
+        res.redirect('/users/home');
+    }
 );
 
 // Protected routes
 router.get('/products', isAuthenticated, userController.renderProductsPage);
 router.get('/category/:type', isAuthenticated, userController.renderCategoryPage);
 router.get('/home', isAuthenticated, userController.renderHomePage);
+router.get('/profile', isAuthenticated, userController.getProfile);
 
 module.exports = router;

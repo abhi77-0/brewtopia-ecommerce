@@ -73,37 +73,102 @@
             border-radius: 50%;
             object-fit: cover;
         }
+
+        /* Profile specific styles */
+        .profile-image-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+        }
+
+        .profile-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border: 3px solid #FF9800;
+        }
+
+        .list-group-item.active {
+            background-color: #FF9800;
+            border-color: #FF9800;
+        }
+
+        .list-group-item-action:hover {
+            background-color: rgba(255, 152, 0, 0.1);
+            color: #FF9800;
+        }
+
+        .btn-outline-primary {
+            color: #FF9800;
+            border-color: #FF9800;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: #FF9800;
+            border-color: #FF9800;
+            color: white;
+        }
+
+        .btn-primary {
+            background-color: #FF9800;
+            border-color: #FF9800;
+        }
+
+        .btn-primary:hover {
+            background-color: #F57C00;
+            border-color: #F57C00;
+        }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
             <!-- Brand -->
-            <a class="navbar-brand" href="/users/home">
+            <a class="navbar-brand" href="/">
                 <i class="fas fa-beer me-2"></i>Brewtopia
             </a>
 
-            <!-- Toggle Button
+            <!-- Toggle Button -->
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
                 <span class="navbar-toggler-icon"></span>
-            </button> -->
+            </button>
 
             <!-- Navbar Content -->
-            <div class="collapse navbar-collapse" id="navbarContent">
-                <!-- Search Bar -->
-                <form class="search-bar mx-lg-auto position-relative">
-                    <input type="search" 
-                           class="form-control search-input" 
-                           placeholder="Search for beers..."
-                           aria-label="Search">
-                    <button type="submit" class="search-btn">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </form>
+           
 
-                <%- include('./navigation') %>
+                <!-- Right Navigation Icons -->
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link nav-icon" href="/shop/products" title="Shop">
+                            <i class="fas fa-store"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-icon" href="/users/wishlist" title="Wishlist">
+                            <i class="fas fa-heart"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-icon" href="/cart" title="Cart">
+                            <i class="fas fa-shopping-cart"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-icon" href="/users/logout" title="Logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
+
+    <!-- Profile Header Banner -->
+    <div class="bg-primary text-white py-4 mb-4" style="background-color: #FF9800 !important;">
+        <div class="container">
+            <h1 class="h3 mb-0"><%= title %></h1>
+        </div>
+    </div>
 </body>
 </html> 
