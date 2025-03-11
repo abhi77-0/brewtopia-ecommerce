@@ -7,6 +7,7 @@ const passport = require('passport');
 const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const shopRoutes = require('./routes/shopRoutes');
+const { isAuthenticated, setUserLocals } = require('./middlewares/authMiddleware');
 const { connectDB } = require("./config/db");
 const bcrypt = require("bcrypt");
 const http = require('http');
@@ -45,7 +46,6 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Global middleware to check auth status
-const { setUserLocals } = require('./middlewares/authMiddleware');
 app.use(setUserLocals);
 app.use( nocache() );
 // Set up flash middleware
@@ -73,14 +73,6 @@ app.post('/admin/products/update-stock', async (req, res) => {
         res.status(500).json({ error: 'Failed to update stock' });
     }
 });
-
-// Custom middleware to check if user is authenticated
-const isAuthenticated = (req, res, next) => {
-    if (req.isAuthenticated()) {
-        return next();
-    }
-    res.redirect('/users/login');
-};
 
 // Public routes that don't require authentication
 app.get('/', (req, res) => {

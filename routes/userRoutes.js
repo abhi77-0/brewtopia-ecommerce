@@ -58,6 +58,9 @@ router.get('/auth/google/callback',
 router.get('/products', isAuthenticated, userController.renderProductsPage);
 router.get('/category/:type', isAuthenticated, userController.renderCategoryPage);
 router.get('/home', isAuthenticated, userController.renderHomePage);
+//profile
 router.get('/profile', isAuthenticated, userController.getProfile);
+router.get('/profile/edit', isAuthenticated, userController.getEditProfile);
+router.post('/profile/update', isAuthenticated, userController.updateProfile);
 
 module.exports = router;

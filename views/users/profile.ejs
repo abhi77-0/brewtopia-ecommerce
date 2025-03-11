@@ -1,141 +1,236 @@
 <%- include('../partials/profile-header') %>
 
-<div class="container my-5">
-    <div class="row">
-        <!-- Sidebar -->
-        <div class="col-lg-3 mb-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="card-title"><%= user ? user.name : 'User' %></h5>
-                    <p class="text-muted"><%= user ? user.email : 'No email available' %></p>
-                    <a href="/users/profile/edit" class="btn btn-outline-primary btn-sm">Edit Profile</a>
-                </div>
-                <div class="list-group list-group-flush">
-                    <a href="/users/profile" class="list-group-item list-group-item-action active">
-                        <i class="fas fa-user me-2"></i> My Profile
-                    </a>
-                    <a href="/users/profile/orders" class="list-group-item list-group-item-action">
-                        <i class="fas fa-shopping-bag me-2"></i> My Orders
-                    </a>
-                    <a href="/users/profile/addresses" class="list-group-item list-group-item-action">
-                        <i class="fas fa-map-marker-alt me-2"></i> My Addresses
-                    </a>
-                    <a href="/users/profile/change-password" class="list-group-item list-group-item-action">
-                        <i class="fas fa-key me-2"></i> Change Password
-                    </a>
-                    <a href="/users/logout" class="list-group-item list-group-item-action text-danger">
-                        <i class="fas fa-sign-out-alt me-2"></i> Logout
-                    </a>
-                </div>
-            </div>
+<div class="container py-5">
+    <!-- User Profile Header -->
+    <div class="profile-header">
+        <div class="user-avatar">
+            <%= user.name ? user.name[0].toUpperCase() : 'U' %>
         </div>
-
-        <!-- Main Content -->
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header bg-white">
-                    <h4 class="mb-0">Account Information</h4>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <h5>Personal Details</h5>
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Name</label>
-                                <p class="mb-0"><%= user ? user.name : 'Not provided' %></p>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Email</label>
-                                <p class="mb-0"><%= user ? user.email : 'Not provided' %></p>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Phone</label>
-                                <p class="mb-0"><%= user && user.phone ? user.phone : 'Not provided' %></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Orders -->
-            <div class="card mt-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">Recent Orders</h4>
-                    <a href="/users/profile/orders" class="btn btn-sm btn-outline-primary">View All</a>
-                </div>
-                <div class="card-body">
-                    <% if (locals.recentOrders && recentOrders.length > 0) { %>
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Order #</th>
-                                        <th>Date</th>
-                                        <th>Status</th>
-                                        <th>Total</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <% recentOrders.forEach(function(order) { %>
-                                        <tr>
-                                            <td><%= order.orderNumber %></td>
-                                            <td><%= new Date(order.createdAt).toLocaleDateString() %></td>
-                                            <td>
-                                                <span class="badge <%= order.status === 'Delivered' ? 'bg-success' : (order.status === 'Processing' ? 'bg-primary' : 'bg-secondary') %>">
-                                                    <%= order.status %>
-                                                </span>
-                                            </td>
-                                            <td>₹<%= order.totalAmount.toFixed(2) %></td>
-                                            <td>
-                                                <a href="/users/profile/orders/<%= order._id %>" class="btn btn-sm btn-outline-primary">View</a>
-                                            </td>
-                                        </tr>
-                                    <% }); %>
-                                </tbody>
-                            </table>
-                        </div>
-                    <% } else { %>
-                        <div class="text-center py-4">
-                            <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
-                            <p class="mb-0">You haven't placed any orders yet.</p>
-                            <a href="/shop/products" class="btn btn-primary mt-3">Start Shopping</a>
-                        </div>
-                    <% } %>
-                </div>
-            </div>
-
-            <div class="profile-settings">
-                <!-- Always show these options -->
-                <div class="basic-info-section">
-                    <h3>Basic Information</h3>
-                    <!-- Name, email, etc. fields -->
-                </div>
-
-                <!-- Only show password change section for email-registered users -->
-                <% if (!user.googleId) { %>
-                    <div class="password-section">
-                        <h3>Change Password</h3>
-                        <form action="/users/change-password" method="POST">
-                            <div class="mb-3">
-                                <label for="currentPassword" class="form-label">Current Password</label>
-                                <input type="password" class="form-control" id="currentPassword" name="currentPassword" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="newPassword" class="form-label">New Password</label>
-                                <input type="password" class="form-control" id="newPassword" name="newPassword" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="confirmPassword" class="form-label">Confirm New Password</label>
-                                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Change Password</button>
-                        </form>
-                    </div>
-                <% } %>
-            </div>
+        <div class="user-details">
+            <h2><%= user.name || 'User' %></h2>
+            <p><%= user.email %></p>
+            <a href="/users/profile/edit" class="edit-btn">
+                <i class="fas fa-edit"></i> Edit Profile
+            </a>
         </div>
     </div>
+
+    <!-- Navigation Options -->
+    <div class="navigation-grid">
+        <!-- Orders -->
+        <a href="/users/orders" class="nav-card">
+            <div class="card-content">
+                <div class="icon-wrapper orders">
+                    <i class="fas fa-box"></i>
+                </div>
+                <h3>My Orders</h3>
+                <p>Track your orders and view history</p>
+            </div>
+            <div class="card-arrow">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+        </a>
+
+        <!-- Addresses -->
+        <a href="/users/addresses" class="nav-card">
+            <div class="card-content">
+                <div class="icon-wrapper address">
+                    <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <h3>Addresses</h3>
+                <p>Manage your delivery addresses</p>
+            </div>
+            <div class="card-arrow">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+        </a>
+
+        <!-- Wallet -->
+        <a href="/users/wallet" class="nav-card">
+            <div class="card-content">
+                <div class="icon-wrapper wallet">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <h3>Wallet</h3>
+                <p>Check your wallet balance & transactions</p>
+            </div>
+            <div class="card-arrow">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+        </a>
+
+        <!-- Coupons -->
+        <a href="/users/coupons" class="nav-card">
+            <div class="card-content">
+                <div class="icon-wrapper coupons">
+                    <i class="fas fa-ticket-alt"></i>
+                </div>
+                <h3>Coupons</h3>
+                <p>View and use your available coupons</p>
+            </div>
+            <div class="card-arrow">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+        </a>
+    </div>
 </div>
+
+<style>
+    .profile-header {
+        background: linear-gradient(145deg, #FF9800, #F57C00);
+        padding: 3rem 2rem;
+        border-radius: 20px;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 20px rgba(255, 152, 0, 0.2);
+    }
+
+    .user-avatar {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .user-details h2 {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 600;
+    }
+
+    .user-details p {
+        margin: 0.5rem 0;
+        opacity: 0.9;
+    }
+
+    .edit-btn {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        text-decoration: none;
+        padding: 0.5rem 1.25rem;
+        border-radius: 25px;
+        margin-top: 0.5rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .edit-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .navigation-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .nav-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 16px;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.3s ease;
+        border: 1px solid #e2e8f0;
+    }
+
+    .nav-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .icon-wrapper {
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .orders {
+        background: #FFF3E0;
+        color: #FF9800;
+    }
+
+    .address {
+        background: #E3F2FD;
+        color: #2196F3;
+    }
+
+    .wallet {
+        background: #E8F5E9;
+        color: #4CAF50;
+    }
+
+    .coupons {
+        background: #F3E5F5;
+        color: #9C27B0;
+    }
+
+    .nav-card:hover .icon-wrapper {
+        transform: scale(1.1);
+    }
+
+    .card-content h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.25rem;
+        color: #1e293b;
+    }
+
+    .card-content p {
+        margin: 0;
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    .card-arrow {
+        color: #94a3b8;
+        transition: all 0.3s ease;
+    }
+
+    .nav-card:hover .card-arrow {
+        transform: translateX(5px);
+        color: #FF9800;
+    }
+
+    @media (max-width: 768px) {
+        .profile-header {
+            flex-direction: column;
+            text-align: center;
+            padding: 2rem 1.5rem;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .navigation-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 
 <%- include('../partials/footer') %>

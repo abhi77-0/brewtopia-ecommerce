@@ -400,26 +400,39 @@ exports.handleGoogleCallback = (req, res) => {
 // Add this to your userController.js file if it's not already there
 exports.getProfile = async (req, res) => {
     try {
-        // Log for debugging
-        console.log('Session in getProfile:', req.session);
-        console.log('User in getProfile:', req.user);
 
-        // Check both session user and passport user
-        const userData = req.session.user || req.user;
-        
-        if (!userData) {
+        // Check authentication status
+        if (!req.isAuthenticated() && !req.session.user) {
             return res.redirect('/users/login');
         }
 
-        // Find user in database
+        // Determine user identifier based on auth type
+        let userIdentifier;
+        
+        if (req.user) {
+            // Passport auth (likely Google)
+            userIdentifier = { 
+                id: req.user.id || req.user._id,
+                email: req.user.email
+            };
+        } else if (req.session.user) {
+            // Local session auth
+            userIdentifier = {
+                id: req.session.user.id || req.session.user._id,
+                email: req.session.user.email
+            };
+        }
+
+        // Find user in database with more robust query
         const user = await User.findOne({
             $or: [
-                { _id: userData.id },
-                { email: userData.email }
+                { _id: userIdentifier.id },
+                { email: userIdentifier.email }
             ]
         });
 
         if (!user) {
+            console.log('User not found in database:', userIdentifier);
             return res.redirect('/users/login');
         }
 
@@ -431,5 +444,45 @@ exports.getProfile = async (req, res) => {
     } catch (error) {
         console.error('Error fetching user profile:', error);
         res.redirect('/users/login');
+    }
+};
+// Get edit profile page
+exports.getEditProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.session.user.id);
+        if (!user) {
+            req.flash('error', 'User not found');
+            return res.redirect('/auth/login');
+        }
+
+        res.render('users/edit-profile', {
+            title: 'Edit Profile',
+            user: user
+        });
+    } catch (error) {
+        console.error('Error loading edit profile:', error);
+        req.flash('error', 'Error loading profile');
+        res.redirect('/users/profile');
+    }
+};
+
+// Update profile
+exports.updateProfile = async (req, res) => {
+    try {
+        const { name, phone, address } = req.body;
+        
+        // Update user
+        await User.findByIdAndUpdate(req.session.user.id, {
+            name,
+            phone,
+            address
+        });
+
+        req.flash('success', 'Profile updated successfully');
+        res.redirect('/users/profile');
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        req.flash('error', 'Error updating profile');
+        res.redirect('/users/profile/edit');
     }
 };
