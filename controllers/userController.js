@@ -55,54 +55,70 @@ exports.renderVerifyOtpPage = (req, res) => {
 };
 
 exports.handleVerifyOtp = async (req, res) => {
+    const { email, otp } = req.body;
+    const isPasswordReset = req.session.resetEmail === email;
+
     try {
-        const { email, otp } = req.body;
-        console.log('Handling OTP verification:', { email, otp });
-
-        // Check if there's a pending update
-        if (!req.session.pendingProfileUpdate) {
-            console.log('No pending profile update found');
-            req.flash('error', 'No pending email update found');
-            return res.redirect('/users/profile/edit');
-        }
-
-        // Verify OTP
-        const isValid = await verifyOTP(email, otp);
-        console.log('OTP verification result:', isValid);
-
-        if (!isValid) {
-            return res.render('auth/verifyOtp', {
+        const otpDoc = await OTP.findOne({ email });
+        
+        if (!otpDoc) {
+            return res.render("verifyOtp", { 
                 email,
-                isEmailUpdate: true,
-                error: 'Invalid OTP. Please try again.'
+                error: "No OTP found. Please request a new one."
             });
         }
 
-        // Get pending updates
-        const { userId, name, phone, newEmail } = req.session.pendingProfileUpdate;
+        // Check OTP expiration
+        if (otpDoc.isExpired()) {
+            await OTP.deleteOne({ email });
+            return res.render("verifyOtp", { 
+                email,
+                error: "OTP has expired. Please request a new one."
+            });
+        }
 
-        // Update user with all changes including email
-        await User.findByIdAndUpdate(userId, {
-            name,
-            phone,
-            email: newEmail
+        if (!(await verifyOTP(email, otp))) {
+            return res.render("verifyOtp", { 
+                email,
+                error: "Invalid OTP. Please try again."
+            });
+        }
+
+        await OTP.deleteOne({ email });
+
+        if (isPasswordReset) {
+            return res.render("resetPassword", { email });
+        }
+
+        const pendingUser = await PendingUser.findOne({ email });
+        if (!pendingUser) {
+            return res.render("verifyOtp", { 
+                email,
+                error: "No pending registration found"
+            });
+        }
+
+        // Create verified user
+        const newUser = await User.create({
+            email: pendingUser.email,
+            name: pendingUser.name,
+            password: pendingUser.password
         });
 
-        // Clear pending updates
-        delete req.session.pendingProfileUpdate;
+        await PendingUser.deleteOne({ email });
 
-        // Update session
-        req.session.user.email = newEmail;
+        req.session.user = {
+            id: newUser._id,
+            email: newUser.email,
+            name: newUser.name
+        };
 
-        req.flash('success', 'Profile and email updated successfully');
-        res.redirect('/users/profile');
-
+        res.redirect("/users/home");
     } catch (error) {
-        console.error('Error in OTP verification:', error);
-        res.render('auth/verifyOtp', {
-            email: req.body.email,
-            isEmailUpdate: true,
-            error: 'An error occurred during verification'
+        console.error("OTP verification error:", error);
+        res.render("verifyOtp", { 
+            email,
+            error: "An error occurred during verification"
         });
     }
 };
@@ -462,18 +478,48 @@ exports.updateProfile = async (req, res) => {
             return res.redirect('/users/profile/edit');
         }
 
-        // Check if email is being changed
+        // Validation checks
+        const errors = [];
+
+        // Name validation
+        if (!name || name.trim().length < 2) {
+            errors.push('Name should be at least 2 characters long');
+        }
+
+        // Phone validation
+        const phoneRegex = /^[0-9]{10}$/;
+        if (!phone || !phoneRegex.test(phone)) {
+            errors.push('Please enter a valid 10-digit phone number');
+        }
+
+        // Email validation for non-Google users
         if (!user.googleId && email !== user.email) {
-            console.log('Email change detected:', { current: user.email, new: email });
-            
-            // Check if new email already exists
-            const emailExists = await User.findOne({ email, _id: { $ne: userId } });
-            if (emailExists) {
-                req.flash('error', 'Email already in use');
-                return res.redirect('/users/profile/edit');
+            // Email format validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) {
+                errors.push('Please enter a valid email address');
             }
 
-            // Store pending changes in session
+            // Check if email exists
+            const emailExists = await User.findOne({ 
+                email, 
+                _id: { $ne: userId } 
+            });
+
+            if (emailExists) {
+                errors.push('This email is already registered');
+                return res.render('users/edit-profile', {
+                    user: {
+                        ...user.toObject(),
+                        name,
+                        phone
+                    },
+                    error: 'This email is already registered',
+                    emailError: true
+                });
+            }
+
+            // If email is being changed, proceed with OTP verification
             req.session.pendingProfileUpdate = {
                 userId,
                 name,
@@ -485,19 +531,30 @@ exports.updateProfile = async (req, res) => {
             // Generate and send OTP
             await generateOTP(email);
 
-            // Redirect to OTP verification page
-            return res.render('users/verifyOtp', {
+            return res.render('auth/verifyOtp', {
                 email,
                 isEmailUpdate: true,
                 error: null
             });
         }
 
-        // If no email change or Google user, update other fields only
+        // If there are validation errors
+        if (errors.length > 0) {
+            return res.render('users/edit-profile', {
+                user: {
+                    ...user.toObject(),
+                    name,
+                    phone,
+                    email
+                },
+                errors
+            });
+        }
+
+        // If no email change or Google user, update other fields
         const updateData = {
             name,
             phone
-            // Do NOT include email here
         };
 
         await User.findByIdAndUpdate(userId, updateData);
@@ -508,5 +565,88 @@ exports.updateProfile = async (req, res) => {
         console.error('Error updating profile:', error);
         req.flash('error', 'Error updating profile');
         res.redirect('/users/profile/edit');
+    }
+};
+
+// Email check endpoint
+exports.checkEmail = async (req, res) => {
+    try {
+        const { email } = req.query;
+        const userId = req.session.user.id;
+
+        // Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email || !emailRegex.test(email)) {
+            return res.json({ 
+                exists: false, 
+                error: 'Invalid email format' 
+            });
+        }
+
+        const existingUser = await User.findOne({ 
+            email, 
+            _id: { $ne: userId } 
+        });
+
+        res.json({ 
+            exists: !!existingUser,
+            message: existingUser ? 'Email already registered' : null
+        });
+    } catch (error) {
+        console.error('Error checking email:', error);
+        res.status(500).json({ 
+            error: 'Server error',
+            message: 'Error checking email availability'
+        });
+    }
+};
+
+// Handle OTP verification remains the same as before
+exports.handleVerifyOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        // Verify the OTP
+        const isValid = await verifyOTP(email, otp);
+
+        if (!isValid) {
+            return res.render('auth/verifyOtp', {
+                email,
+                isEmailUpdate: true,
+                error: 'Invalid OTP. Please try again.'
+            });
+        }
+
+        // If OTP is valid and we have pending profile updates
+        if (req.session.pendingProfileUpdate) {
+            const { userId, name, phone, newEmail } = req.session.pendingProfileUpdate;
+
+            // Update user with new email and other details
+            await User.findByIdAndUpdate(userId, {
+                name,
+                phone,
+                email: newEmail
+            });
+
+            // Clear pending updates from session
+            delete req.session.pendingProfileUpdate;
+
+            // Update session email
+            req.session.user.email = newEmail;
+
+            req.flash('success', 'Profile and email updated successfully');
+            return res.redirect('/users/profile');
+        }
+
+        req.flash('error', 'No pending profile updates found');
+        res.redirect('/users/profile/edit');
+
+    } catch (error) {
+        console.error('Error in OTP verification:', error);
+        res.render('auth/verifyOtp', {
+            email,
+            isEmailUpdate: true,
+            error: 'An error occurred during verification'
+        });
     }
 };

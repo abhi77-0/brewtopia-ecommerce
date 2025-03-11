@@ -13,14 +13,16 @@
 
             <!-- Edit Profile Form -->
             <div class="edit-form-card">
-                <form action="/users/profile/update" method="POST">
+                <form action="/users/profile/update" method="POST" id="editProfileForm" novalidate>
                     <div class="form-floating mb-4">
                         <input type="text" 
                                class="form-control" 
                                id="nameInput"
                                name="name" 
                                value="<%= user.name || '' %>" 
-                               placeholder="Enter your full name">
+                               placeholder="Enter your full name"
+                               required
+                               minlength="2">
                         <label for="nameInput">Full Name</label>
                     </div>
 
@@ -31,8 +33,17 @@
                                name="email"
                                value="<%= user.email %>" 
                                placeholder="Email"
-                               <%= user.googleId ? 'readonly' : '' %>>
+                               <%= user.googleId ? 'readonly' : '' %>
+                               required>
                         <label for="emailInput">Email</label>
+                        
+                        <div class="email-warning-message" id="emailWarning">
+                            <div class="warning-content">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span>This email is already registered</span>
+                            </div>
+                        </div>
+
                         <% if (user.googleId) { %>
                             <div class="google-badge">
                                 <i class="fab fa-google"></i> Google Account
@@ -47,11 +58,19 @@
                                id="phoneInput"
                                name="phone" 
                                value="<%= user.phone || '' %>" 
-                               placeholder="Enter your phone number">
+                               placeholder="Enter your phone number"
+                               required>
                         <label for="phoneInput">Phone Number</label>
+                        
+                        <div class="phone-warning-message" id="phoneWarning">
+                            <div class="warning-content">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span>Please enter a valid 10-digit phone number</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <button type="submit" class="btn btn-save w-100">
+                    <button type="submit" class="btn btn-save w-100" id="submitBtn">
                         <i class="fas fa-save me-2"></i>Save Changes
                     </button>
                 </form>
@@ -165,6 +184,129 @@
             width: 100%;
         }
     }
+
+    .warning-message, .email-warning-message, .phone-warning-message {
+        display: none;
+        background-color: #FFF3E0;
+        border-left: 4px solid #FF9800;
+        padding: 0.75rem 1rem;
+        margin-top: 0.5rem;
+        border-radius: 4px;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    .warning-content {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #E65100;
+        font-size: 0.875rem;
+    }
+
+    .warning-content i {
+        font-size: 1rem;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .form-control.warning {
+        border-color: #FF9800;
+    }
+
+    .form-control.warning:focus {
+        box-shadow: 0 0 0 0.2rem rgba(255, 152, 0, 0.25);
+    }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('editProfileForm');
+    const emailInput = document.getElementById('emailInput');
+    const phoneInput = document.getElementById('phoneInput');
+    const emailWarning = document.getElementById('emailWarning');
+    const phoneWarning = document.getElementById('phoneWarning');
+    const submitBtn = document.getElementById('submitBtn');
+
+    let isEmailValid = true;
+    let isPhoneValid = true;
+
+    // Email validation
+    emailInput.addEventListener('input', function() {
+        const email = this.value.trim();
+        const currentEmail = '<%= user.email %>';
+
+        if (email === currentEmail) {
+            emailWarning.style.display = 'none';
+            this.classList.remove('warning');
+            isEmailValid = true;
+            return;
+        }
+
+        // Basic email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            emailWarning.querySelector('span').textContent = 'Please enter a valid email address';
+            emailWarning.style.display = 'block';
+            this.classList.add('warning');
+            isEmailValid = false;
+            return;
+        }
+
+        // Check if email exists
+        fetch(`/users/check-email?email=${encodeURIComponent(email)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.exists) {
+                    emailWarning.querySelector('span').textContent = 'This email is already registered';
+                    emailWarning.style.display = 'block';
+                    this.classList.add('warning');
+                    isEmailValid = false;
+                } else {
+                    emailWarning.style.display = 'none';
+                    this.classList.remove('warning');
+                    isEmailValid = true;
+                }
+                updateSubmitButton();
+            });
+    });
+
+    // Phone validation
+    phoneInput.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '');
+        
+        if (this.value.length !== 10) {
+            phoneWarning.style.display = 'block';
+            this.classList.add('warning');
+            isPhoneValid = false;
+        } else {
+            phoneWarning.style.display = 'none';
+            this.classList.remove('warning');
+            isPhoneValid = true;
+        }
+        updateSubmitButton();
+    });
+
+    function updateSubmitButton() {
+        submitBtn.disabled = !(isEmailValid && isPhoneValid);
+    }
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        if (!isEmailValid || !isPhoneValid) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
 
 <%- include('../partials/footer') %> 
