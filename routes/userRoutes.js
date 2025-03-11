@@ -63,4 +63,7 @@ router.get('/profile', isAuthenticated, userController.getProfile);
 router.get('/profile/edit', isAuthenticated, userController.getEditProfile);
 router.post('/profile/update', isAuthenticated, userController.updateProfile);
 
+
+router.post('/profile/verify-email-otp', isAuthenticated, userController.handleVerifyOtp);
+
 module.exports = router;
