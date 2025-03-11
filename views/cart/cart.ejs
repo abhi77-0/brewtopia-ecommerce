@@ -41,7 +41,7 @@
                         </div>
                         
                         <% cart.items.forEach(item => { %>
-                            <div class="cart-item" data-product-id="<%= item.product._id %>">
+                            <div class="cart-item" data-product-id="<%= item.product._id %>" data-variant="<%= item.variant %>">
                                 <div class="row align-items-center">
                                     <div class="col-md-6 d-flex align-items-center">
                                         <div class="item-image">
@@ -88,7 +88,7 @@
                                     </div>
                                     <div class="col-6 col-md-1">
                                         <button class="btn btn-link text-danger delete-item" 
-                                                onclick="removeItem('<%= item.product._id %>')" 
+                                                onclick="removeFromCart('<%= item.product._id %>', '<%= item.variant %>')" 
                                                 title="Remove item">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -158,23 +158,61 @@ async function updateQuantity(productId, quantity) {
     }
 }
 
-async function removeItem(productId) {
-    if (!confirm('Are you sure you want to remove this item?')) return;
-    
+async function removeFromCart(productId, variant) {
     try {
+        if (!confirm('Are you sure you want to remove this item?')) {
+            return;
+        }
+
         const response = await fetch(`/cart/remove/${productId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ variant })
         });
-        
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const data = await response.json();
+
         if (data.success) {
+            const itemElement = document.querySelector(
+                `.cart-item[data-product-id="${productId}"][data-variant="${variant}"]`
+            );
+            
+            if (itemElement) {
+                itemElement.remove();
+            }
+
+            const totalElement = document.querySelector('.cart-total');
+            if (totalElement) {
+                totalElement.textContent = `₹${data.cartTotal}`;
+            }
+
+            if (data.itemCount === 0) {
+                const cartContainer = document.querySelector('.cart-items');
+                if (cartContainer) {
+                    cartContainer.innerHTML = `
+                        <div class="empty-cart-message">
+                            <i class="fas fa-shopping-cart"></i>
+                            <p>Your cart is empty</p>
+                            <a href="/shop/products" class="btn btn-primary">Continue Shopping</a>
+                        </div>
+                    `;
+                }
+            }
+
             location.reload();
         } else {
-            alert(data.error || 'Error removing item');
+            throw new Error(data.message || 'Failed to remove item');
         }
+
     } catch (error) {
-        console.error('Error removing item:', error);
-        alert('Error removing item');
+        console.error('Error:', error);
+        alert('Error removing item from cart: ' + error.message);
     }
 }
 </script>

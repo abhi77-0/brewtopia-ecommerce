@@ -192,35 +192,59 @@ exports.updateCart = async (req, res) => {
 // Remove item from cart
 exports.removeFromCart = async (req, res) => {
     try {
-        const productId = req.params.productId;
+        const { productId } = req.params; // Get productId from URL params
+        const { variant } = req.body;     // Get variant from request body
+        const userId = req.session.user.id;
 
-        // Find user's cart
-        const cart = await Cart.findOne({ user: req.session.user.id });
+        const cart = await Cart.findOne({ user: userId });
         
         if (!cart) {
-            return res.status(404).json({
-                success: false,
-                error: 'Cart not found'
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Cart not found' 
             });
         }
 
-        // Remove the item from the cart
-        cart.items = cart.items.filter(item => 
-            item.product.toString() !== productId
+        // Find the specific item with both productId and variant
+        const itemIndex = cart.items.findIndex(item => 
+            item.product.toString() === productId && 
+            item.variant === variant
         );
 
+        if (itemIndex === -1) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Item not found in cart' 
+            });
+        }
+
+        // Remove the item
+        cart.items.splice(itemIndex, 1);
         await cart.save();
+
+        // Get updated cart with product details
+        const updatedCart = await Cart.findOne({ user: userId })
+            .populate('items.product');
+
+        // Calculate new total
+        const cartTotal = updatedCart.items.reduce((total, item) => {
+            const variantPrice = item.product.variants[item.variant].price;
+            return total + (variantPrice * item.quantity);
+        }, 0);
 
         res.json({
             success: true,
-            message: 'Item removed from cart successfully'
+            message: 'Item removed successfully',
+            cartTotal: cartTotal.toFixed(2),
+            itemCount: updatedCart.items.length
         });
 
     } catch (error) {
-        console.error('Remove from cart error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to remove item from cart'
+        console.error('Error removing from cart:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error removing item from cart',
+            error: error.message 
         });
     }
 };

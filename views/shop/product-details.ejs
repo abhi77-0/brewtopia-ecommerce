@@ -504,52 +504,175 @@
     }
 
     .product-actions {
-        margin-top: 20px;
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
     }
 
-    .quantity-selector {
+    .size-selector-container {
+        margin-bottom: 2rem;
+    }
+
+    .size-label {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        overflow: hidden;
-        width: fit-content;
-        margin: 10px 0;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        color: #1a1a1a;
     }
 
-    .quantity-btn {
-        background: #f8f9fa;
-        border: none;
-        padding: 5px 15px;
+    .selected-price {
+        font-size: 1.25rem;
+        color: #FF9800;
+    }
+
+    .size-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .size-option {
+        position: relative;
+        padding: 1.25rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
         cursor: pointer;
+        transition: all 0.2s ease;
+        background: #fff;
     }
 
-    .quantity-btn:hover {
-        background: #e9ecef;
+    .size-option:hover:not(.disabled) {
+        border-color: #FF9800;
+        transform: translateY(-2px);
     }
 
-    .quantity-selector input {
-        width: 50px;
+    .size-option.selected:not(.disabled) {
+        border-color: #FF9800;
+        background: #FFF8E1;
+    }
+
+    .size-option.disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        background: #f9fafb;
+    }
+
+    .size-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .size-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+
+    .size-price {
+        font-weight: 600;
+        color: #FF9800;
+    }
+
+    .stock-info {
+        font-size: 0.875rem;
+        color: #22c55e;
+    }
+
+    .stock-info.low-stock {
+        color: #f59e0b;
+    }
+
+    .out-of-stock {
+        color: #ef4444;
+    }
+
+    .quantity-container {
+        margin-bottom: 2rem;
+    }
+
+    .quantity-label {
+        display: block;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+
+    .quantity-controls {
+        display: inline-flex;
+        align-items: center;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .qty-btn {
+        width: 48px;
+        height: 48px;
+        border: none;
+        background: #f9fafb;
+        color: #1a1a1a;
+        font-size: 1.25rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .qty-btn:hover {
+        background: #f3f4f6;
+    }
+
+    #quantity {
+        width: 64px;
+        height: 48px;
         border: none;
         text-align: center;
-        padding: 5px 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        -moz-appearance: textfield;
     }
 
-    .btn-add-to-cart {
-        margin-top: 15px;
-        padding: 10px 20px;
+    #quantity::-webkit-outer-spin-button,
+    #quantity::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    .add-to-cart-btn {
         width: 100%;
+        padding: 1rem;
+        border: none;
+        border-radius: 12px;
+        background: #FF9800;
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        transition: all 0.2s ease;
     }
 
-    .form-group {
-        margin-bottom: 15px;
+    .add-to-cart-btn:not(:disabled):hover {
+        background: #F57C00;
+        transform: translateY(-2px);
     }
 
-    select.form-control {
-        padding: 8px;
-        border-radius: 4px;
-        border: 1px solid #ddd;
-        width: 100%;
+    .add-to-cart-btn:disabled {
+        background: #e5e7eb;
+        cursor: not-allowed;
+    }
+
+    @media (max-width: 640px) {
+        .size-options {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -609,56 +732,78 @@
                     
                     <p class="product-description"><%= product.description %></p>
 
-                    <div class="variant-section">
-                        <h3 class="variant-title">Select Size</h3>
-                        <div class="variant-options">
-                            <% if (product.variants['500ml']) { %>
-                                <div class="variant-card" onclick="selectVariant(this, '500ml')">
-                                    <div class="variant-size">500ml</div>
-                                    <div class="variant-price">₹<%= product.variants['500ml'].price %></div>
-                                    <div class="variant-stock">
-                                        Stock: <%= product.variants['500ml'].stock %>
-                                    </div>
-                                </div>
-                            <% } %>
-                            <% if (product.variants['650ml']) { %>
-                                <div class="variant-card" onclick="selectVariant(this, '650ml')">
-                                    <div class="variant-size">650ml</div>
-                                    <div class="variant-price">₹<%= product.variants['650ml'].price %></div>
-                                    <div class="variant-stock">
-                                        Stock: <%= product.variants['650ml'].stock %>
-                                    </div>
-                                </div>
-                            <% } %>
-                        </div>
-                    </div>
-
                     <div class="product-actions">
                         <form id="addToCartForm" class="add-to-cart-form">
-                            <div class="form-group">
-                                <label for="variant">Size:</label>
-                                <select class="form-control" id="variant" name="variant" required>
+                            <!-- Size Selection -->
+                            <div class="size-selector-container">
+                                <div class="size-label">
+                                    <span>Select Size</span>
+                                    <span class="selected-price" id="selectedPrice">₹0.00</span>
+                                </div>
+                                
+                                <div class="size-options">
                                     <% if (product.variants['500ml']) { %>
-                                        <option value="500ml">500ml - ₹<%= product.variants['500ml'].price %></option>
+                                        <div class="size-option <%= product.variants['500ml'].stock === 0 ? 'disabled' : '' %>"
+                                             data-variant="500ml"
+                                             data-price="<%= product.variants['500ml'].price %>"
+                                             data-stock="<%= product.variants['500ml'].stock %>">
+                                            <div class="size-info">
+                                                <span class="size-value">500ml</span>
+                                                <span class="size-price">₹<%= product.variants['500ml'].price %></span>
+                                            </div>
+                                            <div class="stock-info <%= product.variants['500ml'].stock < 5 ? 'low-stock' : '' %>">
+                                                <% if (product.variants['500ml'].stock === 0) { %>
+                                                    <span class="out-of-stock">Out of Stock</span>
+                                                <% } else if (product.variants['500ml'].stock < 5) { %>
+                                                    <span class="stock-count">Only <%= product.variants['500ml'].stock %> left</span>
+                                                <% } else { %>
+                                                    <span class="in-stock">In Stock</span>
+                                                <% } %>
+                                            </div>
+                                        </div>
                                     <% } %>
+
                                     <% if (product.variants['650ml']) { %>
-                                        <option value="650ml">650ml - ₹<%= product.variants['650ml'].price %></option>
+                                        <div class="size-option <%= product.variants['650ml'].stock === 0 ? 'disabled' : '' %>"
+                                             data-variant="650ml"
+                                             data-price="<%= product.variants['650ml'].price %>"
+                                             data-stock="<%= product.variants['650ml'].stock %>">
+                                            <div class="size-info">
+                                                <span class="size-value">650ml</span>
+                                                <span class="size-price">₹<%= product.variants['650ml'].price %></span>
+                                            </div>
+                                            <div class="stock-info <%= product.variants['650ml'].stock < 5 ? 'low-stock' : '' %>">
+                                                <% if (product.variants['650ml'].stock === 0) { %>
+                                                    <span class="out-of-stock">Out of Stock</span>
+                                                <% } else if (product.variants['650ml'].stock < 5) { %>
+                                                    <span class="stock-count">Only <%= product.variants['650ml'].stock %> left</span>
+                                                <% } else { %>
+                                                    <span class="in-stock">In Stock</span>
+                                                <% } %>
+                                            </div>
+                                        </div>
                                     <% } %>
-                                </select>
+                                </div>
+                                <input type="hidden" id="variant" name="variant" required>
                             </div>
-                            
-                            <div class="form-group">
-                                <label for="quantity">Quantity:</label>
-                                <div class="quantity-selector">
-                                    <button type="button" class="quantity-btn minus">-</button>
+
+                            <!-- Quantity Selector -->
+                            <div class="quantity-container">
+                                <label class="quantity-label">Quantity</label>
+                                <div class="quantity-controls">
+                                    <button type="button" class="qty-btn minus">−</button>
                                     <input type="number" id="quantity" name="quantity" value="1" min="1" max="5" readonly>
-                                    <button type="button" class="quantity-btn plus">+</button>
+                                    <button type="button" class="qty-btn plus">+</button>
                                 </div>
                             </div>
 
-                            <button type="submit" class="btn btn-primary btn-add-to-cart">
-                                Add to Cart
-                            </button>
+                            <!-- Add to Cart Button -->
+                            <div class="cart-actions">
+                                <button type="submit" class="add-to-cart-btn" id="addToCartBtn" disabled>
+                                    <i class="fas fa-shopping-cart"></i>
+                                    <span>Add to Cart</span>
+                                </button>
+                            </div>
                         </form>
                     </div>
 
@@ -769,8 +914,11 @@
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('addToCartForm');
         const quantityInput = document.getElementById('quantity');
-        const minusBtn = document.querySelector('.quantity-btn.minus');
-        const plusBtn = document.querySelector('.quantity-btn.plus');
+        const minusBtn = document.querySelector('.qty-btn.minus');
+        const plusBtn = document.querySelector('.qty-btn.plus');
+        const selectedPrice = document.getElementById('selectedPrice');
+        const variantInput = document.getElementById('variant');
+        const addToCartBtn = document.getElementById('addToCartBtn');
 
         // Quantity buttons functionality
         minusBtn.addEventListener('click', () => {
@@ -827,8 +975,22 @@
                 alert('Failed to add item to cart');
             }
         });
+
+        // Size selection functionality
+        const sizeOptions = document.querySelectorAll('.size-option');
+        sizeOptions.forEach(option => {
+            if (!option.classList.contains('disabled')) {
+                option.addEventListener('click', function() {
+                    sizeOptions.forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    
+                    variantInput.value = this.dataset.variant;
+                    selectedPrice.textContent = `₹${this.dataset.price}`;
+                    addToCartBtn.disabled = false;
+                });
+            }
+        });
     });
 </script>
 
-<%- include('../partials/footer') %> 
 <%- include('../partials/footer') %> 

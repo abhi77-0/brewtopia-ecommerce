@@ -3,6 +3,7 @@ const User = require("../models/userModel");
 const PendingUser = require("../models/pendingUserModel");
 const OTP = require("../models/otpModel");
 const { generateOTP, verifyOTP } = require("../config/otpService");
+const Address = require("../models/Address");
 
 // Signup Handlers
 exports.renderSignupPage = (req, res) => {
@@ -472,95 +473,36 @@ exports.updateProfile = async (req, res) => {
         const { name, email, phone } = req.body;
         const userId = req.session.user.id;
 
+        // Get current user
         const user = await User.findById(userId);
+        
         if (!user) {
             req.flash('error', 'User not found');
             return res.redirect('/users/profile/edit');
         }
 
-        // Validation checks
-        const errors = [];
-
-        // Name validation
-        if (!name || name.trim().length < 2) {
-            errors.push('Name should be at least 2 characters long');
-        }
-
-        // Phone validation
-        const phoneRegex = /^[0-9]{10}$/;
-        if (!phone || !phoneRegex.test(phone)) {
-            errors.push('Please enter a valid 10-digit phone number');
-        }
-
-        // Email validation for non-Google users
-        if (!user.googleId && email !== user.email) {
-            // Email format validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!email || !emailRegex.test(email)) {
-                errors.push('Please enter a valid email address');
-            }
-
-            // Check if email exists
-            const emailExists = await User.findOne({ 
-                email, 
-                _id: { $ne: userId } 
-            });
-
-            if (emailExists) {
-                errors.push('This email is already registered');
-                return res.render('users/edit-profile', {
-                    user: {
-                        ...user.toObject(),
-                        name,
-                        phone
-                    },
-                    error: 'This email is already registered',
-                    emailError: true
-                });
-            }
-
-            // If email is being changed, proceed with OTP verification
-            req.session.pendingProfileUpdate = {
-                userId,
-                name,
-                phone,
-                newEmail: email,
-                currentEmail: user.email
-            };
-
-            // Generate and send OTP
-            await generateOTP(email);
-
-            return res.render('auth/verifyOtp', {
-                email,
-                isEmailUpdate: true,
-                error: null
-            });
-        }
-
-        // If there are validation errors
-        if (errors.length > 0) {
-            return res.render('users/edit-profile', {
-                user: {
-                    ...user.toObject(),
-                    name,
-                    phone,
-                    email
-                },
-                errors
-            });
-        }
-
-        // If no email change or Google user, update other fields
+        // Create update object
         const updateData = {
             name,
             phone
         };
 
+        // Only update email if user is not Google authenticated
+        if (!user.googleId && email !== user.email) {
+            // Check if new email already exists
+            const emailExists = await User.findOne({ email, _id: { $ne: userId } });
+            if (emailExists) {
+                req.flash('error', 'Email already in use');
+                return res.redirect('/users/profile/edit');
+            }
+            updateData.email = email;
+        }
+
+        // Update user
         await User.findByIdAndUpdate(userId, updateData);
+
         req.flash('success', 'Profile updated successfully');
         res.redirect('/users/profile');
-
     } catch (error) {
         console.error('Error updating profile:', error);
         req.flash('error', 'Error updating profile');
@@ -568,85 +510,181 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
-// Email check endpoint
-exports.checkEmail = async (req, res) => {
+exports.getAddresses = async (req, res) => {
     try {
-        const { email } = req.query;
         const userId = req.session.user.id;
+        const user = await User.findById(userId).populate('addresses');
+        
+        res.render('users/addresses', {
+            title: 'My Addresses',
+            user: req.session.user,
+            addresses: user.addresses || []
+        });
+    } catch (error) {
+        console.error('Error fetching addresses:', error);
+        req.flash('error', 'Error loading addresses');
+        res.redirect('/users/profile');
+    }
+};
 
-        // Email format validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!email || !emailRegex.test(email)) {
-            return res.json({ 
-                exists: false, 
-                error: 'Invalid email format' 
+exports.addAddress = async (req, res) => {
+    try {
+        const userId = req.session.user.id;
+        const user = await User.findById(userId).populate('addresses');
+
+        if (user.addresses && user.addresses.length >= 3) {
+            return res.json({
+                success: false,
+                message: 'Maximum 3 addresses allowed'
             });
         }
 
-        const existingUser = await User.findOne({ 
-            email, 
-            _id: { $ne: userId } 
+        const newAddress = await Address.create({
+            ...req.body,
+            user: userId
         });
 
-        res.json({ 
-            exists: !!existingUser,
-            message: existingUser ? 'Email already registered' : null
+        // Initialize addresses array if it doesn't exist
+        if (!user.addresses) {
+            user.addresses = [];
+        }
+
+        user.addresses.push(newAddress._id);
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Address added successfully'
         });
     } catch (error) {
-        console.error('Error checking email:', error);
-        res.status(500).json({ 
-            error: 'Server error',
-            message: 'Error checking email availability'
+        console.error('Error adding address:', error);
+        res.json({
+            success: false,
+            message: 'Error adding address'
         });
     }
 };
 
-// Handle OTP verification remains the same as before
-exports.handleVerifyOtp = async (req, res) => {
+
+exports.addAddress = async (req, res) => {
     try {
-        const { email, otp } = req.body;
+        const userId = req.session.user.id;
+        const user = await User.findById(userId).populate('addresses');
 
-        // Verify the OTP
-        const isValid = await verifyOTP(email, otp);
-
-        if (!isValid) {
-            return res.render('auth/verifyOtp', {
-                email,
-                isEmailUpdate: true,
-                error: 'Invalid OTP. Please try again.'
+        if (user.addresses && user.addresses.length >= 3) {
+            return res.json({
+                success: false,
+                message: 'Maximum 3 addresses allowed'
             });
         }
 
-        // If OTP is valid and we have pending profile updates
-        if (req.session.pendingProfileUpdate) {
-            const { userId, name, phone, newEmail } = req.session.pendingProfileUpdate;
+        const newAddress = await Address.create({
+            ...req.body,
+            user: userId
+        });
 
-            // Update user with new email and other details
-            await User.findByIdAndUpdate(userId, {
-                name,
-                phone,
-                email: newEmail
-            });
-
-            // Clear pending updates from session
-            delete req.session.pendingProfileUpdate;
-
-            // Update session email
-            req.session.user.email = newEmail;
-
-            req.flash('success', 'Profile and email updated successfully');
-            return res.redirect('/users/profile');
+        if (!user.addresses) {
+            user.addresses = [];
         }
 
-        req.flash('error', 'No pending profile updates found');
-        res.redirect('/users/profile/edit');
+        user.addresses.push(newAddress._id);
+        await user.save();
 
+        res.json({
+            success: true,
+            message: 'Address added successfully'
+        });
     } catch (error) {
-        console.error('Error in OTP verification:', error);
-        res.render('auth/verifyOtp', {
-            email,
-            isEmailUpdate: true,
-            error: 'An error occurred during verification'
+        console.error('Error adding address:', error);
+        res.json({
+            success: false,
+            message: 'Error adding address'
+        });
+    }
+};
+
+exports.getAddress = async (req, res) => {
+    try {
+        const address = await Address.findOne({
+            _id: req.params.id,
+            user: req.session.user.id
+        });
+
+        if (!address) {
+            return res.status(404).json({
+                success: false,
+                message: 'Address not found'
+            });
+        }
+
+        res.json(address);
+    } catch (error) {
+        console.error('Error fetching address:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching address'
+        });
+    }
+};
+
+exports.updateAddress = async (req, res) => {
+    try {
+        const address = await Address.findOneAndUpdate(
+            {
+                _id: req.params.id,
+                user: req.session.user.id
+            },
+            req.body,
+            { new: true }
+        );
+
+        if (!address) {
+            return res.status(404).json({
+                success: false,
+                message: 'Address not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Address updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating address:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error updating address'
+        });
+    }
+};
+
+exports.deleteAddress = async (req, res) => {
+    try {
+        const address = await Address.findOneAndDelete({
+            _id: req.params.id,
+            user: req.session.user.id
+        });
+
+        if (!address) {
+            return res.status(404).json({
+                success: false,
+                message: 'Address not found'
+            });
+        }
+
+        await User.findByIdAndUpdate(req.session.user.id, {
+            $pull: { addresses: req.params.id }
+        });
+
+        res.json({
+            success: true,
+            message: 'Address deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting address:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error deleting address'
         });
     }
 };

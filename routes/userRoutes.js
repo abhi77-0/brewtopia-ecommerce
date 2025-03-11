@@ -66,6 +66,11 @@ router.post('/profile/update', isAuthenticated, userController.updateProfile);
 
 router.post('/profile/verify-email-otp', isAuthenticated, userController.handleVerifyOtp);
 
-router.get('/check-email', isAuthenticated, userController.checkEmail);
+// Address routes
+router.get('/addresses', isAuthenticated, userController.getAddresses);
+router.post('/address', isAuthenticated, userController.addAddress);
+router.get('/address/:id', isAuthenticated, userController.getAddress);
+router.put('/address/:id', isAuthenticated, userController.updateAddress);
+router.delete('/address/:id', isAuthenticated, userController.deleteAddress);
 
 module.exports = router;
