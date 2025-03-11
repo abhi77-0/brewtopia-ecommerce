@@ -26,13 +26,19 @@
 
                     <div class="form-floating mb-4">
                         <input type="email" 
-                               class="form-control" 
+                               class="form-control <%= user.googleId ? 'google-auth' : '' %>" 
                                id="emailInput"
+                               name="email"
                                value="<%= user.email %>" 
                                placeholder="Email"
-                               readonly>
+                               <%= user.googleId ? 'readonly' : '' %>>
                         <label for="emailInput">Email</label>
-                        <small class="text-muted">Email cannot be changed</small>
+                        <% if (user.googleId) { %>
+                            <div class="google-badge">
+                                <i class="fab fa-google"></i> Google Account
+                            </div>
+                            <small class="text-muted">Email cannot be changed for Google-linked accounts</small>
+                        <% } %>
                     </div>
 
                     <div class="form-floating mb-4">
@@ -72,6 +78,27 @@
     .form-floating > .form-control:focus {
         border-color: #FF9800;
         box-shadow: 0 0 0 0.2rem rgba(255, 152, 0, 0.15);
+    }
+
+    .form-control.google-auth {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+
+    .google-badge {
+        display: inline-flex;
+        align-items: center;
+        background: #f1f5f9;
+        color: #475569;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+
+    .google-badge i {
+        color: #4285F4;
+        margin-right: 0.5rem;
     }
 
     .form-floating > label {
@@ -116,6 +143,7 @@
         font-size: 0.875rem;
         margin-top: 0.25rem;
         margin-left: 0.5rem;
+        display: block;
     }
 
     h2 {

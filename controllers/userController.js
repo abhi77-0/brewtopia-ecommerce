@@ -469,14 +469,36 @@ exports.getEditProfile = async (req, res) => {
 // Update profile
 exports.updateProfile = async (req, res) => {
     try {
-        const { name, phone, address } = req.body;
+        const { name, email, phone } = req.body;
+        const userId = req.session.user.id;
+
+        // Get current user
+        const user = await User.findById(userId);
         
-        // Update user
-        await User.findByIdAndUpdate(req.session.user.id, {
+        if (!user) {
+            req.flash('error', 'User not found');
+            return res.redirect('/users/profile/edit');
+        }
+
+        // Create update object
+        const updateData = {
             name,
-            phone,
-            address
-        });
+            phone
+        };
+
+        // Only update email if user is not Google authenticated
+        if (!user.googleId && email !== user.email) {
+            // Check if new email already exists
+            const emailExists = await User.findOne({ email, _id: { $ne: userId } });
+            if (emailExists) {
+                req.flash('error', 'Email already in use');
+                return res.redirect('/users/profile/edit');
+            }
+            updateData.email = email;
+        }
+
+        // Update user
+        await User.findByIdAndUpdate(userId, updateData);
 
         req.flash('success', 'Profile updated successfully');
         res.redirect('/users/profile');
