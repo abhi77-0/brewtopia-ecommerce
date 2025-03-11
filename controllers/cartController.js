@@ -6,7 +6,7 @@ exports.getCart = async (req, res) => {
         let subtotal = 0;
         let itemCount = 0;
         const shipping = 40; // Fixed shipping cost
-        const discountrate = 0.10; 
+        const discountRate = 0.10; 
 
         const cart = await Cart.findOne({ user: req.session.user.id })
             .populate({
@@ -33,7 +33,7 @@ exports.getCart = async (req, res) => {
             });
         }
 
-        const discount = subtotal * discountrate ;
+        const discount = subtotal * discountRate;
         const total = subtotal + shipping + discount;
 
         res.render('cart/cart', {
@@ -58,15 +58,7 @@ exports.getCart = async (req, res) => {
     }
 };
 
-// Add the other cart methods here
-exports.updateCartItem = async (req, res) => {
-    // ...
-};
-
-exports.removeFromCart = async (req, res) => {
-    // ...
-};
-
+// Add to cart
 exports.addToCart = async (req, res) => {
     try {
         const { productId, variant, quantity } = req.body;
@@ -76,6 +68,23 @@ exports.addToCart = async (req, res) => {
             return res.status(400).json({ 
                 success: false, 
                 error: 'Missing required fields' 
+            });
+        }
+
+        // Validate product exists
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                error: 'Product not found'
+            });
+        }
+
+        // Check if variant exists and has stock
+        if (!product.variants[variant] || product.variants[variant].stock < quantity) {
+            return res.status(400).json({
+                success: false,
+                error: 'Selected variant is not available or insufficient stock'
             });
         }
 
@@ -126,3 +135,92 @@ exports.addToCart = async (req, res) => {
         });
     }
 }; 
+
+// Update cart item quantity
+exports.updateCart = async (req, res) => {
+    try {
+        const { productId, quantity } = req.body;
+
+        // Validate input
+        if (!productId || !quantity || quantity < 1 || quantity > 5) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid quantity. Must be between 1 and 5.'
+            });
+        }
+
+        // Find user's cart
+        const cart = await Cart.findOne({ user: req.session.user.id });
+        
+        if (!cart) {
+            return res.status(404).json({
+                success: false,
+                error: 'Cart not found'
+            });
+        }
+
+        // Find the item in the cart
+        const cartItem = cart.items.find(item => 
+            item.product.toString() === productId
+        );
+
+        if (!cartItem) {
+            return res.status(404).json({
+                success: false,
+                error: 'Item not found in cart'
+            });
+        }
+
+        // Update quantity
+        cartItem.quantity = parseInt(quantity);
+        await cart.save();
+
+        res.json({
+            success: true,
+            message: 'Cart updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Update cart error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update cart'
+        });
+    }
+};
+
+// Remove item from cart
+exports.removeFromCart = async (req, res) => {
+    try {
+        const productId = req.params.productId;
+
+        // Find user's cart
+        const cart = await Cart.findOne({ user: req.session.user.id });
+        
+        if (!cart) {
+            return res.status(404).json({
+                success: false,
+                error: 'Cart not found'
+            });
+        }
+
+        // Remove the item from the cart
+        cart.items = cart.items.filter(item => 
+            item.product.toString() !== productId
+        );
+
+        await cart.save();
+
+        res.json({
+            success: true,
+            message: 'Item removed from cart successfully'
+        });
+
+    } catch (error) {
+        console.error('Remove from cart error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to remove item from cart'
+        });
+    }
+};
