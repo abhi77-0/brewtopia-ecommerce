@@ -81,14 +81,16 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="col-6 col-md-2">
+                                    <div class="col-6 col-md-1">
                                         <div class="item-total">
                                             <span class="d-md-none">Total: </span>₹<%= item.total %>
                                         </div>
                                     </div>
-                                    <div class="col-6 col-md-12 text-end text-md-start mt-2 mt-md-0">
-                                        <button class="btn btn-sm btn-outline-danger remove-item" onclick="removeItem('<%= item.product._id %>')">
-                                            <i class="fas fa-trash-alt"></i>
+                                    <div class="col-6 col-md-1">
+                                        <button class="btn btn-link text-danger delete-item" 
+                                                onclick="removeItem('<%= item.product._id %>')" 
+                                                title="Remove item">
+                                            <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -105,13 +107,13 @@
                         <span>Subtotal (<%= itemCount %> items)</span>
                         <span>₹<%= subtotal %></span>
                     </div>
+                    <div class="summary-item d-flex justify-content-between text-success">
+                        <span>Discount (10%)</span>
+                        <span>-₹<%= discount %></span>
+                    </div>
                     <div class="summary-item d-flex justify-content-between">
                         <span>Shipping</span>
                         <span>₹<%= shipping %></span>
-                    </div>
-                    <div class="summary-item d-flex justify-content-between">
-                        <span>Tax</span>
-                        <span>₹<%= tax %></span>
                     </div>
                     <div class="summary-total d-flex justify-content-between">
                         <span>Total</span>
@@ -311,6 +313,16 @@ async function removeItem(productId) {
     margin-bottom: 20px;
 }
 
+.delete-item {
+    padding: 0;
+    font-size: 1.1rem;
+}
+
+.delete-item:hover {
+    color: #dc3545;
+    transform: scale(1.1);
+}
+
 @media (max-width: 767px) {
     .cart-item {
         padding: 15px 10px;
@@ -327,6 +339,10 @@ async function removeItem(productId) {
     
     .cart-title {
         font-size: 24px;
+    }
+    
+    .delete-item {
+        padding: 5px;
     }
 }
 </style>

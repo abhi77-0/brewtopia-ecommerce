@@ -502,6 +502,55 @@
         border-radius: 5px;
         padding: 0.5rem;
     }
+
+    .product-actions {
+        margin-top: 20px;
+    }
+
+    .quantity-selector {
+        display: flex;
+        align-items: center;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        overflow: hidden;
+        width: fit-content;
+        margin: 10px 0;
+    }
+
+    .quantity-btn {
+        background: #f8f9fa;
+        border: none;
+        padding: 5px 15px;
+        cursor: pointer;
+    }
+
+    .quantity-btn:hover {
+        background: #e9ecef;
+    }
+
+    .quantity-selector input {
+        width: 50px;
+        border: none;
+        text-align: center;
+        padding: 5px 0;
+    }
+
+    .btn-add-to-cart {
+        margin-top: 15px;
+        padding: 10px 20px;
+        width: 100%;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    select.form-control {
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        width: 100%;
+    }
 </style>
 
 <div class="product-details-container">
@@ -584,10 +633,36 @@
                         </div>
                     </div>
 
+                    <div class="product-actions">
+                        <form id="addToCartForm" class="add-to-cart-form">
+                            <div class="form-group">
+                                <label for="variant">Size:</label>
+                                <select class="form-control" id="variant" name="variant" required>
+                                    <% if (product.variants['500ml']) { %>
+                                        <option value="500ml">500ml - ₹<%= product.variants['500ml'].price %></option>
+                                    <% } %>
+                                    <% if (product.variants['650ml']) { %>
+                                        <option value="650ml">650ml - ₹<%= product.variants['650ml'].price %></option>
+                                    <% } %>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="quantity">Quantity:</label>
+                                <div class="quantity-selector">
+                                    <button type="button" class="quantity-btn minus">-</button>
+                                    <input type="number" id="quantity" name="quantity" value="1" min="1" max="5" readonly>
+                                    <button type="button" class="quantity-btn plus">+</button>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-add-to-cart">
+                                Add to Cart
+                            </button>
+                        </form>
+                    </div>
+
                     <div class="action-buttons">
-                        <button class="btn-add-to-cart" onclick="addToCart()">
-                            Add to Cart
-                        </button>
                         <button class="btn-wishlist" onclick="toggleWishlist(this)">
                             <i class="far fa-heart"></i>
                         </button>
@@ -663,24 +738,6 @@
         selectedVariant = size;
     }
 
-    function addToCart() {
-        if (!selectedVariant) {
-            alert('Please select a size');
-            return;
-        }
-
-        const button = document.querySelector('.btn-add-to-cart');
-        button.classList.add('success-animation');
-        button.textContent = 'Added to Cart';
-        
-        setTimeout(() => {
-            button.classList.remove('success-animation');
-            button.textContent = 'Add to Cart';
-        }, 2000);
-
-        // Add your cart logic here
-    }
-
     function toggleWishlist(button) {
         button.classList.toggle('active');
         const icon = button.querySelector('i');
@@ -707,6 +764,69 @@
     mainImageContainer.addEventListener('mouseleave', () => {
         // Reset the image transform when mouse leaves
         mainImageContainer.querySelector('img').style.transform = 'none';
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('addToCartForm');
+        const quantityInput = document.getElementById('quantity');
+        const minusBtn = document.querySelector('.quantity-btn.minus');
+        const plusBtn = document.querySelector('.quantity-btn.plus');
+
+        // Quantity buttons functionality
+        minusBtn.addEventListener('click', () => {
+            const currentValue = parseInt(quantityInput.value);
+            if (currentValue > 1) {
+                quantityInput.value = currentValue - 1;
+            }
+        });
+
+        plusBtn.addEventListener('click', () => {
+            const currentValue = parseInt(quantityInput.value);
+            if (currentValue < 5) {
+                quantityInput.value = currentValue + 1;
+            }
+        });
+
+        // Form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const productId = '<%= product._id %>'; // Make sure this is available in your template
+            const variant = document.getElementById('variant').value;
+            const quantity = document.getElementById('quantity').value;
+
+            try {
+                const response = await fetch('/cart/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        productId,
+                        variant,
+                        quantity: parseInt(quantity)
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Show success message
+                    alert('Item added to cart successfully!');
+                    
+                    // Optional: Update cart count in navbar if you have one
+                    // updateCartCount(data.cartItemsCount);
+                    
+                    // Optional: Redirect to cart page
+                    // window.location.href = '/cart';
+                } else {
+                    alert(data.error || 'Failed to add item to cart');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to add item to cart');
+            }
+        });
     });
 </script>
 
