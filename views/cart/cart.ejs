@@ -26,7 +26,7 @@
                             </div>
                             <h3 class="mt-4">Your cart is empty</h3>
                             <p class="text-muted">Looks like you haven't added anything to your cart yet.</p>
-                            <a href="/shop/products" class="btn btn-primary mt-3">
+                            <a href="/users/products" class="btn btn-primary mt-3">
                                 <i class="fas fa-arrow-left me-2"></i>Continue Shopping
                             </a>
                         </div>
@@ -88,7 +88,7 @@
                                     </div>
                                     <div class="col-6 col-md-1">
                                         <button class="btn btn-link text-danger delete-item" 
-                                                onclick="removeFromCart('<%= item.product._id %>', '<%= item.variant %>')" 
+                                                onclick="removeItem('<%= item.product._id %>')" 
                                                 title="Remove item">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -158,64 +158,23 @@ async function updateQuantity(productId, quantity) {
     }
 }
 
-async function removeFromCart(productId, variant) {
-    // Show confirmation dialog
-    const result = await Swal.fire({
-        title: 'Remove Item?',
-        text: 'Are you sure you want to remove this item from your cart?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, remove it',
-        cancelButtonText: 'Cancel'
-    });
-
-    if (!result.isConfirmed) {
-        return;
-    }
-
+async function removeItem(productId) {
+    if (!confirm('Are you sure you want to remove this item?')) return;
+    
     try {
-        // Show loading state
-        Swal.fire({
-            title: 'Removing item...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
+        const response = await fetch(`/cart/remove/${productId}`, {
+            method: 'DELETE'
         });
-
-        const response = await fetch(`/cart/remove/${productId}/${variant}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const data = await response.json();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert(data.error || 'Error removing item');
         }
-
-        // Show success message
-        await Swal.fire({
-            title: 'Removed!',
-            text: 'Item has been removed from your cart',
-            icon: 'success',
-            timer: 1500,
-            showConfirmButton: false
-        });
-
-        // Reload the page
-        window.location.reload();
-
     } catch (error) {
-        console.error('Error:', error);
-        Swal.fire({
-            title: 'Error!',
-            text: 'Failed to remove item from cart',
-            icon: 'error',
-            confirmButtonText: 'OK'
-        });
+        console.error('Error removing item:', error);
+        alert('Error removing item');
     }
 }
 </script>
@@ -385,24 +344,6 @@ async function removeFromCart(productId, variant) {
     .delete-item {
         padding: 5px;
     }
-}
-
-/* Optional: Custom SweetAlert styles */
-.swal2-popup {
-    font-size: 0.9rem;
-}
-
-.swal2-title {
-    font-size: 1.5rem;
-}
-
-.swal2-confirm, .swal2-cancel {
-    font-size: 1rem !important;
-    padding: 0.5rem 1.5rem !important;
-}
-
-.swal2-icon {
-    font-size: 0.8rem;
 }
 </style>
 

@@ -919,19 +919,68 @@
         const selectedPrice = document.getElementById('selectedPrice');
         const variantInput = document.getElementById('variant');
         const addToCartBtn = document.getElementById('addToCartBtn');
+        let selectedStock = 0;
 
-        // Quantity buttons functionality
+        // Remove disabled attribute from add to cart button
+        addToCartBtn.removeAttribute('disabled');
+
+        // Size option click handler
+        document.querySelectorAll('.size-option').forEach(option => {
+            if (!option.classList.contains('disabled')) {
+                option.addEventListener('click', function() {
+                    // Update selected size
+                    document.querySelectorAll('.size-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    this.classList.add('selected');
+
+                    // Get stock from selected variant
+                    selectedStock = parseInt(this.dataset.stock);
+
+                    // Reset quantity to 1
+                    quantityInput.value = 1;
+                    
+                    // Update quantity controls
+                    updateQuantityButtons(1, selectedStock);
+
+                    // Enable add to cart button
+                    addToCartBtn.removeAttribute('disabled');
+                });
+            }
+        });
+
+        function updateQuantityButtons(currentQty, stock) {
+            const maxQty = stock > 5 ? 5 : stock;
+            minusBtn.disabled = currentQty <= 1;
+            plusBtn.disabled = currentQty >= maxQty || stock === 0;
+        }
+
+        // Quantity button handlers
         minusBtn.addEventListener('click', () => {
-            const currentValue = parseInt(quantityInput.value);
-            if (currentValue > 1) {
-                quantityInput.value = currentValue - 1;
+            const currentQty = parseInt(quantityInput.value);
+            if (currentQty > 1) {
+                quantityInput.value = currentQty - 1;
+                updateQuantityButtons(currentQty - 1, selectedStock);
             }
         });
 
         plusBtn.addEventListener('click', () => {
-            const currentValue = parseInt(quantityInput.value);
-            if (currentValue < 5) {
-                quantityInput.value = currentValue + 1;
+            const currentQty = parseInt(quantityInput.value);
+            const maxQty = selectedStock > 5 ? 5 : selectedStock;
+            
+            if (currentQty >= maxQty) {
+                Swal.fire({
+                    title: 'Quantity Limit',
+                    text: selectedStock > 5 ? 'Maximum 5 items per order' : `Only ${selectedStock} items available`,
+                    icon: 'warning',
+                    confirmButtonColor: '#FF9800'
+                });
+                return;
+            }
+            
+            if (currentQty < maxQty) {
+                quantityInput.value = currentQty + 1;
+                updateQuantityButtons(currentQty + 1, selectedStock);
             }
         });
 
@@ -1003,21 +1052,6 @@
                     text: 'Failed to add item to cart',
                     icon: 'error',
                     confirmButtonColor: '#FF9800'
-                });
-            }
-        });
-
-        // Size selection functionality
-        const sizeOptions = document.querySelectorAll('.size-option');
-        sizeOptions.forEach(option => {
-            if (!option.classList.contains('disabled')) {
-                option.addEventListener('click', function() {
-                    sizeOptions.forEach(opt => opt.classList.remove('selected'));
-                    this.classList.add('selected');
-                    
-                    variantInput.value = this.dataset.variant;
-                    selectedPrice.textContent = `₹${this.dataset.price}`;
-                    addToCartBtn.disabled = false;
                 });
             }
         });
