@@ -488,7 +488,57 @@ function proceedToPayment() {
 }
 
 function placeOrder(addressId, paymentMethod) {
-    window.location.href = `/payment?address=${addressId}&method=${paymentMethod}`;
+    // Show loading state
+    Swal.fire({
+        title: 'Processing Order',
+        text: 'Please wait...',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Make API call to place order
+    fetch('/orders/place-order', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            addressId: addressId,
+            paymentMethod: paymentMethod
+        })
+    })
+    .then(async response => {
+        const data = await response.json();
+        console.log('Server response:', data); // Debug log
+        
+        if (data.success) {
+            // Show success message
+            Swal.fire({
+                title: 'Order Placed Successfully!',
+                text: 'Thank you for your purchase',
+                icon: 'success',
+                confirmButtonColor: '#FF9800'
+            }).then(() => {
+                // Redirect to orders page
+                window.location.href = '/orders';
+            });
+        } else {
+            // Show specific error message
+            throw new Error(data.message || 'Failed to place order');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Something went wrong while placing your order',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        });
+    });
 }
 
 function initiateRazorpayPayment() {

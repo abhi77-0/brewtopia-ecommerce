@@ -1,0 +1,277 @@
+<%- include('../partials/header') %>
+
+<div class="container my-5">
+    <div class="orders-header mb-4">
+        <h2>My Orders</h2>
+        <p class="text-muted">Track and manage your orders</p>
+    </div>
+
+    <% if (orders && orders.length > 0) { %>
+        <div class="orders-container">
+            <% orders.forEach(order => { %>
+                <div class="order-card">
+                    <div class="order-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">Order #<%= order._id.toString().slice(-8).toUpperCase() %></h6>
+                                <p class="text-muted mb-0">
+                                    <i class="far fa-calendar-alt me-1"></i>
+                                    <%= new Date(order.createdAt).toLocaleDateString('en-US', { 
+                                        day: 'numeric', 
+                                        month: 'short', 
+                                        year: 'numeric' 
+                                    }) %>
+                                </p>
+                            </div>
+                            <div class="text-end">
+                                <span class="order-status <%= order.status.toLowerCase() %>">
+                                    <%= order.status %>
+                                </span>
+                                <h6 class="mb-0 mt-1">₹<%= order.total %></h6>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="order-items">
+                        <% order.items.forEach(item => { %>
+                            <div class="order-item">
+                                <div class="d-flex gap-3">
+                                    <div class="item-image">
+                                        <img src="<%= item.product.images.image1 %>" 
+                                             alt="<%= item.product.name %>">
+                                    </div>
+                                    <div class="item-details">
+                                        <h6 class="item-name mb-1"><%= item.product.name %></h6>
+                                        <p class="item-meta mb-1">
+                                            Size: <%= item.variant %> 
+                                            <% if (item.product.brand) { %>
+                                                <span class="dot">•</span> 
+                                                <%= item.product.brand %>
+                                            <% } %>
+                                        </p>
+                                        <p class="item-price mb-0">
+                                            ₹<%= item.price %> × <%= item.quantity %>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+
+                    <div class="order-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="delivery-info">
+                                <i class="fas fa-truck me-2"></i>
+                                <% if (order.status === 'Delivered') { %>
+                                    Delivered on <%= new Date(order.deliveredAt).toLocaleDateString() %>
+                                <% } else { %>
+                                    Expected delivery by <%= new Date(order.expectedDeliveryDate).toLocaleDateString() %>
+                                <% } %>
+                            </div>
+                            <button onclick="viewOrderDetails('<%= order._id %>')" 
+                                    class="btn btn-outline-primary btn-sm">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    <% } else { %>
+        <div class="empty-orders text-center py-5">
+            <div class="empty-orders-icon mb-4">
+                <i class="fas fa-box-open fa-4x text-muted"></i>
+            </div>
+            <h3>No Orders Yet</h3>
+            <p class="text-muted">Looks like you haven't made any orders yet.</p>
+            <a href="/users/products" class="btn btn-primary mt-3">
+                Start Shopping
+            </a>
+        </div>
+    <% } %>
+</div>
+
+<style>
+:root {
+    --primary-color: #FF9800;
+    --primary-light: #FFB74D;
+    --primary-dark: #F57C00;
+    --success-color: #4CAF50;
+    --warning-color: #FFC107;
+    --danger-color: #f44336;
+    --text-color: #333333;
+    --border-color: #E0E0E0;
+    --background-light: #FFF3E0;
+}
+
+.orders-header {
+    text-align: center;
+    padding: 2rem 0;
+    background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+    color: white;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.orders-header h2 {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.orders-header p {
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0;
+}
+
+.order-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.order-header {
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.order-status {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.order-status.pending {
+    background-color: #FFF3E0;
+    color: var(--primary-color);
+}
+
+.order-status.processing {
+    background-color: #E3F2FD;
+    color: #1976D2;
+}
+
+.order-status.shipped {
+    background-color: #E8F5E9;
+    color: var(--success-color);
+}
+
+.order-status.delivered {
+    background-color: #E8F5E9;
+    color: var(--success-color);
+}
+
+.order-status.cancelled {
+    background-color: #FFEBEE;
+    color: var(--danger-color);
+}
+
+.order-items {
+    padding: 1.25rem;
+    background-color: #FAFAFA;
+}
+
+.order-item {
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.order-item:last-child {
+    margin-bottom: 0;
+}
+
+.item-image {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.item-name {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.item-meta {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.item-price {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.dot {
+    margin: 0 0.5rem;
+    color: #999;
+}
+
+.order-footer {
+    padding: 1.25rem;
+    background-color: white;
+    border-top: 1px solid var(--border-color);
+}
+
+.delivery-info {
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.empty-orders-icon {
+    color: #ddd;
+}
+
+@media (max-width: 768px) {
+    .order-header {
+        padding: 1rem;
+    }
+    
+    .order-items {
+        padding: 1rem;
+    }
+    
+    .order-item {
+        padding: 0.75rem;
+    }
+    
+    .item-image {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .item-name {
+        font-size: 0.95rem;
+    }
+}
+</style>
+
+<script>
+function viewOrderDetails(orderId) {
+    window.location.href = `/orders/${orderId}`;
+}
+</script>
+
+<%- include('../partials/footer') %> 

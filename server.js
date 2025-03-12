@@ -14,6 +14,7 @@ const http = require('http');
 const cloudinary = require('./config/cloudinary');
 const flash = require('connect-flash');
 const cartRoutes = require('./routes/cartRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 require('./config/googleAuth');
 
 const app = express();
@@ -94,6 +95,7 @@ app.use("/users", userRoutes);
 app.use("/admin", adminRoutes);
 app.use('/shop', shopRoutes);
 app.use('/cart', cartRoutes);
+app.use('/orders', orderRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

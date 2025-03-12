@@ -62,78 +62,40 @@ exports.getCart = async (req, res) => {
 // Add to cart
 exports.addToCart = async (req, res) => {
     try {
+        const userId = req.user?._id || req.session?.user?._id;
         const { productId, variant, quantity } = req.body;
-        
-        // Validate input
-        if (!productId || !variant || !quantity) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Missing required fields' 
-            });
-        }
 
-        // Validate product exists
-        const product = await Product.findById(productId);
-        if (!product) {
-            return res.status(404).json({
-                success: false,
-                error: 'Product not found'
-            });
-        }
+        let cart = await Cart.findOne({ user: userId });
 
-        // Check if variant exists and has stock
-        if (!product.variants[variant] || product.variants[variant].stock < quantity) {
-            return res.status(400).json({
-                success: false,
-                error: 'Selected variant is not available or insufficient stock'
-            });
-        }
-
-        // Find or create cart for the user
-        let cart = await Cart.findOne({ user: req.session.user.id });
-        
         if (!cart) {
-            cart = new Cart({
-                user: req.session.user.id,
+            // Create new cart if it doesn't exist
+            cart = await Cart.create({
+                user: userId,
                 items: []
             });
         }
 
-        // Check if product already exists in cart with same variant
-        const existingItemIndex = cart.items.findIndex(
+        // Add item to cart
+        const existingItem = cart.items.find(
             item => item.product.toString() === productId && item.variant === variant
         );
 
-        if (existingItemIndex > -1) {
-            // Update quantity if item exists
-            cart.items[existingItemIndex].quantity += parseInt(quantity);
-            // Ensure quantity doesn't exceed 5
-            if (cart.items[existingItemIndex].quantity > 5) {
-                cart.items[existingItemIndex].quantity = 5;
-            }
+        if (existingItem) {
+            existingItem.quantity += quantity;
         } else {
-            // Add new item to cart
             cart.items.push({
                 product: productId,
                 variant: variant,
-                quantity: Math.min(parseInt(quantity), 5) // Ensure quantity doesn't exceed 5
+                quantity: quantity
             });
         }
 
         await cart.save();
-
-        res.json({
-            success: true,
-            message: 'Item added to cart successfully',
-            cartItemsCount: cart.items.length
-        });
+        res.json({ success: true });
 
     } catch (error) {
-        console.error('Add to cart error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to add item to cart'
-        });
+        console.error('Error adding to cart:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 }; 
 
