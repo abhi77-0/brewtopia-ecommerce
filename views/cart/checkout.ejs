@@ -512,21 +512,28 @@ function placeOrder(addressId, paymentMethod) {
     })
     .then(async response => {
         const data = await response.json();
-        console.log('Server response:', data); // Debug log
         
         if (data.success) {
-            // Show success message
+            // Show success message with options
             Swal.fire({
                 title: 'Order Placed Successfully!',
                 text: 'Thank you for your purchase',
                 icon: 'success',
-                confirmButtonColor: '#FF9800'
-            }).then(() => {
-                // Redirect to orders page
-                window.location.href = '/orders';
+                showCancelButton: true,
+                confirmButtonColor: '#FF9800',
+                cancelButtonColor: '#4CAF50',
+                confirmButtonText: 'View Orders',
+                cancelButtonText: 'Continue Shopping'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Go to orders page
+                    window.location.href = '/orders';
+                } else {
+                    // Go to products page
+                    window.location.href = '/users/products';
+                }
             });
         } else {
-            // Show specific error message
             throw new Error(data.message || 'Failed to place order');
         }
     })

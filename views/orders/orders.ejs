@@ -1,269 +1,467 @@
 <%- include('../partials/header') %>
 
-<div class="container my-5">
-    <div class="orders-header mb-4">
-        <h2>My Orders</h2>
-        <p class="text-muted">Track and manage your orders</p>
-    </div>
-
-    <% if (orders && orders.length > 0) { %>
-        <div class="orders-container">
-            <% orders.forEach(order => { %>
-                <div class="order-card">
-                    <div class="order-header">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-1">Order #<%= order._id.toString().slice(-8).toUpperCase() %></h6>
-                                <p class="text-muted mb-0">
-                                    <i class="far fa-calendar-alt me-1"></i>
-                                    <%= new Date(order.createdAt).toLocaleDateString('en-US', { 
-                                        day: 'numeric', 
-                                        month: 'short', 
-                                        year: 'numeric' 
-                                    }) %>
-                                </p>
-                            </div>
-                            <div class="text-end">
-                                <span class="order-status <%= order.status.toLowerCase() %>">
-                                    <%= order.status %>
-                                </span>
-                                <h6 class="mb-0 mt-1">₹<%= order.total %></h6>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="order-items">
-                        <% order.items.forEach(item => { %>
-                            <div class="order-item">
-                                <div class="d-flex gap-3">
-                                    <div class="item-image">
-                                        <img src="<%= item.product.images.image1 %>" 
-                                             alt="<%= item.product.name %>">
-                                    </div>
-                                    <div class="item-details">
-                                        <h6 class="item-name mb-1"><%= item.product.name %></h6>
-                                        <p class="item-meta mb-1">
-                                            Size: <%= item.variant %> 
-                                            <% if (item.product.brand) { %>
-                                                <span class="dot">•</span> 
-                                                <%= item.product.brand %>
-                                            <% } %>
-                                        </p>
-                                        <p class="item-price mb-0">
-                                            ₹<%= item.price %> × <%= item.quantity %>
-                                        </p>
-                                    </div>
+<div class="container-fluid orders-page py-5">
+    <!-- Modern Header with Stats -->
+    <div class="container">
+        <div class="orders-header-card mb-5">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h2 class="display-6 mb-0">My Orders</h2>
+                    <p class="text-muted mt-2">Manage and track your orders</p>
+                </div>
+                <div class="col-md-6">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-box"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <h3><%= orders ? orders.length : 0 %></h3>
+                                    <p>Total Orders</p>
                                 </div>
                             </div>
-                        <% }); %>
-                    </div>
-
-                    <div class="order-footer">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="delivery-info">
-                                <i class="fas fa-truck me-2"></i>
-                                <% if (order.status === 'Delivered') { %>
-                                    Delivered on <%= new Date(order.deliveredAt).toLocaleDateString() %>
-                                <% } else { %>
-                                    Expected delivery by <%= new Date(order.expectedDeliveryDate).toLocaleDateString() %>
-                                <% } %>
+                        </div>
+                        <div class="col-6">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-truck"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <h3><%= orders ? orders.filter(o => o.status === 'Pending' || o.status === 'Processing').length : 0 %></h3>
+                                    <p>Active Orders</p>
+                                </div>
                             </div>
-                            <button onclick="viewOrderDetails('<%= order._id %>')" 
-                                    class="btn btn-outline-primary btn-sm">
-                                View Details
-                            </button>
                         </div>
                     </div>
                 </div>
-            <% }); %>
-        </div>
-    <% } else { %>
-        <div class="empty-orders text-center py-5">
-            <div class="empty-orders-icon mb-4">
-                <i class="fas fa-box-open fa-4x text-muted"></i>
             </div>
-            <h3>No Orders Yet</h3>
-            <p class="text-muted">Looks like you haven't made any orders yet.</p>
-            <a href="/users/products" class="btn btn-primary mt-3">
-                Start Shopping
-            </a>
         </div>
-    <% } %>
+
+        <!-- Orders List -->
+        <% if (orders && orders.length > 0) { %>
+            <div class="orders-container">
+                <% orders.forEach(order => { %>
+                    <div class="order-card" data-aos="fade-up">
+                        <!-- Status Timeline -->
+                        <div class="status-timeline mb-4">
+                            <% 
+                            const statuses = ['Pending', 'Processing', 'Shipped', 'Delivered'];
+                            const currentIndex = statuses.indexOf(order.status);
+                            %>
+                            <div class="timeline-track">
+                                <% statuses.forEach((status, index) => { %>
+                                    <div class="timeline-point <%= index <= currentIndex ? 'active' : '' %>">
+                                        <div class="point"></div>
+                                        <span class="status-text"><%= status %></span>
+                                    </div>
+                                    <% if (index < statuses.length - 1) { %>
+                                        <div class="timeline-line <%= index < currentIndex ? 'active' : '' %>"></div>
+                                    <% } %>
+                                <% }) %>
+                            </div>
+                        </div>
+
+                        <!-- Order Info -->
+                        <div class="order-info">
+                            <div class="d-flex justify-content-between align-items-start mb-4">
+                                <div>
+                                    <span class="order-label">Order ID</span>
+                                    <h5 class="order-id">#<%= order._id.toString().slice(-8).toUpperCase() %></h5>
+                                </div>
+                                <div class="text-end">
+                                    <span class="order-label">Total Amount</span>
+                                    <h5 class="order-total">₹<%= order.total.toFixed(2) %></h5>
+                                </div>
+                            </div>
+
+                            <!-- Order Items -->
+                            <div class="order-items">
+                                <% order.items.forEach(item => { %>
+                                    <div class="order-item">
+                                        <div class="row align-items-center g-3">
+                                            <div class="col-auto">
+                                                <div class="item-image-container">
+                                                    <img src="<%= item.product.images.image1 %>" 
+                                                         alt="<%= item.product.name %>">
+                                                </div>
+                                            </div>
+                                            <div class="col">
+                                                <h6 class="item-name"><%= item.product.name %></h6>
+                                                <div class="item-meta">
+                                                    <span class="variant-badge">
+                                                        <%= item.variant %>
+                                                    </span>
+                                                    <% if (item.product.brand) { %>
+                                                        <span class="brand-badge">
+                                                            <%= item.product.brand %>
+                                                        </span>
+                                                    <% } %>
+                                                </div>
+                                                <div class="item-price mt-2">
+                                                    <span class="quantity">Qty: <%= item.quantity %></span>
+                                                    <span class="price">₹<%= (item.price * item.quantity).toFixed(2) %></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            </div>
+
+                            <!-- Order Footer -->
+                            <div class="order-footer">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="delivery-info">
+                                        <i class="fas fa-clock me-2"></i>
+                                        <% if (order.status === 'Delivered') { %>
+                                            <span class="text-success">
+                                                Delivered on <%= new Date(order.deliveredAt).toLocaleDateString('en-US', {
+                                                    day: 'numeric',
+                                                    month: 'short',
+                                                    year: 'numeric'
+                                                }) %>
+                                            </span>
+                                        <% } else { %>
+                                            <span>
+                                                Expected by <%= new Date(order.expectedDeliveryDate).toLocaleDateString('en-US', {
+                                                    day: 'numeric',
+                                                    month: 'short',
+                                                    year: 'numeric'
+                                                }) %>
+                                            </span>
+                                        <% } %>
+                                    </div>
+                                    <button onclick="viewOrderDetails('<%= order._id %>')" 
+                                            class="btn btn-view-details">
+                                        View Details
+                                        <i class="fas fa-arrow-right ms-2"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        <% } else { %>
+            <!-- Empty State -->
+            <div class="empty-state" data-aos="fade-up">
+                <div class="empty-illustration">
+                    <i class="fas fa-shopping-bag"></i>
+                </div>
+                <h3>No Orders Yet</h3>
+                <p>Time to treat yourself! Start shopping and your orders will appear here.</p>
+                <a href="/users/products" class="btn btn-primary btn-lg mt-3">
+                    Explore Products
+                </a>
+            </div>
+        <% } %>
+    </div>
 </div>
 
 <style>
 :root {
-    --primary-color: #FF9800;
+    --primary: #FF9800;
     --primary-light: #FFB74D;
     --primary-dark: #F57C00;
-    --success-color: #4CAF50;
-    --warning-color: #FFC107;
-    --danger-color: #f44336;
-    --text-color: #333333;
-    --border-color: #E0E0E0;
-    --background-light: #FFF3E0;
+    --primary-bg: #FFF3E0;
+    --success: #00C853;
+    --warning: #FFB300;
+    --danger: #FF3D00;
+    --white: #FFFFFF;
+    --gray-50: #FAFAFA;
+    --gray-100: #F5F5F5;
+    --gray-200: #EEEEEE;
+    --gray-300: #E0E0E0;
+    --gray-600: #757575;
+    --gray-700: #616161;
+    --gray-800: #424242;
+    --gray-900: #212121;
 }
 
-.orders-header {
-    text-align: center;
-    padding: 2rem 0;
-    background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+.orders-page {
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 100%);
+    min-height: 100vh;
+}
+
+.orders-header-card {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 8px 25px rgba(255, 152, 0, 0.15);
     color: white;
-    border-radius: 12px;
-    margin-bottom: 2rem;
 }
 
-.orders-header h2 {
-    margin-bottom: 0.5rem;
+.orders-header-card h2 {
     font-weight: 600;
 }
 
-.orders-header p {
+.orders-header-card p {
+    opacity: 0.9;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.stat-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.stat-info h3 {
+    font-size: 1.75rem;
+    margin: 0;
+    color: white;
+    font-weight: 600;
+}
+
+.stat-info p {
+    margin: 0;
     color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 0;
+    font-size: 0.9rem;
 }
 
 .order-card {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    background: var(--white);
+    border-radius: 20px;
+    padding: 2rem;
     margin-bottom: 1.5rem;
-    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    border: 1px solid var(--gray-200);
 }
 
-.order-header {
-    padding: 1.25rem;
-    border-bottom: 1px solid var(--border-color);
+.order-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(255, 152, 0, 0.1);
 }
 
-.order-status {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 50px;
+.timeline-track {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+}
+
+.timeline-point {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    z-index: 1;
+}
+
+.point {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--gray-200);
+    border: 3px solid var(--white);
+    box-shadow: 0 0 0 2px var(--gray-200);
+    transition: all 0.3s ease;
+}
+
+.timeline-point.active .point {
+    background: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.timeline-line {
+    flex: 1;
+    height: 3px;
+    background: var(--gray-200);
+    margin: 0 10px;
+    transition: all 0.3s ease;
+}
+
+.timeline-line.active {
+    background: var(--primary);
+}
+
+.status-text {
     font-size: 0.85rem;
+    color: var(--gray-600);
     font-weight: 500;
 }
 
-.order-status.pending {
-    background-color: #FFF3E0;
-    color: var(--primary-color);
-}
-
-.order-status.processing {
-    background-color: #E3F2FD;
-    color: #1976D2;
-}
-
-.order-status.shipped {
-    background-color: #E8F5E9;
-    color: var(--success-color);
-}
-
-.order-status.delivered {
-    background-color: #E8F5E9;
-    color: var(--success-color);
-}
-
-.order-status.cancelled {
-    background-color: #FFEBEE;
-    color: var(--danger-color);
+.timeline-point.active .status-text {
+    color: var(--primary);
+    font-weight: 600;
 }
 
 .order-items {
-    padding: 1.25rem;
-    background-color: #FAFAFA;
+    background: var(--gray-50);
+    border-radius: 15px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
 }
 
 .order-item {
-    padding: 1rem;
-    background: white;
-    border-radius: 8px;
+    background: var(--white);
+    border-radius: 12px;
+    padding: 1.25rem;
     margin-bottom: 1rem;
+    border: 1px solid var(--gray-200);
+    transition: all 0.3s ease;
 }
 
-.order-item:last-child {
-    margin-bottom: 0;
+.order-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 3px 15px rgba(0,0,0,0.05);
 }
 
-.item-image {
-    width: 80px;
-    height: 80px;
-    border-radius: 8px;
+.item-image-container {
+    width: 90px;
+    height: 90px;
+    border-radius: 12px;
     overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
-.item-image img {
+.item-image-container img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
 .item-name {
-    font-weight: 500;
-    color: var(--text-color);
+    margin: 0;
+    color: var(--gray-800);
 }
 
 .item-meta {
-    font-size: 0.9rem;
-    color: #666;
+    margin-top: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
 }
 
-.item-price {
-    color: var(--primary-color);
+.variant-badge, .brand-badge {
+    padding: 0.35rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    background: var(--primary-bg);
+    color: var(--primary-dark);
     font-weight: 500;
 }
 
-.dot {
-    margin: 0 0.5rem;
-    color: #999;
+.brand-badge {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.item-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.75rem;
+}
+
+.quantity {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.price {
+    color: var(--primary);
+    font-weight: 600;
+    font-size: 1.1rem;
 }
 
 .order-footer {
-    padding: 1.25rem;
-    background-color: white;
-    border-top: 1px solid var(--border-color);
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--gray-200);
 }
 
 .delivery-info {
-    color: #666;
-    font-size: 0.95rem;
+    color: var(--gray-700);
 }
 
-.btn-outline-primary {
-    color: var(--primary-color);
-    border-color: var(--primary-color);
+.btn-view-details {
+    color: var(--white);
+    background: var(--primary);
+    border: none;
+    border-radius: 25px;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+    font-weight: 500;
 }
 
-.btn-outline-primary:hover {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: white;
+.btn-view-details:hover {
+    background: var(--primary-dark);
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(255, 152, 0, 0.2);
 }
 
-.empty-orders-icon {
-    color: #ddd;
+.empty-state {
+    text-align: center;
+    padding: 5rem 2rem;
+    background: var(--white);
+    border-radius: 20px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+}
+
+.empty-illustration {
+    font-size: 5rem;
+    color: var(--primary-light);
+    margin-bottom: 2rem;
+}
+
+.empty-state .btn-primary {
+    background: var(--primary);
+    border: none;
+    padding: 1rem 2rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.empty-state .btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(255, 152, 0, 0.2);
 }
 
 @media (max-width: 768px) {
-    .order-header {
+    .orders-header-card {
+        padding: 1.5rem;
+    }
+    
+    .stat-card {
         padding: 1rem;
     }
     
-    .order-items {
-        padding: 1rem;
+    .stat-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
     }
     
-    .order-item {
-        padding: 0.75rem;
+    .order-card {
+        padding: 1.5rem;
     }
     
-    .item-image {
-        width: 60px;
-        height: 60px;
-    }
-    
-    .item-name {
-        font-size: 0.95rem;
+    .item-image-container {
+        width: 70px;
+        height: 70px;
     }
 }
 </style>
@@ -272,6 +470,14 @@
 function viewOrderDetails(orderId) {
     window.location.href = `/orders/${orderId}`;
 }
+
+// Add AOS initialization if you're using it
+document.addEventListener('DOMContentLoaded', function() {
+    AOS.init({
+        duration: 800,
+        offset: 50
+    });
+});
 </script>
 
 <%- include('../partials/footer') %> 

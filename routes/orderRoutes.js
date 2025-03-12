@@ -4,6 +4,8 @@ const orderController = require('../controllers/orderController');
 const { isAuth, isAuthenticated } = require('../middlewares/authMiddleware');
 const Cart = require('../models/shopingCart');
 
+// Orders list route
+router.get('/', isAuthenticated, orderController.getOrders);
 router.post('/place-order', isAuthenticated, orderController.placeOrder);
 router.get('/:id', isAuthenticated, orderController.getOrder);
 router.get('/check-cart', isAuthenticated, async (req, res) => {
@@ -20,4 +22,5 @@ router.get('/check-cart', isAuthenticated, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 module.exports = router; 

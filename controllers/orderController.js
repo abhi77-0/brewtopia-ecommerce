@@ -142,7 +142,10 @@ const orderController = {
     },
     getOrders: async (req, res) => {
         try {
-            const orders = await Order.find({ user: req.session.user.id })
+            const userId = req.user?._id || req.session?.user?._id;
+
+            // Fetch all orders for the user with populated data
+            const orders = await Order.find({ user: userId })
                 .populate({
                     path: 'items.product',
                     select: 'name images brand variants'
@@ -150,10 +153,14 @@ const orderController = {
                 .populate('address')
                 .sort({ createdAt: -1 }); // Most recent orders first
 
+            console.log('Found orders:', orders); // Debug log
+
+            // Render the orders page
             res.render('orders/orders', {
                 title: 'My Orders',
                 orders: orders
             });
+
         } catch (error) {
             console.error('Error fetching orders:', error);
             req.flash('error', 'Error fetching orders');
