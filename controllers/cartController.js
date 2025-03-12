@@ -195,29 +195,44 @@ exports.removeFromCart = async (req, res) => {
         const { productId, variant } = req.params;
         const userId = req.session.user.id;
 
-        console.log('Remove from cart request:', { // Debug log
-            userId,
-            productId,
-            variant
-        });
-
-        // Find and update the cart
+        // Find the cart and update it
         const result = await Cart.updateOne(
             { user: userId },
             { $pull: { items: { product: productId, variant: variant } } }
         );
 
-        console.log('Update result:', result); // Debug log
-
         if (result.modifiedCount === 0) {
-            console.log('No cart was modified'); // Debug log
-            return res.status(404).send();
+            return res.status(404).json({ message: 'Item not found in cart' });
         }
 
-        return res.status(200).send();
+        res.status(200).json({ message: 'Item removed successfully' });
 
     } catch (error) {
         console.error('Error removing item from cart:', error);
-        return res.status(500).send();
+        res.status(500).json({ message: 'Error removing item from cart' });
+    }
+};
+
+exports.checkItemInCart = async (req, res) => {
+    try {
+        const { productId, variant } = req.params;
+        const userId = req.session.user.id;
+
+        const cart = await Cart.findOne({ user: userId });
+        
+        if (!cart) {
+            return res.json({ exists: false });
+        }
+
+        const itemExists = cart.items.some(item => 
+            item.product.toString() === productId && 
+            item.variant === variant
+        );
+
+        res.json({ exists: itemExists });
+
+    } catch (error) {
+        console.error('Error checking cart:', error);
+        res.status(500).json({ error: 'Failed to check cart' });
     }
 };

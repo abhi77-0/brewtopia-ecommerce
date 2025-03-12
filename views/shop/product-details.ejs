@@ -1004,7 +1004,30 @@
             const productId = '<%= product._id %>';
 
             try {
-                // Show loading state
+                // Check if item already exists in cart
+                const checkResponse = await fetch(`/cart/check/${productId}/${variant}`);
+                const checkResult = await checkResponse.json();
+
+                if (checkResult.exists) {
+                    // Show warning that item is already in cart
+                    Swal.fire({
+                        title: 'Already in Cart',
+                        text: 'This item is already in your cart. You can update the quantity in the cart.',
+                        icon: 'info',
+                        showCancelButton: true,
+                        confirmButtonColor: '#FF9800',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Go to Cart',
+                        cancelButtonText: 'Stay Here'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = '/cart';
+                        }
+                    });
+                    return;
+                }
+
+                // If not in cart, proceed with adding
                 Swal.fire({
                     title: 'Adding to Cart...',
                     allowOutsideClick: false,
@@ -1029,7 +1052,6 @@
                     throw new Error('Failed to add item to cart');
                 }
 
-                // Show success message with options
                 const result = await Swal.fire({
                     title: 'Added to Cart!',
                     text: 'Item has been added to your cart successfully',

@@ -8,8 +8,9 @@ router.use(isAuthenticated);
 
 // Cart routes
 router.get('/', cartController.getCart);
+router.put('/update', cartController.updateCart);
 router.delete('/remove/:productId/:variant', cartController.removeFromCart);
 router.post('/add', cartController.addToCart);
-router.put('/update', cartController.updateCart);
+router.get('/check/:productId/:variant', cartController.checkItemInCart);
 
 module.exports = router; 
