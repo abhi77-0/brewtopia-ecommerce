@@ -6,6 +6,7 @@ const router = express.Router();
 const adminController = require('../controllers/admin/adminController');
 const categoryController = require('../controllers/user/categoryController');
 const productController = require('../controllers/user/productController');
+const orderController = require('../controllers/admin/orderController');
 
 // Import middleware and configurations
 const { isAdmin } = require('../middlewares/adminAuth');
@@ -43,7 +44,7 @@ router.put('/categories/:categoryId', isAdmin, categoryController.updateCategory
 router.delete('/categories/:categoryId', isAdmin, categoryController.deleteCategory);
 
 // Order Management Routes
-router.get('/orders', isAdmin, adminController.getOrders);
-router.put('/orders/:id/status', isAdmin, adminController.updateOrderStatus);
-
+router.get('/orders', isAdmin, orderController.getAllOrders);
+//router.put('/orders/:id/status', isAdmin, orderController.updateOrderStatus);
+router.put('/orders/:id/status', isAdmin, orderController.updateOrderStatus);
 module.exports = router;

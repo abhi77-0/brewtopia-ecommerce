@@ -38,30 +38,34 @@
             </div>
         </div>
 
-        <!-- Orders List -->
-        <% if (orders && orders.length > 0) { %>
-            <div class="orders-container">
-                <% orders.forEach(order => { %>
-                    <div class="order-card" data-aos="fade-up">
-                        <!-- Status Timeline -->
-                        <div class="status-timeline mb-4">
-                            <% 
-                            const statuses = ['Pending', 'Processing', 'Shipped', 'Delivered'];
-                            const currentIndex = statuses.indexOf(order.status);
-                            %>
-                            <div class="timeline-track">
-                                <% statuses.forEach((status, index) => { %>
-                                    <div class="timeline-point <%= index <= currentIndex ? 'active' : '' %>">
-                                        <div class="point"></div>
-                                        <span class="status-text"><%= status %></span>
-                                    </div>
-                                    <% if (index < statuses.length - 1) { %>
-                                        <div class="timeline-line <%= index < currentIndex ? 'active' : '' %>"></div>
-                                    <% } %>
-                                <% }) %>
-                            </div>
+<!-- Orders List -->
+<% if (orders && orders.length > 0) { %>
+    <div class="orders-container">
+        <% orders.forEach(function(order) { %>
+            <div class="order-card" data-aos="fade-up">
+                <% if (order.status === 'Cancelled') { %>
+                    <div class="alert alert-danger" role="alert">
+                        Order Cancelled
+                    </div>
+                <% } else { %>
+                    <div class="status-timeline mb-4">
+                        <% 
+                        var statuses = ['Pending', 'Processing', 'Shipped', 'Delivered'];
+                        var currentIndex = statuses.indexOf(order.status);
+                        %>
+                        <div class="timeline-track">
+                            <% statuses.forEach(function(status, index) { %>
+                                <div class="timeline-point <%= index <= currentIndex ? 'active' : '' %>">
+                                    <div class="point"></div>
+                                    <span class="status-text"><%= status %></span>
+                                </div>
+                                <% if (index < statuses.length - 1) { %>
+                                    <div class="timeline-line <%= index < currentIndex ? 'active' : '' %>"></div>
+                                <% } %>
+                            <% }); %>
                         </div>
-
+                    </div>
+                <% } %>
                         <!-- Order Info -->
                         <div class="order-info">
                             <div class="d-flex justify-content-between align-items-start mb-4">
@@ -112,7 +116,9 @@
                             <div class="order-footer">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="delivery-info">
-                                        <i class="fas fa-clock me-2"></i>
+                                        <% if(order.status !== 'Cancelled'){ %>
+                                            <i class="fas fa-clock me-2"></i>
+                                        <% } %>
                                         <% if (order.status === 'Delivered') { %>
                                             <span class="text-success">
                                                 Delivered on <%= new Date(order.deliveredAt).toLocaleDateString('en-US', {
@@ -121,7 +127,8 @@
                                                     year: 'numeric'
                                                 }) %>
                                             </span>
-                                        <% } else { %>
+
+                                        <% } if(order.status !== 'Cancelled'){ %>
                                             <span>
                                                 Expected by <%= new Date(order.expectedDeliveryDate).toLocaleDateString('en-US', {
                                                     day: 'numeric',
@@ -132,12 +139,20 @@
                                         <% } %>
                                     </div>
                                     <div>
-                                        <button onclick="viewOrderDetails('<%= order._id %>')" 
+                                        <% if (order.status !== 'Cancelled') { %>
+                                            <button onclick="viewOrderDetails('<%= order._id %>')" 
                                                 class="btn btn-view-details">
                                             View Details
                                             <i class="fas fa-arrow-right ms-2"></i>
                                         </button>
-                                        <% if (order.status === 'Pending') { %>
+
+
+                                        <% } else { %>
+                                            <button class="btn btn-secondary btn-sm" disabled>
+                                                View Details
+                                            </button>
+                                        <% } %>
+                                        <% if (order.status === 'Processing') { %>
                                             <button onclick="cancelOrder('<%= order._id %>')" 
                                                     class="btn btn-cancel-order">
                                                 Cancel Order
