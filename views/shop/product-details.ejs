@@ -936,18 +936,38 @@
         });
 
         // Form submission
-        form.addEventListener('submit', async (e) => {
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            const selectedVariant = document.querySelector('.size-option.selected');
+            if (!selectedVariant) {
+                Swal.fire({
+                    title: 'Select Size',
+                    text: 'Please select a size before adding to cart',
+                    icon: 'warning',
+                    confirmButtonColor: '#FF9800'
+                });
+                return;
+            }
 
-            const productId = '<%= product._id %>'; // Make sure this is available in your template
-            const variant = document.getElementById('variant').value;
+            const variant = selectedVariant.dataset.variant;
             const quantity = document.getElementById('quantity').value;
+            const productId = '<%= product._id %>';
 
             try {
+                // Show loading state
+                Swal.fire({
+                    title: 'Adding to Cart...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
                 const response = await fetch('/cart/add', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         productId,
@@ -956,23 +976,34 @@
                     })
                 });
 
-                const data = await response.json();
-
-                if (data.success) {
-                    // Show success message
-                    alert('Item added to cart successfully!');
-                    
-                    // Optional: Update cart count in navbar if you have one
-                    // updateCartCount(data.cartItemsCount);
-                    
-                    // Optional: Redirect to cart page
-                    // window.location.href = '/cart';
-                } else {
-                    alert(data.error || 'Failed to add item to cart');
+                if (!response.ok) {
+                    throw new Error('Failed to add item to cart');
                 }
+
+                // Show success message with options
+                const result = await Swal.fire({
+                    title: 'Added to Cart!',
+                    text: 'Item has been added to your cart successfully',
+                    icon: 'success',
+                    showCancelButton: true,
+                    confirmButtonColor: '#FF9800',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Go to Cart',
+                    cancelButtonText: 'Continue Shopping'
+                });
+
+                if (result.isConfirmed) {
+                    window.location.href = '/cart';
+                }
+
             } catch (error) {
                 console.error('Error:', error);
-                alert('Failed to add item to cart');
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Failed to add item to cart',
+                    icon: 'error',
+                    confirmButtonColor: '#FF9800'
+                });
             }
         });
 

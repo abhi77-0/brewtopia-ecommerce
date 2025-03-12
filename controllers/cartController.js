@@ -192,59 +192,32 @@ exports.updateCart = async (req, res) => {
 // Remove item from cart
 exports.removeFromCart = async (req, res) => {
     try {
-        const { productId } = req.params; // Get productId from URL params
-        const { variant } = req.body;     // Get variant from request body
+        const { productId, variant } = req.params;
         const userId = req.session.user.id;
 
-        const cart = await Cart.findOne({ user: userId });
-        
-        if (!cart) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Cart not found' 
-            });
-        }
+        console.log('Remove from cart request:', { // Debug log
+            userId,
+            productId,
+            variant
+        });
 
-        // Find the specific item with both productId and variant
-        const itemIndex = cart.items.findIndex(item => 
-            item.product.toString() === productId && 
-            item.variant === variant
+        // Find and update the cart
+        const result = await Cart.updateOne(
+            { user: userId },
+            { $pull: { items: { product: productId, variant: variant } } }
         );
 
-        if (itemIndex === -1) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'Item not found in cart' 
-            });
+        console.log('Update result:', result); // Debug log
+
+        if (result.modifiedCount === 0) {
+            console.log('No cart was modified'); // Debug log
+            return res.status(404).send();
         }
 
-        // Remove the item
-        cart.items.splice(itemIndex, 1);
-        await cart.save();
-
-        // Get updated cart with product details
-        const updatedCart = await Cart.findOne({ user: userId })
-            .populate('items.product');
-
-        // Calculate new total
-        const cartTotal = updatedCart.items.reduce((total, item) => {
-            const variantPrice = item.product.variants[item.variant].price;
-            return total + (variantPrice * item.quantity);
-        }, 0);
-
-        res.json({
-            success: true,
-            message: 'Item removed successfully',
-            cartTotal: cartTotal.toFixed(2),
-            itemCount: updatedCart.items.length
-        });
+        return res.status(200).send();
 
     } catch (error) {
-        console.error('Error removing from cart:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error removing item from cart',
-            error: error.message 
-        });
+        console.error('Error removing item from cart:', error);
+        return res.status(500).send();
     }
 };
