@@ -137,11 +137,13 @@
                         <span>Total</span>
                         <span>₹<%= total %></span>
                     </div>
-                    <button class="btn btn-primary btn-block checkout-btn" <%= !hasItems ? 'disabled' : '' %>>
+                    <button onclick="window.location.href='/cart/checkout'" 
+                            class="btn btn-primary btn-block checkout-btn" 
+                            <%= !hasItems ? 'disabled' : '' %>>
                         Proceed to Checkout
                     </button>
                     <div class="mt-3">
-                        <a href="/users/products" class="btn btn-outline-secondary btn-block">
+                        <a href="/shop/products" class="btn btn-outline-secondary btn-block">
                             Continue Shopping
                         </a>
                     </div>

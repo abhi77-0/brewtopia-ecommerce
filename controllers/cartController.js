@@ -1,5 +1,6 @@
 const Cart = require('../models/shopingCart'); // Make sure the path is correct
 const Product = require('../models/product'); // Adjust path as needed
+const User = require('../models/userModel'); // Added User model import
 
 exports.getCart = async (req, res) => {
     try {
@@ -234,5 +235,66 @@ exports.checkItemInCart = async (req, res) => {
     } catch (error) {
         console.error('Error checking cart:', error);
         res.status(500).json({ error: 'Failed to check cart' });
+    }
+};
+
+exports.getCheckout = async (req, res) => {
+    try {
+        const userId = req.session.user.id;
+        let subtotal = 0;
+        let itemCount = 0;
+        const shipping = 40; // Fixed shipping cost
+        const discountRate = 0.10;
+
+        const cart = await Cart.findOne({ user: userId })
+            .populate({
+                path: 'items.product',
+                model: 'Product',
+                select: 'name description images variants brand'
+            });
+        
+        // Get user details with populated addresses
+        const user = await User.findById(userId)
+            .populate('addresses');
+        
+        if (!cart || cart.items.length === 0) {
+            req.flash('error', 'Your cart is empty');
+            return res.redirect('/cart');
+        }
+
+        // Calculate totals
+        cart.items.forEach(item => {
+            if (item.product && item.product.variants && item.variant) {
+                const variantPrice = item.product.variants[item.variant]?.price || 0;
+                item.total = variantPrice * item.quantity;
+                subtotal += item.total;
+                itemCount += item.quantity;
+            }
+        });
+
+        const discount = subtotal * discountRate;
+        const total = subtotal + shipping - discount;
+
+        // Get the default or first address
+        const defaultAddress = user.addresses && user.addresses.length > 0 
+            ? user.addresses[0] 
+            : null;
+
+        res.render('cart/checkout', {
+            title: 'Checkout',
+            cart: cart,
+            user: user,
+            defaultAddress: defaultAddress,
+            subtotal: subtotal,
+            shipping: shipping,
+            discount: Math.round(discount),
+            total: Math.round(total),
+            itemCount: itemCount
+        });
+
+    } catch (error) {
+        console.error('Error getting checkout page:', error);
+        req.flash('error', 'Error accessing checkout');
+        res.redirect('/cart');
     }
 };
