@@ -185,6 +185,33 @@ const orderController = {
             req.flash('error', 'Error fetching orders');
             res.redirect('/users/home');
         }
+    },
+    cancelOrder: async (req, res) => {
+        try {
+            const orderId = req.params.id;
+            const userId = req.user?._id || req.session?.user?._id;
+
+            const order = await Order.findOneAndDelete({ _id: orderId, user: userId });
+
+            if (!order) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Order not found or already cancelled'
+                });
+            }
+
+            res.json({
+                success: true,
+                message: 'Order cancelled successfully'
+            });
+
+        } catch (error) {
+            console.error('Error cancelling order:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error cancelling order: ' + error.message
+            });
+        }
     }
 };
 
