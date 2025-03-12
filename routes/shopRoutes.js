@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const shopController = require('../controllers/shopController');
+const shopController = require('../controllers/user/shopController');
 const Product = require('../models/product');
 console.log('shopController:', shopController);
 

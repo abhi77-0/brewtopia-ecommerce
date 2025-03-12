@@ -3,9 +3,9 @@ const express = require('express');
 const router = express.Router();
 
 // Import controllers
-const adminController = require('../controllers/adminController');
-const categoryController = require('../controllers/categoryController');
-const productController = require('../controllers/productController');
+const adminController = require('../controllers/admin/adminController');
+const categoryController = require('../controllers/user/categoryController');
+const productController = require('../controllers/user/productController');
 
 // Import middleware and configurations
 const { isAdmin } = require('../middlewares/adminAuth');

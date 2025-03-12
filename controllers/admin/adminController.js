@@ -1,8 +1,8 @@
 require('dotenv').config();
-const User = require('../models/userModel');
-const Category = require('../models/category');
-const Product = require('../models/product');
-const { handleUpload } = require('../utils/cloudinaryUpload');
+const User = require('../../models/userModel');
+const Category = require('../../models/category');
+const Product = require('../../models/product');
+const { handleUpload } = require('../../utils/cloudinaryUpload');
 
 // Admin authentication controllers
 const getLoginPage = (req, res) => {

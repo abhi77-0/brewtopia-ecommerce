@@ -1,9 +1,9 @@
 const bcrypt = require("bcryptjs");
-const User = require("../models/userModel");
-const PendingUser = require("../models/pendingUserModel");
-const OTP = require("../models/otpModel");
-const { generateOTP, verifyOTP } = require("../config/otpService");
-const Address = require("../models/Address");
+const User = require("../../models/userModel");
+const PendingUser = require("../../models/pendingUserModel");
+const OTP = require("../../models/otpModel");
+const { generateOTP, verifyOTP } = require("../../config/otpService");
+const Address = require("../../models/Address");
 
 // Signup Handlers
 exports.renderSignupPage = (req, res) => {

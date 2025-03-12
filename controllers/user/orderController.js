@@ -1,5 +1,5 @@
-const Order = require('../models/Order');
-const Cart = require('../models/shopingCart');
+const Order = require('../../models/Order');
+const Cart = require('../../models/shopingCart');
 
 const orderController = {
     placeOrder: async (req, res) => {

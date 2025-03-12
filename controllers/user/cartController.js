@@ -1,6 +1,6 @@
-const Cart = require('../models/shopingCart'); // Make sure the path is correct
-const Product = require('../models/product'); // Adjust path as needed
-const User = require('../models/userModel'); // Added User model import
+const Cart = require('../../models/shopingCart'); // Make sure the path is correct
+const Product = require('../../models/product'); // Adjust path as needed
+const User = require('../../models/userModel'); // Added User model import
 
 exports.getCart = async (req, res) => {
     try {

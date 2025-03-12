@@ -1,6 +1,6 @@
 const express = require("express");
 const passport = require('passport');
-const userController = require("../controllers/userController");
+const userController = require("../controllers/user/userController");
 const { isAuthenticated } = require('../middlewares/authMiddleware');
 const { 
     validateSignup, 
