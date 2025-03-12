@@ -143,22 +143,41 @@ const orderController = {
     getOrders: async (req, res) => {
         try {
             const userId = req.user?._id || req.session?.user?._id;
+            const page = parseInt(req.query.page) || 1;
+            const limit = 4; // Orders per page
 
-            // Fetch all orders for the user with populated data
+            // Get total counts (independent of pagination)
+            const totalOrders = await Order.countDocuments({ user: userId });
+            const activeOrders = await Order.countDocuments({ 
+                user: userId,
+                status: { $in: ['Pending', 'Processing'] }
+            });
+
+            // Calculate pagination
+            const totalPages = Math.ceil(totalOrders / limit);
+
+            // Fetch paginated orders
             const orders = await Order.find({ user: userId })
                 .populate({
                     path: 'items.product',
                     select: 'name images brand variants'
                 })
                 .populate('address')
-                .sort({ createdAt: -1 }); // Most recent orders first
+                .sort({ createdAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit);
 
-            console.log('Found orders:', orders); // Debug log
-
-            // Render the orders page
             res.render('orders/orders', {
                 title: 'My Orders',
-                orders: orders
+                orders: orders,
+                totalOrders: totalOrders, // Pass total count
+                activeOrders: activeOrders, // Pass active count
+                currentPage: page,
+                totalPages: totalPages,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1,
+                nextPage: page + 1,
+                prevPage: page - 1
             });
 
         } catch (error) {
