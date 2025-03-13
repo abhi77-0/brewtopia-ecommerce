@@ -4,11 +4,13 @@ const Category = require('../../models/category');
 // Get all products for shop page
 exports.getAllProducts = async (req, res) => {
     try {
+        console.log('=== USER PRODUCTS LISTING ===');
+        
         // Get filter parameters
-        const categoryId = req.query.category;
+        const categoryId = req.query.category || '';
         const minPrice = parseInt(req.query.minPrice) || 100;
-        const brand = req.query.brand;
-        const sort = req.query.sort;
+        const brand = req.query.brand || '';
+        const sort = req.query.sort || '';
         const searchTerm = req.query.search || '';
         
         // Pagination parameters
@@ -16,111 +18,63 @@ exports.getAllProducts = async (req, res) => {
         const limit = parseInt(req.query.limit) || 9;
         const skip = (page - 1) * limit;
         
-        // Build query - only show visible and not deleted products
-        const query = { 
-            isDeleted: false,
-            isVisible: true  // Only show visible products
+        // Get categories
+        const categories = await Category.find().sort({ name: 1 });
+        
+        // Build query
+        const query = {
+            isVisible: true
         };
         
         if (categoryId) query.category = categoryId;
         if (brand) query.brand = brand;
-        
-        // Add search term to query if provided
         if (searchTerm) {
             query.name = { $regex: searchTerm, $options: 'i' };
         }
 
-        // Price filter for both variants
-        if (minPrice) {
-            query['$or'] = [
-                { 'variants.500ml.price': { $gte: minPrice } },
-                { 'variants.650ml.price': { $gte: minPrice } }
-            ];
-        }
-
-        // Build sort options
-        let sortOptions = {};
-        switch(sort) {
-            case 'price-low':
-                sortOptions = { 'variants.500ml.price': 1 };
-                break;
-            case 'price-high':
-                sortOptions = { 'variants.500ml.price': -1 };
-                break;
-            case 'name-asc':
-                sortOptions = { name: 1 };
-                break;
-            case 'name-desc':
-                sortOptions = { name: -1 };
-                break;
-            default:
-                sortOptions = { createdAt: -1 };
-        }
-
-        // Fetch active categories for filter
-        const categories = await Category.find({ isDeleted: false }).sort({ name: 1 });
-        
-        // First get all products to extract unique brands
-        const allProducts = await Product.find({ isDeleted: false });
-        const brands = [...new Set(allProducts.map(product => product.brand).filter(Boolean))];
-
         // Get total count for pagination
         const totalProducts = await Product.countDocuments(query);
         const totalPages = Math.ceil(totalProducts / limit);
-
-        // Then fetch filtered products with pagination
+        
+        // Get products
         const products = await Product.find(query)
             .populate('category')
-            .sort(sortOptions)
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
 
-        // Create a function to construct page URLs
-        const constructPageUrl = (pageNum) => {
-            // Start with the base URL
-            let url = '/shop/products?';
-            
-            // Add all current query parameters except page
-            if (categoryId) url += `category=${categoryId}&`;
-            if (minPrice && minPrice > 100) url += `minPrice=${minPrice}&`;
-            if (brand) url += `brand=${brand}&`;
-            if (sort) url += `sort=${sort}&`;
-            
-            // Add the page parameter
-            url += `page=${pageNum}`;
-            
-            return url;
-        };
+        // Get available brands
+        const availableBrands = [...new Set(
+            (await Product.find({ isVisible: true }).distinct('brand'))
+        )];
 
-        console.log('Query:', query);
-        console.log('Found products:', products.length);
-        console.log('Available brands:', brands);
-        console.log('Selected brand:', brand);
-        console.log('Min price:', minPrice);
-        console.log('Page:', page, 'of', totalPages);
+        // Create pagination object
+        const pagination = {
+            page,
+            limit,
+            totalProducts,
+            totalPages,
+            hasPrevPage: page > 1,
+            hasNextPage: page < totalPages,
+            prevPage: page - 1,
+            nextPage: page + 1
+        };
 
         res.render('shop/products', {
             title: 'Our Products',
             products,
             categories,
-            selectedCategory: categoryId || '',
-            selectedBrand: brand || '',
-            minPrice: minPrice,
-            brands,
+            selectedCategory: categoryId,
+            brands: availableBrands,
+            selectedBrand: brand,
+            minPrice,
+            searchTerm,
+            sort,
+            pagination,  // Add the pagination object
             path: '/shop/products',
-            sort: sort || '',
-            pagination: {
-                page,
-                limit,
-                totalProducts,
-                totalPages,
-                hasNextPage: page < totalPages,
-                hasPrevPage: page > 1,
-                nextPage: page + 1,
-                prevPage: page - 1
-            },
-            constructPageUrl // Pass the function to the template
+            error: null
         });
+
     } catch (error) {
         console.error('Error fetching products:', error);
         res.status(500).render('shop/products', {
@@ -128,11 +82,23 @@ exports.getAllProducts = async (req, res) => {
             products: [],
             categories: [],
             selectedCategory: '',
+            brands: [],
             selectedBrand: '',
             minPrice: 100,
-            brands: [],
-            error: 'Error fetching products',
-            path: '/shop/products'
+            searchTerm: '',
+            sort: '',
+            pagination: {  // Add default pagination for error state
+                page: 1,
+                limit: 9,
+                totalProducts: 0,
+                totalPages: 0,
+                hasPrevPage: false,
+                hasNextPage: false,
+                prevPage: 1,
+                nextPage: 1
+            },
+            path: '/shop/products',
+            error: 'Error fetching products: ' + error.message
         });
     }
 };

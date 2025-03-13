@@ -187,10 +187,33 @@ const getCategories = async (req, res) => {
 // Admin Product management controllers
 const getAdminProducts = async (req, res) => {
     try {
-        const categories = await Category.find({ isDeleted: false }).sort({ name: 1 });
-        const products = await Product.find({ isDeleted: false })
-            .populate('category')
-            .sort({ createdAt: -1 });
+        console.log('=== ADMIN PRODUCTS LISTING ===');
+        
+        // Get all products without any filters
+        const allProducts = await Product.find();
+        console.log(`Total products in database: ${allProducts.length}`);
+        
+        // Get categories
+        const categories = await Category.find().sort({ name: 1 });
+        
+        // Filter products in memory if needed
+        const products = allProducts.filter(product => {
+            // Only filter by isVisible if you want to show all products in admin
+            // return product.isVisible !== false;
+            return true; // Show all products in admin
+        });
+        
+        console.log(`Filtered products for display: ${products.length}`);
+        
+        if (products.length > 0) {
+            console.log('First product:', {
+                id: products[0]._id,
+                name: products[0].name,
+                isVisible: products[0].isVisible
+            });
+        } else {
+            console.log('No products to display');
+        }
 
         res.render('admin/products', {
             title: 'Manage Products',
@@ -203,7 +226,7 @@ const getAdminProducts = async (req, res) => {
         console.error('Error fetching products:', error);
         res.status(500).render('admin/products', {
             title: 'Manage Products',
-            error: 'Error fetching products',
+            error: 'Error fetching products: ' + error.message,
             products: [],
             categories: [],
             adminUser: req.session.adminUser,

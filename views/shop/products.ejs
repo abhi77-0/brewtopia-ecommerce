@@ -687,26 +687,25 @@
                 </div>
                 
                 <!-- Pagination -->
-                <% if (pagination && pagination.totalPages > 1) { %>
+                <% if (locals.pagination && pagination.totalPages > 1) { %>
                     <nav aria-label="Product pagination" class="mt-4">
                         <ul class="pagination justify-content-center">
                             <li class="page-item <%= !pagination.hasPrevPage ? 'disabled' : '' %>">
-                                <a class="page-link" href="<%= !pagination.hasPrevPage ? '#' : constructPageUrl(pagination.prevPage) %>" 
-                                   <%= !pagination.hasPrevPage ? 'tabindex="-1" aria-disabled="true"' : '' %>>
+                                <a class="page-link" href="?page=<%= pagination.prevPage %>&category=<%= selectedCategory %>&brand=<%= selectedBrand %>&minPrice=<%= minPrice %>" <%= !pagination.hasPrevPage ? 'tabindex="-1" aria-disabled="true"' : '' %>>
                                     Previous
                                 </a>
                             </li>
                             
                             <% for(let i = 1; i <= pagination.totalPages; i++) { %>
                                 <li class="page-item <%= pagination.page === i ? 'active' : '' %>">
-                                    <a class="page-link" href="<%= constructPageUrl(i) %>">
+                                    <a class="page-link" href="?page=<%= i %>&category=<%= selectedCategory %>&brand=<%= selectedBrand %>&minPrice=<%= minPrice %>">
                                         <%= i %>
                                     </a>
                                 </li>
                             <% } %>
                             
                             <li class="page-item <%= !pagination.hasNextPage ? 'disabled' : '' %>">
-                                <a class="page-link" href="<%= !pagination.hasNextPage ? '#' : constructPageUrl(pagination.nextPage) %>">
+                                <a class="page-link" href="?page=<%= pagination.nextPage %>&category=<%= selectedCategory %>&brand=<%= selectedBrand %>&minPrice=<%= minPrice %>" <%= !pagination.hasNextPage ? 'tabindex="-1" aria-disabled="true"' : '' %>>
                                     Next
                                 </a>
                             </li>

@@ -25,7 +25,7 @@ router.get('/api/products/:id', async (req, res) => {
             .populate('category')
             .lean();
             
-        if (!product || product.isDeleted) {
+        if (!product || product.isVisible === false) {
             return res.status(404).json({ error: 'Product not found' });
         }
         res.json(product);
