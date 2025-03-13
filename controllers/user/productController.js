@@ -137,38 +137,20 @@ const getProductsByCategory = async (req, res) => {
 // Search products
 const searchProducts = async (req, res) => {
     try {
-        const searchTerm = req.query.q;
-        
+        const searchTerm = req.query.q || '';
         if (!searchTerm) {
-            return res.redirect('/products');
+            return res.json([]);
         }
-        
-        // Create search regex for case-insensitive search
-        const searchRegex = new RegExp(searchTerm, 'i');
-        
-        // Find products matching the search term
+
+        // Find products where the name starts with the search term (case-insensitive)
         const products = await Product.find({
-            isVisible: true,
-            isDeleted: false,
-            status: 'active',
-            $or: [
-                { name: searchRegex },
-                { description: searchRegex },
-                { brand: searchRegex }
-            ]
-        }).populate('category');
-        
-        res.render('user/search-results', {
-            searchTerm,
-            products,
-            title: `Search Results: ${searchTerm}`
-        });
+            name: { $regex: `^${searchTerm}`, $options: 'i' }
+        }).select('name images').limit(5); // Limit results for performance
+
+        res.json(products);
     } catch (error) {
         console.error('Error searching products:', error);
-        res.status(500).render('error', {
-            message: 'Error searching products',
-            error: error.message
-        });
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 

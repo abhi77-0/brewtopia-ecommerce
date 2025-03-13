@@ -136,62 +136,27 @@ exports.getAllProducts = async (req, res) => {
 // Get single product details
 exports.getProductDetails = async (req, res) => {
     try {
-        console.log('=== PRODUCT DETAILS DEBUG ===');
-        console.log('Product ID:', req.params.productId);
+        const productId = req.params.productId;
         
-        // Find the product and populate category
-        const product = await Product.findOne({
-            _id: req.params.productId,
-            isVisible: true
-        }).populate('category');
-        
-        console.log('Product found:', product ? 'Yes' : 'No');
+        // Fetch the product with all its details
+        const product = await Product.findById(productId);
         
         if (!product) {
-            console.log('Product not found or not visible');
-            return res.status(404).render('shop/error', {
-                title: 'Product Not Found',
-                error: 'The requested product could not be found',
-                path: '/shop/products'
-            });
-        }
-        
-        console.log('Product details:', {
-            name: product.name,
-            category: product.category ? product.category.name : 'No category',
-            isVisible: product.isVisible,
-            variants: Object.keys(product.variants)
-        });
-        
-        // Get similar products from the same category
-        let similarProducts = [];
-        if (product.category) {
-            similarProducts = await Product.find({
-                category: product.category._id,
-                _id: { $ne: product._id },  // Exclude current product
-                isVisible: true
-            })
-            .limit(4)
-            .populate('category');
-            
-            console.log(`Found ${similarProducts.length} similar products`);
+            req.flash('error', 'Product not found');
+            return res.redirect('/shop/products');
         }
 
         res.render('shop/product-details', {
             title: product.name,
-            product,
-            similarProducts,
+            product: product,
+            user: req.session.user || null,
             path: '/shop/products'
         });
-        
+
     } catch (error) {
         console.error('Error fetching product details:', error);
-        console.error('Error stack:', error.stack);
-        res.status(500).render('shop/error', {
-            title: 'Error',
-            error: 'Error fetching product details',
-            path: '/shop/products'
-        });
+        req.flash('error', 'Error loading product details');
+        res.redirect('/shop/products');
     }
 };
 
