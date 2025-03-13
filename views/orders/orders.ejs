@@ -50,7 +50,7 @@
                 <% } else { %>
                     <div class="status-timeline mb-4">
                         <% 
-                        var statuses = ['Pending', 'Processing', 'Shipped', 'Delivered'];
+                        var statuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Return Requested', 'Return Accepted'];
                         var currentIndex = statuses.indexOf(order.status);
                         %>
                         <div class="timeline-track">
@@ -112,30 +112,35 @@
                                 <% }); %>
                             </div>
 
-                            <!-- Order Footer -->
+                            <!-- Order Footer with Return Request -->
                             <div class="order-footer">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="delivery-info">
                                         <% if(order.status !== 'Cancelled'){ %>
                                             <i class="fas fa-clock me-2"></i>
-                                        <% } %>
-                                        <% if (order.status === 'Delivered') { %>
-                                            <span class="text-success">
-                                                Delivered on <%= new Date(order.deliveredAt).toLocaleDateString('en-US', {
-                                                    day: 'numeric',
-                                                    month: 'short',
-                                                    year: 'numeric'
-                                                }) %>
-                                            </span>
-
-                                        <% } if(order.status !== 'Cancelled'){ %>
-                                            <span>
-                                                Expected by <%= new Date(order.expectedDeliveryDate).toLocaleDateString('en-US', {
-                                                    day: 'numeric',
-                                                    month: 'short',
-                                                    year: 'numeric'
-                                                }) %>
-                                            </span>
+                                            <% if (order.status === 'Delivered') { %>
+                                                <span class="text-success">
+                                                    Delivered on <%= new Date(order.deliveredAt).toLocaleDateString() %>
+                                                </span>
+                                                
+                                                <!-- Return Request Section -->
+                                                <% if (!order.returnRequest) { %>
+                                                    <button onclick="initiateReturn('<%= order._id %>')" 
+                                                            class="btn btn-outline-warning ms-3">
+                                                        <i class="fas fa-undo me-2"></i>Return Order
+                                                    </button>
+                                                <% } else { %>
+                                                    <div class="return-status ms-3">
+                                                        <% if (order.returnStatus === 'pending') { %>
+                                                            <span class="badge bg-warning text-dark">Return Requested</span>
+                                                        <% } else if (order.returnStatus === 'accepted') { %>
+                                                            <span class="badge bg-success">Return Accepted</span>
+                                                        <% } else if (order.returnStatus === 'rejected') { %>
+                                                            <span class="badge bg-danger">Return Rejected</span>
+                                                        <% } %>
+                                                    </div>
+                                                <% } %>
+                                            <% } %>
                                         <% } %>
                                     </div>
                                     <div>
@@ -204,6 +209,30 @@
                 </a>
             </div>
         <% } %>
+    </div>
+</div>
+
+<!-- Return Request Modal -->
+<div class="modal fade" id="returnModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Return Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="returnForm">
+                    <div class="mb-3">
+                        <label for="returnReason" class="form-label">Reason for Return</label>
+                        <textarea class="form-control" id="returnReason" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitReturn()">Submit Request</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -568,6 +597,42 @@
         font-size: 0.9rem;
     }
 }
+
+.return-status {
+    display: inline-block;
+}
+
+.return-status .badge {
+    font-size: 0.9rem;
+    padding: 0.5em 1em;
+}
+
+.btn-outline-warning {
+    color: #ffc107;
+    border-color: #ffc107;
+}
+
+.btn-outline-warning:hover {
+    color: #000;
+    background-color: #ffc107;
+    border-color: #ffc107;
+}
+
+.modal-content {
+    border-radius: 12px;
+}
+
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-footer {
+    border-top: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+    border-radius: 0 0 12px 12px;
+}
 </style>
 
 <script>
@@ -620,6 +685,52 @@ function cancelOrder(orderId) {
             });
         }
     });
+}
+
+let currentOrderId = null;
+
+function initiateReturn(orderId) {
+    currentOrderId = orderId;
+    const returnModal = new bootstrap.Modal(document.getElementById('returnModal'));
+    returnModal.show();
+}
+
+function submitReturn() {
+    const reason = document.getElementById('returnReason').value;
+    if (!reason) {
+        Swal.fire('Error', 'Please provide a reason for return', 'error');
+        return;
+    }
+
+    fetch(`/orders/${currentOrderId}/return`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ returnReason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                title: 'Success!',
+                text: 'Return request submitted successfully',
+                icon: 'success'
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire('Error', data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire('Error', 'Failed to submit return request', 'error');
+    });
+
+    // Close the modal
+    const returnModal = bootstrap.Modal.getInstance(document.getElementById('returnModal'));
+    returnModal.hide();
 }
 
 // Add AOS initialization if you're using it

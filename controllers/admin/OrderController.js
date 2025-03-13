@@ -82,6 +82,63 @@ const OrderController = {
                 message: 'Error updating order status: ' + error.message
             });
         }
+    },
+
+    handleReturn: async (req, res) => {
+        console.log('handleReturn controller method called:', {
+            params: req.params,
+            body: req.body,
+            user: req.user
+        });
+
+        try {
+            const { orderId } = req.params;
+            const { status } = req.body;
+
+            console.log('Processing return request:', { orderId, status });
+
+            const order = await Order.findById(orderId);
+            console.log('Found order:', order ? 'yes' : 'no', {
+                orderId: order?._id,
+                currentStatus: order?.status,
+                returnStatus: order?.returnStatus
+            });
+
+            if (!order) {
+                console.log('Order not found:', orderId);
+                return res.status(404).json({
+                    success: false,
+                    message: 'Order not found'
+                });
+            }
+
+            // Update return status based on admin action
+            order.returnStatus = status === 'accept' ? 'accepted' : 'rejected';
+            order.status = status === 'accept' ? 'Return Accepted' : 'Delivered';
+
+            console.log('Updating order with:', {
+                returnStatus: order.returnStatus,
+                status: order.status
+            });
+
+            await order.save();
+            console.log('Order updated successfully');
+
+            res.json({
+                success: true,
+                message: `Return request ${status}ed successfully`
+            });
+
+        } catch (error) {
+            console.error('Error in handleReturn:', {
+                error: error.message,
+                stack: error.stack
+            });
+            res.status(500).json({
+                success: false,
+                message: 'Error handling return request: ' + error.message
+            });
+        }
     }
 };
 

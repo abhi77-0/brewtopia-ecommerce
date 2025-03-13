@@ -36,8 +36,23 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+        enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Return Requested', 'Return Accepted'],
         default: 'Pending'
+    },
+    returnRequest: {
+        type: Boolean,
+        default: false
+    },
+    returnStatus: {
+        type: String,
+        enum: ['pending', 'accepted', 'rejected', null],
+        default: null
+    },
+    returnReason: {
+        type: String
+    },
+    returnRequestDate: {
+        type: Date
     },
     paymentMethod: {
         type: String,

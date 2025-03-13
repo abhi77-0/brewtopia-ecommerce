@@ -47,6 +47,17 @@
                             <i class="fas fa-check-circle me-2"></i>
                             Delivered on <%= order.deliveredAt?.toLocaleDateString() %>
                         </p>
+                        <!-- Return Option -->
+                        <div class="return-option mt-4">
+                            <h5>Return Order</h5>
+                            <form action="/orders/<%= order._id %>/return" method="POST">
+                                <div class="mb-3">
+                                    <label for="returnReason" class="form-label">Reason for Return</label>
+                                    <textarea class="form-control" id="returnReason" name="returnReason" rows="3" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-danger">Submit Return Request</button>
+                            </form>
+                        </div>
                     <% } else { %>
                         <p class="text-muted mb-0">
                             <i class="fas fa-truck me-2"></i>
@@ -117,7 +128,7 @@
                                 order.paymentStatus === 'Failed' ? 'bg-danger' :
                                 'bg-warning'
                             %>">
-                                <%= order.paymentStatus %>
+                                <%= order.status === 'Delivered' ? 'Completed' : order.paymentStatus %>
                             </span>
                         </div>
                         <hr>

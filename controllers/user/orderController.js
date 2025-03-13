@@ -212,6 +212,86 @@ const orderController = {
                 message: 'Error cancelling order: ' + error.message
             });
         }
+    },
+    markAsDelivered: async (req, res) => {
+        try {
+            const orderId = req.params.id;
+
+            // Find the order and update its status
+            const order = await Order.findById(orderId);
+            if (!order) {
+                req.flash('error', 'Order not found');
+                return res.redirect('/admin/orders');
+            }
+
+            // Update order status and delivered date
+            order.status = 'Delivered';
+            order.deliveredAt = new Date();
+            order.paymentStatus = 'Completed';
+            await order.save();
+
+            req.flash('success', 'Order marked as delivered');
+            res.redirect(`/admin/orders/${orderId}`);
+        } catch (error) {
+            console.error('Error marking order as delivered:', error);
+            req.flash('error', 'Error marking order as delivered');
+            res.redirect('/admin/orders');
+        }
+    },
+    returnOrder: async (req, res) => {
+        try {
+            const orderId = req.params.id;
+            const { returnReason } = req.body;
+
+            // Find the order and update its status
+            const order = await Order.findById(orderId);
+            if (!order) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Order not found'
+                });
+            }
+
+            // Check if order is eligible for return (e.g., within 7 days of delivery)
+            if (order.status !== 'Delivered') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Only delivered orders can be returned'
+                });
+            }
+
+            const deliveryDate = new Date(order.deliveredAt);
+            const currentDate = new Date();
+            const daysSinceDelivery = Math.floor((currentDate - deliveryDate) / (1000 * 60 * 60 * 24));
+
+            if (daysSinceDelivery > 7) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Return period has expired (7 days from delivery)'
+                });
+            }
+
+            // Update order with return request details
+            order.returnRequest = true;
+            order.returnStatus = 'pending';
+            order.returnReason = returnReason;
+            order.returnRequestDate = new Date();
+            order.status = 'Return Requested';
+            
+            await order.save();
+
+            res.json({
+                success: true,
+                message: 'Return request submitted successfully'
+            });
+
+        } catch (error) {
+            console.error('Error processing return request:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error processing return request: ' + error.message
+            });
+        }
     }
 };
 

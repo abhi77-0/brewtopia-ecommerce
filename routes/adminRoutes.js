@@ -47,4 +47,24 @@ router.delete('/categories/:categoryId', isAdmin, categoryController.deleteCateg
 router.get('/orders', isAdmin, orderController.getAllOrders);
 //router.put('/orders/:id/status', isAdmin, orderController.updateOrderStatus);
 router.put('/orders/:id/status', isAdmin, orderController.updateOrderStatus);
+
+// Add debugging middleware
+router.use('/orders/:orderId/return', (req, res, next) => {
+    console.log('Return route accessed:', {
+        method: req.method,
+        params: req.params,
+        body: req.body,
+        url: req.originalUrl
+    });
+    next();
+});
+
+router.put('/orders/:orderId/return', isAdmin, (req, res, next) => {
+    console.log('Before isAdmin middleware:', {
+        user: req.user,
+        session: req.session
+    });
+    next();
+}, orderController.handleReturn);
+
 module.exports = router;

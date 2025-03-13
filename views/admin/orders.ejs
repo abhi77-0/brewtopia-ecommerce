@@ -94,6 +94,90 @@
         .pagination {
             margin-top: 1rem;
         }
+
+        /* Add these new styles */
+        .badge {
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 6px;
+        }
+
+        .btn-group-sm > .btn {
+            padding: 0.25rem 0.5rem;
+        }
+
+        .btn-group-sm > .btn i {
+            font-size: 12px;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        .table td small {
+            font-size: 11px;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+
+        .btn-info {
+            background-color: #17a2b8;
+            border-color: #17a2b8;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .form-select-sm:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+
+        .return-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .return-info .badge {
+            margin-right: 0.5rem;
+        }
+
+        .return-info small {
+            margin-right: 1rem;
+        }
+
+        /* Update button styles to ensure they're clickable */
+        .btn-group-sm > .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            border-radius: 0.2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-success, .btn-danger, .btn-info {
+            cursor: pointer;
+        }
+
+        .return-info {
+            margin-bottom: 0.5rem;
+        }
+
+        .badge {
+            font-size: 0.875rem;
+            padding: 0.4em 0.8em;
+        }
     </style>
 </head>
 <body>
@@ -109,10 +193,10 @@
             <a href="/admin/categories" class="sidebar-link">
                 <i class="fas fa-list me-2"></i> Categories
             </a>
-            <a href="/admin/orders" class="sidebar-link">
+            <a href="/admin/orders" class="sidebar-link active">
                 <i class="fas fa-shopping-cart me-2"></i> Orders
             </a>
-            <a href="/admin/users" class="sidebar-link active">
+            <a href="/admin/users" class="sidebar-link">
                 <i class="fas fa-users me-2"></i> Users
             </a>
         </div>
@@ -124,28 +208,61 @@
                     <thead>
                         <tr>
                             <th>Order ID</th>
-                            <th>User</th>
+                            <th>Date</th>
+                            <th>Customer</th>
                             <th>Total</th>
                             <th>Status</th>
+                            <th>Return Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <% orders.forEach(order => { %>
                             <tr>
-                                <td>#<%= order._id.toString().slice(-8).toUpperCase() %></td>
-                                <td><%= order.user.name %> (<%= order.user.email %>)</td>
+                                <td>#<%= order._id.toString().slice(-6) %></td>
+                                <td><%= new Date(order.createdAt).toLocaleDateString() %></td>
+                                <td><%= order.user.name %></td>
                                 <td>₹<%= order.total.toFixed(2) %></td>
                                 <td>
-                                    <select class="form-select" onchange="updateOrderStatus('<%= order._id %>', this.value)">
+                                    <select class="form-select form-select-sm status-select" 
+                                            data-order-id="<%= order._id %>">
                                         <% statusStages.forEach(status => { %>
-                                            <option value="<%= status %>" <%= order.status === status ? 'selected' : '' %>><%= status %></option>
+                                            <option value="<%= status %>" 
+                                                    <%= order.status === status ? 'selected' : '' %>>
+                                                <%= status %>
+                                            </option>
                                         <% }) %>
                                     </select>
                                 </td>
                                 <td>
-                                    <button onclick="viewOrderDetails('<%= order._id %>')" class="btn btn-primary btn-sm">
-                                        View Details
+                                    <% if (order.returnRequest) { %>
+                                        <% if (order.returnStatus === 'pending') { %>
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-warning text-dark me-2">Pending</span>
+                                                <button class="btn btn-success btn-sm me-1 return-btn" 
+                                                        data-order-id="<%= order._id %>" 
+                                                        data-action="accept">
+                                                    Accept
+                                                </button>
+                                                <button class="btn btn-danger btn-sm return-btn" 
+                                                        data-order-id="<%= order._id %>" 
+                                                        data-action="reject">
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        <% } else if (order.returnStatus === 'accepted') { %>
+                                            <span class="badge bg-success">Accepted</span>
+                                        <% } else if (order.returnStatus === 'rejected') { %>
+                                            <span class="badge bg-danger">Rejected</span>
+                                        <% } %>
+                                    <% } else { %>
+                                        <span class="badge bg-secondary">No Request</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <button class="btn btn-info btn-sm" 
+                                            onclick="window.location.href='/admin/orders/<%= order._id %>'">
+                                        View
                                     </button>
                                 </td>
                             </tr>
@@ -153,8 +270,8 @@
                     </tbody>
                 </table>
 
-                <!-- Pagination -->
-                <nav aria-label="Page navigation">
+                <!-- Simple Pagination -->
+                <nav aria-label="Page navigation" class="mt-4">
                     <ul class="pagination justify-content-center">
                         <% if (hasPrevPage) { %>
                             <li class="page-item">
@@ -174,39 +291,80 @@
                     </ul>
                 </nav>
             <% } else { %>
-                <div class="alert alert-info" role="alert">
-                    No orders found.
-                </div>
+                <div class="alert alert-info">No orders found.</div>
             <% } %>
         </div>
     </div>
 
     <script>
-        function updateOrderStatus(orderId, status) {
-            fetch(`/admin/orders/${orderId}/status`, {
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle return buttons
+        const returnButtons = document.querySelectorAll('.return-btn');
+        returnButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const orderId = this.dataset.orderId;
+                const action = this.dataset.action;
+                handleReturn(orderId, action);
+            });
+        });
+
+        // Handle status changes
+        const statusSelects = document.querySelectorAll('.status-select');
+        statusSelects.forEach(select => {
+            select.addEventListener('change', function() {
+                const orderId = this.dataset.orderId;
+                const status = this.value;
+                updateOrderStatus(orderId, status);
+            });
+        });
+    });
+
+    function handleReturn(orderId, action) {
+        if (confirm(`Are you sure you want to ${action} this return request?`)) {
+            fetch(`/admin/orders/${orderId}/return`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ status })
+                body: JSON.stringify({ status: action })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    Swal.fire('Updated!', 'Order status updated successfully.', 'success');
+                    alert('Return request updated successfully');
+                    location.reload();
                 } else {
-                    Swal.fire('Error!', data.message, 'error');
+                    alert(data.message || 'Error updating return request');
                 }
             })
             .catch(error => {
-                console.error('Error updating order status:', error);
-                Swal.fire('Error!', 'Error updating order status', 'error');
+                console.error('Error:', error);
+                alert('Error updating return request');
             });
         }
+    }
 
-        function viewOrderDetails(orderId) {
-            window.location.href = `/admin/orders/${orderId}`;
-        }
+    function updateOrderStatus(orderId, status) {
+        fetch(`/admin/orders/${orderId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Order status updated successfully');
+            } else {
+                alert(data.message || 'Error updating order status');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating order status');
+        });
+    }
     </script>
 </body>
 </html>

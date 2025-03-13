@@ -20,5 +20,23 @@ module.exports = {
         res.locals.user = req.user || req.session.user || null;
         res.locals.isAuthenticated = req.isAuthenticated() || (req.session.user !== undefined);
         next();
+    },
+
+    isAdmin: (req, res, next) => {
+        console.log('isAdmin middleware:', {
+            user: req.user,
+            session: req.session,
+            isAdmin: req.user?.isAdmin
+        });
+
+        if (req.user && req.user.isAdmin) {
+            next();
+        } else {
+            console.log('Admin access denied');
+            res.status(403).json({
+                success: false,
+                message: 'Admin access required'
+            });
+        }
     }
 };
