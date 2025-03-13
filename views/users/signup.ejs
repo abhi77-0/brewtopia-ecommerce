@@ -131,13 +131,11 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-light">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-beer me-2"></i>Brewtopia
-            </a>
-        </div>
-    </nav>
+    <%- include('../partials/header', { 
+        title: 'Sign Up',
+        hideSearch: true,
+        hideNavigation: true 
+    }) %>
 
     <div class="container">
         <div class="auth-container">
@@ -245,133 +243,93 @@
                     const confirmPassword = document.getElementById('confirmPassword');
                     const submitButton = document.getElementById('submitButton');
 
-                    // Track which fields have been touched
-                    const touchedFields = {
-                        name: false,
-                        email: false,
-                        password: false,
-                        confirmPassword: false
-                    };
-
                     function validateEmail(email) {
                         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                         return emailRegex.test(email);
                     }
 
                     function validateField(field) {
+                        let isValid = true;
+
                         switch(field.id) {
                             case 'name':
-                                if (touchedFields.name) {
-                                    if (!field.value || field.value.length < 2) {
-                                        field.classList.add('is-invalid');
-                                        document.getElementById('nameError').style.display = 'block';
-                                        return false;
-                                    } else {
-                                        field.classList.remove('is-invalid');
-                                        document.getElementById('nameError').style.display = 'none';
-                                        return true;
-                                    }
+                                if (!field.value || field.value.length < 2) {
+                                    field.classList.add('is-invalid');
+                                    document.getElementById('nameError').style.display = 'block';
+                                    isValid = false;
+                                } else {
+                                    field.classList.remove('is-invalid');
+                                    document.getElementById('nameError').style.display = 'none';
                                 }
-                                return true;
+                                break;
 
                             case 'email':
-                                if (touchedFields.email) {
-                                    if (!validateEmail(field.value)) {
-                                        field.classList.add('is-invalid');
-                                        document.getElementById('emailError').style.display = 'block';
-                                        return false;
-                                    } else {
-                                        field.classList.remove('is-invalid');
-                                        document.getElementById('emailError').style.display = 'none';
-                                        return true;
-                                    }
+                                if (!validateEmail(field.value)) {
+                                    field.classList.add('is-invalid');
+                                    document.getElementById('emailError').style.display = 'block';
+                                    isValid = false;
+                                } else {
+                                    field.classList.remove('is-invalid');
+                                    document.getElementById('emailError').style.display = 'none';
                                 }
-                                return true;
+                                break;
 
                             case 'password':
-                                if (touchedFields.password) {
-                                    if (!field.value || field.value.length < 6) {
-                                        field.classList.add('is-invalid');
-                                        document.getElementById('passwordError').style.display = 'block';
-                                        return false;
-                                    } else {
-                                        field.classList.remove('is-invalid');
-                                        document.getElementById('passwordError').style.display = 'none';
-                                        return true;
-                                    }
+                                if (!field.value || field.value.length < 6) {
+                                    field.classList.add('is-invalid');
+                                    document.getElementById('passwordError').style.display = 'block';
+                                    isValid = false;
+                                } else {
+                                    field.classList.remove('is-invalid');
+                                    document.getElementById('passwordError').style.display = 'none';
                                 }
-                                return true;
+                                // Also check confirm password when password changes
+                                if (confirmPassword.value) {
+                                    validateField(confirmPassword);
+                                }
+                                break;
 
                             case 'confirmPassword':
-                                if (touchedFields.confirmPassword || touchedFields.password) {
-                                    if (field.value !== password.value) {
-                                        field.classList.add('is-invalid');
-                                        document.getElementById('confirmPasswordError').style.display = 'block';
-                                        return false;
-                                    } else {
-                                        field.classList.remove('is-invalid');
-                                        document.getElementById('confirmPasswordError').style.display = 'none';
-                                        return true;
-                                    }
+                                if (field.value !== password.value) {
+                                    field.classList.add('is-invalid');
+                                    document.getElementById('confirmPasswordError').style.display = 'block';
+                                    isValid = false;
+                                } else {
+                                    field.classList.remove('is-invalid');
+                                    document.getElementById('confirmPasswordError').style.display = 'none';
                                 }
-                                return true;
+                                break;
                         }
-                        return true;
-                    }
-
-                    function validateForm(isSubmitting = false) {
-                        // If submitting, mark all fields as touched
-                        if (isSubmitting) {
-                            Object.keys(touchedFields).forEach(key => touchedFields[key] = true);
-                        }
-
-                        const isNameValid = validateField(name);
-                        const isEmailValid = validateField(email);
-                        const isPasswordValid = validateField(password);
-                        const isConfirmPasswordValid = validateField(confirmPassword);
-
-                        const isValid = isNameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid;
-                        submitButton.disabled = !isValid;
+                        
                         return isValid;
                     }
 
-                    // Add blur event listeners to mark fields as touched
-                    name.addEventListener('blur', () => {
-                        touchedFields.name = true;
-                        validateField(name);
-                    });
-
-                    email.addEventListener('blur', () => {
-                        touchedFields.email = true;
-                        validateField(email);
-                    });
-
-                    password.addEventListener('blur', () => {
-                        touchedFields.password = true;
-                        validateField(password);
-                    });
-
-                    confirmPassword.addEventListener('blur', () => {
-                        touchedFields.confirmPassword = true;
-                        validateField(confirmPassword);
-                    });
-
-                    // Add input event listeners for real-time validation of touched fields
-                    name.addEventListener('input', () => validateField(name));
-                    email.addEventListener('input', () => validateField(email));
-                    password.addEventListener('input', () => {
-                        validateField(password);
-                        if (touchedFields.confirmPassword) {
-                            validateField(confirmPassword);
-                        }
-                    });
-                    confirmPassword.addEventListener('input', () => validateField(confirmPassword));
-
-                    // Form submission
+                    // Only validate form on submission
                     form.addEventListener('submit', function(e) {
-                        if (!validateForm(true)) {
-                            e.preventDefault();
+                        e.preventDefault();
+                        
+                        let isValid = true;
+                        
+                        // Validate all fields
+                        isValid = validateField(name) && isValid;
+                        isValid = validateField(email) && isValid;
+                        isValid = validateField(password) && isValid;
+                        isValid = validateField(confirmPassword) && isValid;
+
+                        if (isValid) {
+                            this.submit();
                         }
+                    });
+
+                    // Add input listeners for real-time validation feedback
+                    [name, email, password, confirmPassword].forEach(field => {
+                        field.addEventListener('input', () => {
+                            validateField(field);
+                        });
+
+                        field.addEventListener('blur', () => {
+                            validateField(field);
+                        });
                     });
                 </script>
                 
@@ -379,9 +337,7 @@
         </div>
     </div>
 
-    <footer class="footer">
-        &copy; 2025 Brewtopia. All rights reserved.
-    </footer>
+    <%- include('../partials/footer') %>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

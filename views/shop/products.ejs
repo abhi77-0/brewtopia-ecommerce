@@ -481,6 +481,31 @@
         background-color: #fff;
         border-color: #dee2e6;
     }
+
+    .variant-bubbles {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .variant-bubble {
+        background-color: #f8f9fa;
+        color: #666;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        border: 1px solid #dee2e6;
+    }
+
+    .price-section {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #FF9800;
+    }
+
+    .price {
+        display: inline-block;
+    }
 </style>
 
 <div class="shop-container">
@@ -640,32 +665,17 @@
                                             </p>
                                         <% } %>
                                         
-                                        <div class="variants mb-3">
-                                            <% if (product.variants && product.variants['500ml']) { %>
-                                                <div class="variant-item <%= product.variants['500ml'].stock <= 0 ? 'out-of-stock' : '' %>"
-                                                     data-variant-size="500ml"
-                                                     data-price="<%= product.variants['500ml'].price %>">
-                                                    <span class="size">500ml</span>
-                                                    <div class="variant-info">
-                                                        <span class="price">₹<%= product.variants['500ml'].price %></span>
-                                                        <% if (product.variants['500ml'].stock <= 0) { %>
-                                                            <small class="stock-status">(Out of Stock)</small>
-                                                        <% } %>
-                                                    </div>
-                                                </div>
+                                        <div class="variant-bubbles mb-3">
+                                            <% if (product.variants) { %>
+                                                <% Object.keys(product.variants).forEach(size => { %>
+                                                    <span class="variant-bubble"><%= size %></span>
+                                                <% }); %>
                                             <% } %>
-                                            <% if (product.variants && product.variants['650ml']) { %>
-                                                <div class="variant-item <%= product.variants['650ml'].stock <= 0 ? 'out-of-stock' : '' %>"
-                                                     data-variant-size="650ml"
-                                                     data-price="<%= product.variants['650ml'].price %>">
-                                                    <span class="size">650ml</span>
-                                                    <div class="variant-info">
-                                                        <span class="price">₹<%= product.variants['650ml'].price %></span>
-                                                        <% if (product.variants['650ml'].stock <= 0) { %>
-                                                            <small class="stock-status">(Out of Stock)</small>
-                                                        <% } %>
-                                                    </div>
-                                                </div>
+                                        </div>
+
+                                        <div class="price-section mb-3">
+                                            <% if (product.variants && product.variants['500ml']) { %>
+                                                <span class="price">₹<%= product.variants['500ml'].price %></span>
                                             <% } %>
                                         </div>
 
