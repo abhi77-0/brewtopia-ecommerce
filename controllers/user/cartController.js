@@ -260,3 +260,183 @@ exports.getCheckout = async (req, res) => {
         res.redirect('/cart');
     }
 };
+
+// Process checkout and create order
+exports.processCheckout = async (req, res) => {
+    console.log('CHECKOUT PROCESS STARTED');
+    console.log('User ID:', req.session.user.id);
+    
+    try {
+        const userId = req.session.user.id;
+        const { shippingAddress, paymentMethod } = req.body;
+        
+        // Get the user's cart with populated product details
+        const cart = await Cart.findOne({ user: userId })
+            .populate({
+                path: 'items.product',
+                model: 'Product',
+                select: 'name description images variants brand'
+            });
+            
+        if (!cart || cart.items.length === 0) {
+            req.flash('error', 'Your cart is empty');
+            return res.redirect('/cart');
+        }
+        
+        // Calculate totals
+        let subtotal = 0;
+        let itemCount = 0;
+        const shipping = 40; // Fixed shipping cost
+        const discountRate = 0.10;
+        
+        // Verify stock availability and prepare order items
+        let orderItems = [];
+        let stockUpdateOperations = [];
+        let stockError = null;
+        
+        for (const item of cart.items) {
+            const product = item.product;
+            const variant = item.variant;
+            const quantity = item.quantity;
+            
+            // Check if product exists and has the variant
+            if (!product || !product.variants || !product.variants[variant]) {
+                stockError = `Product ${product ? product.name : 'Unknown'} with variant ${variant} is not available`;
+                break;
+            }
+            
+            // Check if enough stock is available
+            if (product.variants[variant].stock < quantity) {
+                stockError = `Not enough stock for ${product.name} (${variant}). Only ${product.variants[variant].stock} available.`;
+                break;
+            }
+            
+            // Calculate item price and add to total
+            const price = product.variants[variant].price;
+            const itemTotal = price * quantity;
+            subtotal += itemTotal;
+            itemCount += quantity;
+            
+            // Prepare order item
+            orderItems.push({
+                product: product._id,
+                name: product.name,
+                variant: variant,
+                quantity: quantity,
+                price: price
+            });
+            
+            // Prepare stock update operation
+            const updatePath = `variants.${variant}.stock`;
+            stockUpdateOperations.push({
+                updateOne: {
+                    filter: { _id: product._id },
+                    update: { $inc: { [updatePath]: -quantity } }
+                }
+            });
+        }
+        
+        // If there's a stock error, redirect back with error
+        if (stockError) {
+            req.flash('error', stockError);
+            return res.redirect('/cart/checkout');
+        }
+        
+        // Calculate final amounts
+        const discount = subtotal * discountRate;
+        const total = subtotal + shipping - discount;
+        
+        // Get user for shipping address
+        const user = await User.findById(userId);
+        const addressToUse = user.addresses.find(addr => addr._id.toString() === shippingAddress) || user.addresses[0];
+        
+        if (!addressToUse) {
+            req.flash('error', 'Please add a shipping address');
+            return res.redirect('/cart/checkout');
+        }
+        
+        // Create the order
+        const Order = require('../../models/Order'); // Import Order model
+        
+        const order = new Order({
+            user: userId,
+            items: orderItems,
+            subtotal: subtotal,
+            shipping: shipping,
+            discount: Math.round(discount),
+            total: Math.round(total),
+            shippingAddress: {
+                fullName: addressToUse.fullName,
+                addressLine1: addressToUse.addressLine1,
+                addressLine2: addressToUse.addressLine2,
+                city: addressToUse.city,
+                state: addressToUse.state,
+                postalCode: addressToUse.postalCode,
+                country: addressToUse.country,
+                phone: addressToUse.phone
+            },
+            paymentMethod: paymentMethod,
+            status: 'Pending',
+            paymentStatus: 'Pending'
+        });
+        
+        // Save the order
+        await order.save();
+        console.log('ORDER SAVED, ABOUT TO UPDATE STOCK');
+        
+        // Update stock for each item in the order
+        for (const item of cart.items) {
+            // Rest of your stock update code...
+        }
+        
+        // Clear the user's cart
+        await Cart.findOneAndUpdate(
+            { user: userId },
+            { $set: { items: [] } }
+        );
+        
+        // Redirect to order confirmation page
+        req.flash('success', 'Order placed successfully!');
+        res.redirect(`/orders/${order._id}/confirmation`);
+        
+    } catch (error) {
+        console.error('Checkout error:', error);
+        req.flash('error', 'An error occurred during checkout');
+        res.redirect('/cart/checkout');
+    }
+};
+
+// Order confirmation page
+exports.getOrderConfirmation = async (req, res) => {
+    try {
+        const orderId = req.params.orderId;
+        const userId = req.session.user.id;
+        
+        // Find the order and make sure it belongs to the current user
+        const Order = require('../../models/Order');
+        const order = await Order.findOne({ 
+            _id: orderId, 
+            user: userId 
+        }).populate({
+            path: 'items.product',
+            model: 'Product',
+            select: 'name images'
+        });
+        
+        if (!order) {
+            req.flash('error', 'Order not found');
+            return res.redirect('/orders');
+        }
+        
+        res.render('cart/order-confirmation', {
+            title: 'Order Confirmation',
+            order: order,
+            user: req.session.user
+        });
+        
+    } catch (error) {
+        console.error('Error loading order confirmation:', error);
+        req.flash('error', 'Error loading order confirmation');
+        res.redirect('/orders');
+    }
+};

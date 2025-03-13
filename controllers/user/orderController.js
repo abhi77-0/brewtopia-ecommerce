@@ -1,92 +1,97 @@
 const Order = require('../../models/Order');
 const Cart = require('../../models/shopingCart');
+const User = require('../../models/userModel');
+const Product = require('../../models/product');
 
 const orderController = {
     placeOrder: async (req, res) => {
         try {
+            console.log('Starting place order process...');
+            const userId = req.session.user.id;
             const { addressId, paymentMethod } = req.body;
-            // Get user ID directly from req.user or req.session.user
-            const userId = req.user?._id || req.session?.user?._id;
 
-            if (!userId) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'User not authenticated'
+            // Get cart with populated product details
+            const cart = await Cart.findOne({ user: userId }).populate('items.product');
+            
+            if (!cart || cart.items.length === 0) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Cart is empty' 
                 });
             }
 
-            console.log('User ID:', userId); // Debug log
+            console.log('Cart found, creating order...');
 
-            // First check if cart exists, if not create one
-            let cart = await Cart.findOne({ user: userId })
-                .populate({
-                    path: 'items.product',
-                    select: 'name images variants brand'
-                });
-
-            if (!cart) {
-                // Create a new cart if it doesn't exist
-                cart = await Cart.create({
-                    user: userId,
-                    items: []
-                });
-            }
-
-            console.log('Found cart:', cart); // Debug log
-
-            if (!cart.items || cart.items.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Your cart is empty. Please add items before placing an order.'
-                });
-            }
-
-            // Calculate totals
-            let subtotal = 0;
+            // Create order items and calculate total
+            let total = 0;
             const orderItems = cart.items.map(item => {
-                const itemPrice = item.product.variants[item.variant].price;
-                subtotal += itemPrice * item.quantity;
-                
+                const itemTotal = item.product.variants[item.variant].price * item.quantity;
+                total += itemTotal;
                 return {
                     product: item.product._id,
                     variant: item.variant,
                     quantity: item.quantity,
-                    price: itemPrice
+                    price: item.product.variants[item.variant].price
                 };
             });
 
-            const shipping = 40; // Fixed shipping cost
-            const discount = subtotal * 0.10; // 10% discount
-            const total = subtotal + shipping - discount;
+            // Fetch the selected address
+            const user = await User.findById(userId);
+            const selectedAddress = user.addresses.find(addr => addr._id.toString() === addressId);
+
+            if (!selectedAddress) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid address selected'
+                });
+            }
 
             // Create new order
-            const order = await Order.create({
+            const order = new Order({
                 user: userId,
                 items: orderItems,
-                address: addressId,
-                total: Math.round(total),
-                status: 'Pending',
+                total: total,
+                address: selectedAddress._id,  // Use the ObjectId of the selected address
                 paymentMethod: paymentMethod,
-                paymentStatus: paymentMethod === 'cod' ? 'Pending' : 'Completed',
-                expectedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+                status: 'Pending'
             });
 
-            // Clear the cart
+            // Save order
+            await order.save();
+            console.log('Order saved, updating stock...');
+
+            // Update stock for each product
+            for (const item of cart.items) {
+                console.log(`Updating stock for product ${item.product._id}, variant ${item.variant}`);
+                
+                // Find the product and update its stock
+                const product = await Product.findById(item.product._id);
+                if (product && product.variants[item.variant]) {
+                    product.variants[item.variant].stock -= item.quantity;
+                    await product.save();
+                    console.log(`Stock updated. New stock: ${product.variants[item.variant].stock}`);
+                }
+            }
+
+            // Clear cart
             await Cart.findOneAndUpdate(
                 { user: userId },
                 { $set: { items: [] } }
             );
 
-            res.json({
+            console.log('Order process completed successfully');
+
+            res.status(200).json({
                 success: true,
+                message: 'Order placed successfully',
                 orderId: order._id
             });
 
         } catch (error) {
-            console.error('Error placing order:', error);
+            console.error('Error in placeOrder:', error);
             res.status(500).json({
                 success: false,
-                message: 'Error placing order: ' + error.message
+                message: 'Error placing order'
             });
         }
     },
