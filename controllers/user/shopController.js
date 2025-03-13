@@ -6,9 +6,9 @@ exports.getAllProducts = async (req, res) => {
     try {
         // Get filter parameters
         const categoryId = req.query.category;
-        const minPrice = parseInt(req.query.minPrice) || 100;
+        const minPrice = parseInt(req.query.minPrice) || 0;
         const brand = req.query.brand;
-        const sort = req.query.sort;
+        const sort = req.query.sort || '';  // Ensure sort has a default value
         const searchTerm = req.query.search || '';
         
         // Pagination parameters
@@ -16,9 +16,8 @@ exports.getAllProducts = async (req, res) => {
         const limit = parseInt(req.query.limit) || 9;
         const skip = (page - 1) * limit;
         
-        // Build query - only show visible and not deleted products
+        // Build query - only check for isVisible since isDeleted doesn't exist
         const query = { 
-            isDeleted: false,
             isVisible: true  // Only show visible products
         };
         
@@ -30,74 +29,71 @@ exports.getAllProducts = async (req, res) => {
             query.name = { $regex: searchTerm, $options: 'i' };
         }
 
-        // Price filter for both variants
-        if (minPrice) {
-            query['$or'] = [
-                { 'variants.500ml.price': { $gte: minPrice } },
-                { 'variants.650ml.price': { $gte: minPrice } }
-            ];
+        // Define sort options based on the sort parameter
+        const sortOptions = {};
+        if (sort === 'price-low') {
+            sortOptions['variants.500ml.price'] = 1;  // Ascending order
+        } else if (sort === 'price-high') {
+            sortOptions['variants.500ml.price'] = -1;  // Descending order
+        } else if (sort === 'name-asc') {
+            sortOptions.name = 1;  // Alphabetical A-Z
+        } else if (sort === 'name-desc') {
+            sortOptions.name = -1;  // Alphabetical Z-A
+        } else {
+            // Default sort by creation date (newest first)
+            sortOptions.createdAt = -1;
         }
 
-        // Build sort options
-        let sortOptions = {};
-        switch(sort) {
-            case 'price-low':
-                sortOptions = { 'variants.500ml.price': 1 };
-                break;
-            case 'price-high':
-                sortOptions = { 'variants.500ml.price': -1 };
-                break;
-            case 'name-asc':
-                sortOptions = { name: 1 };
-                break;
-            case 'name-desc':
-                sortOptions = { name: -1 };
-                break;
-            default:
-                sortOptions = { createdAt: -1 };
+        // Price filter - modified to be more flexible
+        if (minPrice > 0) {
+            // Check if we have any products with variants structure first
+            const hasVariantProducts = await Product.countDocuments({
+                'variants.500ml.price': { $exists: true }
+            });
+            
+            if (hasVariantProducts > 0) {
+                query['$or'] = [
+                    { 'variants.500ml.price': { $gte: minPrice } },
+                    { 'variants.650ml.price': { $gte: minPrice } }
+                ];
+            } else {
+                // Fall back to a regular price field if no variants exist
+                query.price = { $gte: minPrice };
+            }
         }
 
-        // Fetch active categories for filter
-        const categories = await Category.find({ isDeleted: false }).sort({ name: 1 });
+        // First get all products to extract unique brands (without price filter)
+        const allProducts = await Product.find({ 
+            isVisible: true  // Only filter by isVisible
+        });
         
-        // First get all products to extract unique brands
-        const allProducts = await Product.find({ isDeleted: false });
+        // Log the total number of products in the database
+        console.log('Total products in database:', allProducts.length);
+        
         const brands = [...new Set(allProducts.map(product => product.brand).filter(Boolean))];
 
         // Get total count for pagination
         const totalProducts = await Product.countDocuments(query);
-        const totalPages = Math.ceil(totalProducts / limit);
+        const totalPages = Math.ceil(totalProducts / limit) || 1; // Ensure at least 1 page
 
         // Then fetch filtered products with pagination
         const products = await Product.find(query)
             .populate('category')
-            .sort(sortOptions)
+            .sort(sortOptions)  // Always use sortOptions now
             .skip(skip)
             .limit(limit);
 
-        // Create a function to construct page URLs
-        const constructPageUrl = (pageNum) => {
-            // Start with the base URL
-            let url = '/shop/products?';
-            
-            // Add all current query parameters except page
-            if (categoryId) url += `category=${categoryId}&`;
-            if (minPrice && minPrice > 100) url += `minPrice=${minPrice}&`;
-            if (brand) url += `brand=${brand}&`;
-            if (sort) url += `sort=${sort}&`;
-            
-            // Add the page parameter
-            url += `page=${pageNum}`;
-            
-            return url;
-        };
-
-        console.log('Query:', query);
+        // Debug the query and results
+        console.log('Query:', JSON.stringify(query, null, 2));
         console.log('Found products:', products.length);
         console.log('Available brands:', brands);
         console.log('Selected brand:', brand);
         console.log('Min price:', minPrice);
         console.log('Page:', page, 'of', totalPages);
+        console.log('Sort option:', sort);
+
+        // Get all categories for the filter sidebar
+        const categories = await Category.find();
 
         res.render('shop/products', {
             title: 'Our Products',
@@ -108,7 +104,7 @@ exports.getAllProducts = async (req, res) => {
             minPrice: minPrice,
             brands,
             path: '/shop/products',
-            sort: sort || '',
+            sort: sort || '',  // Make sure sort is passed to the template
             pagination: {
                 page,
                 limit,
@@ -118,8 +114,7 @@ exports.getAllProducts = async (req, res) => {
                 hasPrevPage: page > 1,
                 nextPage: page + 1,
                 prevPage: page - 1
-            },
-            constructPageUrl // Pass the function to the template
+            }
         });
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -129,10 +124,11 @@ exports.getAllProducts = async (req, res) => {
             categories: [],
             selectedCategory: '',
             selectedBrand: '',
-            minPrice: 100,
+            minPrice: 0,
             brands: [],
             error: 'Error fetching products',
-            path: '/shop/products'
+            path: '/shop/products',
+            sort: ''  // Add default sort value here too
         });
     }
 };
