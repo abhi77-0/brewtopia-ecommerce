@@ -78,7 +78,7 @@
                         </div>
                         <div class="text-end">
                             <span class="order-label">Total Amount</span>
-                            <h5 class="order-total">₹<%= order.total.toFixed(2) %></h5>
+                            <h5 class="order-total">₹<%= typeof order.total === 'number' ? order.total.toFixed(2) : '0.00' %></h5>
                         </div>
                     </div>
 
@@ -657,14 +657,15 @@ function cancelOrder(orderId) {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({ updateStock: true })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     Swal.fire(
                         'Cancelled!',
-                        'Your order has been cancelled.',
+                        'Your order has been cancelled',
                         'success'
                     ).then(() => {
                         location.reload();
@@ -672,7 +673,7 @@ function cancelOrder(orderId) {
                 } else {
                     Swal.fire(
                         'Error!',
-                        data.message,
+                        data.message || 'Error cancelling order',
                         'error'
                     );
                 }

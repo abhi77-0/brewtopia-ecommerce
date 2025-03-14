@@ -1,4 +1,4 @@
-const Order = require('../../models/Order');
+const Order = require('../../models/order');
 const Cart = require('../../models/shopingCart');
 const User = require('../../models/userModel');
 const Product = require('../../models/product');
@@ -170,13 +170,21 @@ const orderController = {
                 .populate('address')
                 .sort({ createdAt: -1 })
                 .skip((page - 1) * limit)
-                .limit(limit);
+                .limit(limit)
+                .lean(); // Add this to convert to plain JavaScript objects
+
+            // Ensure total exists for each order
+            orders.forEach(order => {
+                if (typeof order.total !== 'number') {
+                    order.total = 0;
+                }
+            });
 
             res.render('orders/orders', {
                 title: 'My Orders',
                 orders: orders,
-                totalOrders: totalOrders, // Pass total count
-                activeOrders: activeOrders, // Pass active count
+                totalOrders: totalOrders,
+                activeOrders: activeOrders,
                 currentPage: page,
                 totalPages: totalPages,
                 hasNextPage: page < totalPages,
