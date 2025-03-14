@@ -73,20 +73,34 @@
         }
 
         .btn-resend {
-            display: none; /* Hidden by default */
-            background: #6c757d;
-            color: white;
-            border: none;
+            display: block;
+            background: transparent;
+            border: 1px solid #FF9800;
+            color: #FF9800;
             padding: 0.6rem 1.2rem;
             border-radius: 8px;
             font-weight: 600;
             transition: all 0.3s ease;
             margin-top: 1rem;
+            width: 100%;
         }
 
-        .btn-resend:hover {
-            background: #5a6268;
-            transform: translateY(-2px);
+        .btn-resend:hover:not(:disabled) {
+            background: #FFF3E0;
+        }
+
+        .btn-resend:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #timer {
+            display: block;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #dc3545;
+            margin-top: 0.5rem;
+            font-weight: 500;
         }
 
         #statusMessage {
@@ -107,13 +121,15 @@
     <div class="container">
         <div class="auth-container">
             <h2 class="form-title">Verify OTP</h2>
-            <!-- <% if (typeof error !== 'undefined') { %>
+            
+            <% if (typeof error !== 'undefined' && error) { %>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <%= error %>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-            <% } %> -->
-            <form action="/users/profile/verify-email-otp" method="POST">
+            <% } %>
+
+            <form action="/users/verify-otp" method="POST" id="otpForm">
                 <div class="mb-3">
                     <label class="form-label">Enter OTP</label>
                     <input type="text" class="form-control" name="otp" required>
@@ -122,13 +138,15 @@
                     </div>
                 </div>
                 <input type="hidden" name="email" value="<%= email %>">
-                <input type="hidden" name="isEmailUpdate" value="<%= isEmailUpdate %>">
+                <input type="hidden" name="isEmailUpdate" value="<%= typeof isEmailUpdate !== 'undefined' ? isEmailUpdate : false %>">
                 <button type="submit" class="btn btn-primary w-100" id="verifyButton">Verify OTP</button>
             </form>
-            <button class="btn btn-resend w-100" id="resendButton" onclick="resendOTP()">
+            
+            <button class="btn btn-resend" id="resendButton" onclick="resendOTP()">
                 Resend OTP
             </button>
-            <div id="statusMessage"></div>
+            
+            <div id="statusMessage" class="mt-3"></div>
         </div>
     </div>
 
@@ -137,74 +155,129 @@
     </footer>
 
     <script>
+        let resendTimer;
+        const MAX_RESEND_ATTEMPTS = 3;
+        let resendAttempts = 0;
         let timeLeft = 60;
-        const timerDisplay = document.getElementById('timer');
-        const verifyButton = document.getElementById('verifyButton');
-        const resendButton = document.getElementById('resendButton');
-        const statusMessage = document.getElementById('statusMessage');
-        
-        function updateTimer() {
-            if (timeLeft > 0) {
-                timerDisplay.innerHTML = `Time remaining: ${timeLeft} seconds`;
-                timeLeft--;
-                resendButton.style.display = 'none';
-            } else {
-                timerDisplay.innerHTML = "OTP expired! Please request a new one";
-                verifyButton.disabled = true;
-                resendButton.style.display = 'block';
-                resendButton.disabled = false;
-                clearInterval(countdown);
+
+        function updateTimerDisplay() {
+            const timerElement = document.getElementById('timer');
+            timerElement.textContent = `Time remaining: ${timeLeft}s`;
+        }
+
+        function startResendTimer() {
+            const resendButton = document.getElementById('resendButton');
+            resendButton.disabled = true;
+            
+            updateTimerDisplay(); // Initial display
+            
+            if (!resendTimer) {
+                resendTimer = setInterval(() => {
+                    timeLeft--;
+                    updateTimerDisplay();
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(resendTimer);
+                        resendTimer = null;
+                        resendButton.disabled = false;
+                        resendButton.textContent = 'Resend OTP';
+                        timeLeft = 60;
+                        document.getElementById('timer').textContent = 'Time expired';
+                        return;
+                    }
+                    resendButton.textContent = `Resend OTP (${timeLeft}s)`;
+                }, 1000);
             }
         }
 
-        async function resendOTP() {
-            const email = '<%= email %>';
-            resendButton.disabled = true;
-            statusMessage.innerHTML = '';
-            
-            try {
-                const response = await fetch('/users/resend-otp', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ email })
-                });
+        // Modify the form submission to prevent page reload
+        document.getElementById('otpForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent form from submitting normally
 
-                const data = await response.json();
+            const formData = new FormData(this);
+            
+            fetch('/users/verify-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: formData.get('email'),
+                    otp: formData.get('otp'),
+                    isEmailUpdate: formData.get('isEmailUpdate') === 'true'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const messageDiv = document.getElementById('statusMessage');
+                messageDiv.style.display = 'block';
                 
                 if (data.success) {
-                    timeLeft = 60;
-                    verifyButton.disabled = false;
-                    resendButton.style.display = 'none';
-                    statusMessage.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
-                    
-                    if (countdown) {
-                        clearInterval(countdown);
-                    }
-                    countdown = setInterval(updateTimer, 1000);
-                    updateTimer();
+                    // If verification successful, redirect
+                    window.location.href = data.redirectUrl || '/users/home';
                 } else {
+                    // Show error without affecting timer
+                    messageDiv.className = 'alert alert-danger';
+                    messageDiv.textContent = data.message || 'Invalid OTP. Please try again.';
+                    document.querySelector('input[name="otp"]').value = ''; // Clear OTP input
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const messageDiv = document.getElementById('statusMessage');
+                messageDiv.style.display = 'block';
+                messageDiv.className = 'alert alert-danger';
+                messageDiv.textContent = 'Error verifying OTP. Please try again.';
+            });
+        });
+
+        function resendOTP() {
+            const email = document.querySelector('input[name="email"]').value;
+            
+            fetch('/users/resend-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const messageDiv = document.getElementById('statusMessage');
+                messageDiv.style.display = 'block';
+                
+                if (data.success) {
+                    messageDiv.className = 'alert alert-success';
+                    messageDiv.textContent = data.message;
+                    timeLeft = 60; // Only reset timer on successful resend
+                    startResendTimer();
+                    
+                    if (data.remainingAttempts === 0) {
+                        document.getElementById('resendButton').disabled = true;
+                    }
+                } else {
+                    messageDiv.className = 'alert alert-danger';
+                    messageDiv.textContent = data.message;
+                    
                     if (data.maxAttemptsReached) {
-                        resendButton.style.display = 'none';
-                        statusMessage.innerHTML = `<div class="alert alert-danger">
-                            ${data.message}<br>
-                            <a href="/users/signup" class="btn btn-primary mt-2">Register Again</a>
-                        </div>`;
-                    } else {
-                        statusMessage.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
-                        resendButton.disabled = false;
+                        document.getElementById('resendButton').disabled = true;
                     }
                 }
-            } catch (error) {
+            })
+            .catch(error => {
                 console.error('Error:', error);
-                statusMessage.innerHTML = '<div class="alert alert-danger">Failed to resend OTP. Please try again.</div>';
-                resendButton.disabled = false;
-            }
+                const messageDiv = document.getElementById('statusMessage');
+                messageDiv.style.display = 'block';
+                messageDiv.className = 'alert alert-danger';
+                messageDiv.textContent = 'Error sending OTP. Please try again.';
+            });
         }
 
-        updateTimer();
-        let countdown = setInterval(updateTimer, 1000);
+        // Start the timer when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Page loaded, starting timer...');
+            startResendTimer();
+        });
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

@@ -38,10 +38,10 @@ exports.handleSignup = async (req, res) => {
             password: hashedPassword 
         });
 
-        res.render("verifyOtp", { email });
+        res.render("users/verifyOtp", { email });
     } catch (error) {
         console.error("Signup error:", error);
-        res.render("signup", { 
+        res.render("users/signup", { 
             error: "Error during signup. Please try again." 
         });
     }
@@ -60,66 +60,80 @@ exports.handleVerifyOtp = async (req, res) => {
     const isPasswordReset = req.session.resetEmail === email;
 
     try {
+        console.log('Verifying OTP for:', email); // Debug log
+
         const otpDoc = await OTP.findOne({ email });
         
         if (!otpDoc) {
-            return res.render("verifyOtp", { 
-                email,
-                error: "No OTP found. Please request a new one."
+            return res.status(400).json({ 
+                success: false,
+                message: "No OTP found. Please request a new one."
             });
         }
 
         // Check OTP expiration
         if (otpDoc.isExpired()) {
             await OTP.deleteOne({ email });
-            return res.render("verifyOtp", { 
-                email,
-                error: "OTP has expired. Please request a new one."
+            return res.status(400).json({ 
+                success: false,
+                message: "OTP has expired. Please request a new one."
             });
         }
 
-        if (!(await verifyOTP(email, otp))) {
-            return res.render("verifyOtp", { 
-                email,
-                error: "Invalid OTP. Please try again."
+        const isValidOTP = await verifyOTP(email, otp); // Use the imported verifyOTP function
+        if (!isValidOTP) {
+            return res.status(400).json({ 
+                success: false,
+                message: "Invalid OTP. Please try again."
             });
         }
 
         await OTP.deleteOne({ email });
 
         if (isPasswordReset) {
-            return res.render("resetPassword", { email });
+            return res.json({ 
+                success: true,
+                message: "OTP verified successfully",
+                redirectUrl: `/users/reset-password?email=${email}`
+            });
         }
 
         const pendingUser = await PendingUser.findOne({ email });
         if (!pendingUser) {
-            return res.render("verifyOtp", { 
-                email,
-                error: "No pending registration found"
+            return res.status(400).json({ 
+                success: false,
+                message: "No pending registration found"
             });
         }
 
-        // Create verified user
+        // Create the actual user
         const newUser = await User.create({
             email: pendingUser.email,
             name: pendingUser.name,
             password: pendingUser.password
         });
 
+        // Delete the pending user
         await PendingUser.deleteOne({ email });
 
+        // Set up session
         req.session.user = {
             id: newUser._id,
             email: newUser.email,
             name: newUser.name
         };
 
-        res.redirect("/users/home");
+        return res.json({
+            success: true,
+            message: "Registration successful",
+            redirectUrl: '/users/home'
+        });
+
     } catch (error) {
-        console.error("OTP verification error:", error);
-        res.render("verifyOtp", { 
-            email,
-            error: "An error occurred during verification"
+        console.error('OTP verification error:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Error verifying OTP. Please try again."
         });
     }
 };
@@ -141,17 +155,17 @@ exports.handleLogin = async (req, res) => {
     try {
         const user = await User.findOne({ email });
         if (!user) {
-            return res.render("login", { error: "Invalid email or password" });
+            return res.render("users/login", { error: "Invalid email or password" });
         }
 
         // Check if the user is blocked
         if (user.blocked) {
-            return res.render("login", { error: "Your account is blocked. Please contact support." });
+            return res.render("users/login", { error: "Your account is blocked. Please contact support." });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.render("login", { error: "Invalid email or password" });
+            return res.render("users/login", { error: "Invalid email or password" });
         }
 
         req.session.user = { 
@@ -182,7 +196,7 @@ exports.renderForgotPasswordPage = (req, res) => {
     if (req.session.user) {
         return res.redirect('/users/home');
     }
-    res.render("forgotPassword", { user: null });
+    res.render("users/forgotPassword", { user: null });
 };
 
 exports.handleForgotPassword = async (req, res) => {
@@ -192,8 +206,9 @@ exports.handleForgotPassword = async (req, res) => {
         const user = await User.findOne({ email });
         
         if (!user) {
-            return res.render("forgotPassword", { 
-                error: "No account found with this email address." 
+            return res.render("users/forgot-password", { 
+                error: "No account found with this email address.",
+                user: null
             });
         }
 
@@ -206,15 +221,18 @@ exports.handleForgotPassword = async (req, res) => {
         // Store email in session for password reset flow
         req.session.resetEmail = email;
 
-        res.render("verifyOtp", { 
+        res.render("users/verifyOtp", { 
             email,
+            isEmailUpdate: false,
             resetPassword: true,
-            error: null
+            error: null,
+            user: null
         });
     } catch (error) {
         console.error("Forgot password error:", error);
-        res.render("forgotPassword", { 
-            error: "An error occurred. Please try again." 
+        res.render("users/forgot-password", { 
+            error: "An error occurred. Please try again.",
+            user: null
         });
     }
 };
@@ -224,34 +242,39 @@ exports.handleResetPassword = async (req, res) => {
 
     try {
         if (password !== confirmPassword) {
-            return res.render("resetPassword", {
+            return res.render('users/reset-password', {
                 email,
-                error: "Passwords do not match"
+                error: 'Passwords do not match',
+                user: null
             });
         }
 
         const user = await User.findOne({ email });
         if (!user) {
-            return res.render("resetPassword", {
+            return res.render('users/reset-password', {
                 email,
-                error: "User not found"
+                error: 'User not found',
+                user: null
             });
         }
 
+        // Hash the new password
         const hashedPassword = await bcrypt.hash(password, 10);
         user.password = hashedPassword;
         await user.save();
 
+        // Clear the reset email from session
         delete req.session.resetEmail;
 
-        res.render("login", {
-            success: "Password has been reset successfully. Please login with your new password."
-        });
+        req.flash('success', 'Password reset successful. Please login with your new password.');
+        res.redirect('/users/login');
+
     } catch (error) {
-        console.error("Password reset error:", error);
-        res.render("resetPassword", {
+        console.error('Password reset error:', error);
+        res.render('users/reset-password', {
             email,
-            error: "An error occurred while resetting your password"
+            error: 'Error resetting password. Please try again.',
+            user: null
         });
     }
 };
@@ -565,44 +588,6 @@ exports.addAddress = async (req, res) => {
     }
 };
 
-
-exports.addAddress = async (req, res) => {
-    try {
-        const userId = req.session.user.id;
-        const user = await User.findById(userId).populate('addresses');
-
-        if (user.addresses && user.addresses.length >= 3) {
-            return res.json({
-                success: false,
-                message: 'Maximum 3 addresses allowed'
-            });
-        }
-
-        const newAddress = await Address.create({
-            ...req.body,
-            user: userId
-        });
-
-        if (!user.addresses) {
-            user.addresses = [];
-        }
-
-        user.addresses.push(newAddress._id);
-        await user.save();
-
-        res.json({
-            success: true,
-            message: 'Address added successfully'
-        });
-    } catch (error) {
-        console.error('Error adding address:', error);
-        res.json({
-            success: false,
-            message: 'Error adding address'
-        });
-    }
-};
-
 exports.getAddress = async (req, res) => {
     try {
         const address = await Address.findOne({
@@ -687,4 +672,20 @@ exports.deleteAddress = async (req, res) => {
             message: 'Error deleting address'
         });
     }
+};
+
+// Add this function to your existing userController.js
+exports.renderResetPasswordPage = (req, res) => {
+    const { email } = req.query;
+    
+    // Check if there's a valid reset session
+    if (!email || !req.session.resetEmail || email !== req.session.resetEmail) {
+        return res.redirect('/users/forgot-password');
+    }
+
+    res.render('users/resetPassword', { 
+        email,
+        error: null,
+        user: null
+    });
 };
