@@ -22,7 +22,7 @@ router.get('/check-cart', isAuthenticated, async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
+router.get('/:id/details', isAuthenticated, orderController.getOrderDetails);
 // Cancel order route
 router.delete('/:id/cancel', isAuthenticated, orderController.cancelOrder);
 router.post('/:id/return', isAuthenticated, orderController.returnOrder);

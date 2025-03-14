@@ -305,6 +305,60 @@ const orderController = {
                 message: 'Error processing return request: ' + error.message
             });
         }
+    },
+    getOrderDetails: async (req, res) => {
+        try {
+            const orderId = req.params.id;
+            
+            const order = await Order.findOne({ 
+                _id: orderId,
+                user: req.user._id
+            })
+            .populate({
+                path: 'items.product',
+                select: 'name images brand variants price'
+            })
+            .populate('address');
+
+            if (!order) {
+                req.flash('error', 'Order not found');
+                return res.redirect('/orders');
+            }
+
+            // Define the status stages
+            const statusStages = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+
+            // Format order date
+            const orderDate = new Date(order.createdAt).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // Calculate expected delivery date
+            const expectedDate = new Date(order.createdAt);
+            expectedDate.setDate(expectedDate.getDate() + 5);
+            const formattedExpectedDate = expectedDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            res.render('orders/order-details', {
+                title: 'Order Details',
+                order: order,
+                statusStages: statusStages,
+                expectedDate: formattedExpectedDate,
+                orderDate: orderDate  // Pass the formatted order date
+            });
+
+        } catch (error) {
+            console.error('Error fetching order details:', error);
+            req.flash('error', 'Error fetching order details');
+            res.redirect('/orders');
+        }
     }
 };
 

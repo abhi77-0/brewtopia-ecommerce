@@ -638,9 +638,12 @@
 </style>
 
 <script>
+
 function viewOrderDetails(orderId) {
-    window.location.href = `/orders/${orderId}`;
+    console.log('Viewing order details for:', orderId); // Debug log
+    window.location.href = `/orders/${orderId}/details`;  // Updated to match your route
 }
+</script>
 
 function cancelOrder(orderId) {
     Swal.fire({
