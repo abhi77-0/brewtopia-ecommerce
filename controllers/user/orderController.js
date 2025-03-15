@@ -1,4 +1,4 @@
-const Order = require('../../models/order');
+const Order = require('../../models/Order');
 const Cart = require('../../models/shopingCart');
 const User = require('../../models/userModel');
 const Product = require('../../models/product');
@@ -98,7 +98,16 @@ const orderController = {
     getOrder: async (req, res) => {
         try {
             const orderId = req.params.id;
-            const userId = req.session.user.id;
+            // Get user ID - handle both normal and Google auth users
+            const userId = req.session.user?._id || req.session.user?.id;
+            
+            console.log('Getting order details for:', orderId, 'User ID:', userId);
+
+            if (!userId) {
+                console.error('User ID not found in session:', req.session.user);
+                req.flash('error', 'Authentication error. Please log in again.');
+                return res.redirect('/users/login');
+            }
 
             const order = await Order.findOne({ _id: orderId, user: userId })
                 .populate({
@@ -124,11 +133,12 @@ const orderController = {
                 year: 'numeric'
             });
 
-            const expectedDate = order.expectedDeliveryDate.toLocaleDateString('en-US', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            });
+            const expectedDate = order.expectedDeliveryDate ? 
+                order.expectedDeliveryDate.toLocaleDateString('en-US', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                }) : 'Calculating...';
 
             res.render('orders/order-details', {
                 title: `Order #${order._id.toString().slice(-8).toUpperCase()}`,
@@ -147,7 +157,17 @@ const orderController = {
     },
     getOrders: async (req, res) => {
         try {
-            const userId = req.user?._id || req.session?.user?._id;
+            // Get user ID - handle both normal and Google auth users
+            const userId = req.session.user?._id || req.session.user?.id;
+            
+            console.log('Getting orders for user ID:', userId);
+            
+            if (!userId) {
+                console.error('User ID not found in session:', req.session.user);
+                req.flash('error', 'Authentication error. Please log in again.');
+                return res.redirect('/users/login');
+            }
+
             const page = parseInt(req.query.page) || 1;
             const limit = 4; // Orders per page
 
@@ -157,6 +177,8 @@ const orderController = {
                 user: userId,
                 status: { $in: ['Pending', 'Processing'] }
             });
+
+            console.log('Total orders found:', totalOrders);
 
             // Calculate pagination
             const totalPages = Math.ceil(totalOrders / limit);
@@ -172,6 +194,8 @@ const orderController = {
                 .skip((page - 1) * limit)
                 .limit(limit)
                 .lean(); 
+
+            console.log('Orders fetched:', orders.length);
 
             // Ensure total exists for each order
             orders.forEach(order => {
@@ -202,16 +226,38 @@ const orderController = {
     cancelOrder: async (req, res) => {
         try {
             const orderId = req.params.id;
-            const userId = req.user?._id || req.session?.user?._id;
+            // Get user ID - handle both normal and Google auth users
+            const userId = req.session.user?._id || req.session.user?.id;
+            
+            console.log('Cancelling order:', orderId, 'for user:', userId);
 
-            const order = await Order.findOneAndDelete({ _id: orderId, user: userId });
+            if (!userId) {
+                console.error('User ID not found in session:', req.session.user);
+                return res.status(401).json({
+                    success: false,
+                    message: 'Authentication error. Please log in again.'
+                });
+            }
+
+            // Find the order first to make sure it exists
+            const order = await Order.findOne({ 
+                _id: orderId, 
+                user: userId 
+            });
 
             if (!order) {
+                console.log('Order not found:', orderId);
                 return res.status(404).json({
                     success: false,
                     message: 'Order not found or already cancelled'
                 });
             }
+
+            // Update the order status instead of deleting it
+            order.status = 'Cancelled';
+            await order.save();
+            
+            console.log('Order cancelled successfully:', orderId);
 
             res.json({
                 success: true,

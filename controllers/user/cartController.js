@@ -9,7 +9,10 @@ exports.getCart = async (req, res) => {
         const shipping = 40; // Fixed shipping cost
         const discountRate = 0.10; 
 
-        const cart = await Cart.findOne({ user: req.session.user.id })
+        // Get user ID - handle both normal and Google auth users
+        const userId = req.session.user._id || req.session.user.id;
+
+        const cart = await Cart.findOne({ user: userId })
             .populate({
                 path: 'items.product',
                 model: 'Product',
@@ -20,18 +23,29 @@ exports.getCart = async (req, res) => {
         if (cart) {
             cart.items = cart.items.filter(item => item.product != null);
             
-            // Save the cart if any items were filtered out
-            await cart.save();
-
-            // Calculate totals for valid items
+            // Process each item to ensure variant data is available
             cart.items.forEach(item => {
-                if (item.product && item.product.variants && item.variant) {
+                if (item.product && item.product.variants) {
+                    // If the variant doesn't exist in the product, create a safe fallback
+                    if (!item.product.variants[item.variant]) {
+                        // Create a safe default variant
+                        item.product.variants[item.variant] = {
+                            stock: 0,
+                            price: 0,
+                            size: 'Unknown'
+                        };
+                    }
+                    
+                    // Calculate item total
                     const variantPrice = item.product.variants[item.variant]?.price || 0;
                     item.total = variantPrice * item.quantity;
                     subtotal += item.total;
                     itemCount += item.quantity;
                 }
             });
+            
+            // Save the cart if any items were filtered out
+            await cart.save();
         }
 
         const discount = subtotal * discountRate;
@@ -62,8 +76,28 @@ exports.getCart = async (req, res) => {
 // Add to cart
 exports.addToCart = async (req, res) => {
     try {
-        const userId = req.user?._id || req.session?.user?._id;
         const { productId, variant, quantity } = req.body;
+        
+        // Check if user is logged in
+        if (!req.session.user) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Please log in to add items to your cart' 
+            });
+        }
+        
+        // Get user ID - handle both normal and Google auth users
+        const userId = req.session.user._id || req.session.user.id;
+        
+        if (!userId) {
+            console.error('User session exists but no ID found:', req.session.user);
+            return res.status(401).json({ 
+                success: false, 
+                message: 'User identification error. Please log out and log in again.' 
+            });
+        }
+        
+        console.log('Adding to cart for user:', userId);
 
         let cart = await Cart.findOne({ user: userId });
 
@@ -81,12 +115,12 @@ exports.addToCart = async (req, res) => {
         );
 
         if (existingItem) {
-            existingItem.quantity += quantity;
+            existingItem.quantity += parseInt(quantity);
         } else {
             cart.items.push({
                 product: productId,
                 variant: variant,
-                quantity: quantity
+                quantity: parseInt(quantity)
             });
         }
 
