@@ -11,7 +11,7 @@
     <style>
         /* Navbar Styles */
         .navbar {
-            background-color: 
+            background-color: #FF9800; /* Added the same orange color as dashboard */
             padding: 1rem 0;
         }
 
@@ -36,6 +36,9 @@
             background-color: #2c3e50;
             padding-top: 2rem;
             color: white;
+            height: 100vh; /* Make sidebar full height */
+            position: sticky;
+            top: 0;
         }
 
         .sidebar-link {
@@ -140,6 +143,23 @@
             background-color: #f8f9fa;
             border-top: 1px solid rgba(0,0,0,0.1);
         }
+        
+        /* Add button styling */
+        .btn-primary {
+            background-color: #FF9800;
+            border-color: #FF9800;
+        }
+        
+        .btn-primary:hover {
+            background-color: #e68a00;
+            border-color: #e68a00;
+        }
+        
+        /* Page header styling */
+        h1 {
+            color: #2c3e50;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -167,8 +187,9 @@
             <a href="/admin/categories" class="sidebar-link active">
                 <i class="fas fa-list me-2"></i> Categories
             </a>
-            <a href="/admin/users" class="sidebar-link">
-                <i class="fas fa-users me-2"></i> Orders
+            <a href="/admin/orders" class="sidebar-link">
+                <i class="fas fa-shopping-cart me-2"></i> Orders
+            </a>
             <a href="/admin/users" class="sidebar-link">
                 <i class="fas fa-users me-2"></i> Users
             </a>
@@ -196,8 +217,12 @@
                                             <%= category.productCount || 0 %> Products
                                         </span>
                                         <div class="action-buttons">
-                                            <button class="btn btn-outline-primary btn-action" onclick="editCategory('<%= category._id %>')">Edit</button>
-                                            <!-- <button class="btn btn-outline-danger btn-action" onclick="deleteCategory('<%= category._id %>')">Delete</button> -->
+                                            <button class="btn btn-outline-primary btn-action" onclick="editCategory('<%= category._id %>')">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-action" onclick="deleteCategory('<%= category._id %>')">
+                                                <i class="fas fa-trash-alt"></i> Delete
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -228,7 +253,10 @@
                             <label class="form-label">Category Name</label>
                             <input type="text" name="name" class="form-control" required>
                         </div>
-                      
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="3" required></textarea>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -306,19 +334,27 @@
         // Edit Category
         async function editCategory(id) {
             try {
-                const category = await fetch(`/admin/categories/${id}`).then(res => res.json());
+                const response = await fetch(`/admin/categories/${id}`);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to fetch category');
+                }
+                
+                const category = await response.json();
+                console.log('Fetched category:', category);
                 
                 // Fill the edit form
                 const form = document.getElementById('editCategoryForm');
                 form.categoryId.value = category._id;
                 form.name.value = category.name;
-                form.description.value = category.description;
+                form.description.value = category.description || '';
 
                 // Show modal
                 const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
                 modal.show();
             } catch (error) {
-                alert('Error loading category details');
+                alert('Error loading category details: ' + error.message);
             }
         }
 
@@ -328,13 +364,16 @@
             
             try {
                 const formData = new FormData(e.target);
+                const categoryId = formData.get('categoryId');
+                console.log('Submitting edit with ID:', categoryId);
+                
                 const response = await fetch('/admin/categories/edit', {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        categoryId: formData.get('categoryId'),
+                        categoryId: categoryId,
                         name: formData.get('name'),
                         description: formData.get('description')
                     })
@@ -361,6 +400,7 @@
             }
 
             try {
+                console.log('Deleting category with ID:', id);
                 const response = await fetch(`/admin/categories/${id}`, {
                     method: 'DELETE'
                 });

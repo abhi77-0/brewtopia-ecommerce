@@ -506,6 +506,39 @@
     .price {
         display: inline-block;
     }
+
+    /* Wishlist button styles */
+    .wishlist-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255, 255, 255, 0.8);
+        border: none;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 2;
+        transition: all 0.3s;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .wishlist-btn:hover {
+        background: white;
+        transform: scale(1.1);
+    }
+    
+    .wishlist-btn i {
+        color: #FF9800;
+        font-size: 1.2rem;
+    }
+    
+    .wishlist-btn i.fas {
+        color: #FF9800;
+    }
 </style>
 
 <div class="shop-container">
@@ -679,6 +712,10 @@
                                             <% } %>
                                         </div>
 
+                                        <button class="wishlist-btn" onclick="toggleWishlist('<%= product._id %>', event)">
+                                            <i class="far fa-heart"></i>
+                                        </button>
+
                                         <a href="/shop/products/<%= product._id %>" 
                                            class="btn <%= isOutOfStock ? 'btn-secondary' : 'btn-primary' %> w-100"
                                            <%= isOutOfStock ? 'disabled' : '' %>>
@@ -835,6 +872,89 @@
         url.searchParams.set('page', page);
         return url.toString();
     }
+
+    // Add wishlist functionality
+    function toggleWishlist(productId, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const button = event.currentTarget;
+        const icon = button.querySelector('i');
+        
+        // Toggle heart icon
+        if (icon.classList.contains('far')) {
+            icon.classList.remove('far');
+            icon.classList.add('fas');
+            addToWishlist(productId);
+        } else {
+            icon.classList.remove('fas');
+            icon.classList.add('far');
+            removeFromWishlist(productId);
+        }
+    }
+    
+    function addToWishlist(productId) {
+        fetch('/wishlist/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ productId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Added to wishlist');
+            } else {
+                console.error('Failed to add to wishlist:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error adding to wishlist:', error);
+        });
+    }
+    
+    function removeFromWishlist(productId) {
+        fetch('/wishlist/remove', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ productId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('Removed from wishlist');
+            } else {
+                console.error('Failed to remove from wishlist:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error removing from wishlist:', error);
+        });
+    }
+    
+    // Check if products are in wishlist on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/wishlist/items')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.items) {
+                const wishlistItems = data.items;
+                wishlistItems.forEach(item => {
+                    const button = document.querySelector(`.product-card[data-product-id="${item}"] .wishlist-btn i`);
+                    if (button) {
+                        button.classList.remove('far');
+                        button.classList.add('fas');
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching wishlist items:', error);
+        });
+    });
 </script>
 
 <%- include('../partials/footer') %>

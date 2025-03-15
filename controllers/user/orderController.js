@@ -171,7 +171,7 @@ const orderController = {
                 .sort({ createdAt: -1 })
                 .skip((page - 1) * limit)
                 .limit(limit)
-                .lean(); // Add this to convert to plain JavaScript objects
+                .lean(); 
 
             // Ensure total exists for each order
             orders.forEach(order => {

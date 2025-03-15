@@ -13,7 +13,7 @@ exports.getAllProducts = async (req, res) => {
         
         // Pagination parameters
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 9;
+        const limit = parseInt(req.query.limit) || 6;
         const skip = (page - 1) * limit;
         
         // Build query - only check for isVisible since isDeleted doesn't exist
@@ -67,8 +67,6 @@ exports.getAllProducts = async (req, res) => {
             isVisible: true  // Only filter by isVisible
         });
         
-        // Log the total number of products in the database
-        console.log('Total products in database:', allProducts.length);
         
         const brands = [...new Set(allProducts.map(product => product.brand).filter(Boolean))];
 
@@ -83,15 +81,7 @@ exports.getAllProducts = async (req, res) => {
             .skip(skip)
             .limit(limit);
 
-        // Debug the query and results
-        console.log('Query:', JSON.stringify(query, null, 2));
-        console.log('Found products:', products.length);
-        console.log('Available brands:', brands);
-        console.log('Selected brand:', brand);
-        console.log('Min price:', minPrice);
-        console.log('Page:', page, 'of', totalPages);
-        console.log('Sort option:', sort);
-
+        
         // Get all categories for the filter sidebar
         const categories = await Category.find();
 
@@ -104,7 +94,7 @@ exports.getAllProducts = async (req, res) => {
             minPrice: minPrice,
             brands,
             path: '/shop/products',
-            sort: sort || '',  // Make sure sort is passed to the template
+            sort: sort || '',  
             pagination: {
                 page,
                 limit,

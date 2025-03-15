@@ -16,7 +16,7 @@
         </div>
 
         <!-- Order Progress -->
-        <div class="order-progress card mb-4">
+        <!-- <div class="order-progress card mb-4">
             <div class="card-body">
                 <div class="progress-tracker">
                     <% statusStages.forEach((stage, index) => { %>
@@ -40,29 +40,72 @@
                             <div class="progress-line"></div>
                         <% } %>
                     <% }) %>
-                </div>
+                </div> -->
                 <div class="delivery-info text-center mt-3">
-                    <% if (order.status === 'Delivered') { %>
-                        <p class="text-success mb-0">
-                            <i class="fas fa-check-circle me-2"></i>
-                            Delivered on <%= order.deliveredAt?.toLocaleDateString() %>
-                        </p>
-                        <!-- Return Option -->
-                        <div class="return-option mt-4">
-                            <h5>Return Order</h5>
-                            <form action="/orders/<%= order._id %>/return" method="POST">
-                                <div class="mb-3">
-                                    <label for="returnReason" class="form-label">Reason for Return</label>
-                                    <textarea class="form-control" id="returnReason" name="returnReason" rows="3" required></textarea>
+                    <% if (order.status !== 'Delivered' && order.status !== 'Cancelled') { %>
+                        <div class="delivery-icon">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                        <div class="delivery-details">
+                            <div class="delivery-status">On the way</div>
+                            <div class="delivery-date">Expected by <%= expectedDate || 'soon' %></div>
+                        </div>
+                    <% } else if (order.status === 'Cancelled') { %>
+                        <div class="cancelled-info">
+                            <div class="cancelled-icon">
+                                <i class="fas fa-ban"></i>
+                            </div>
+                            <div class="cancelled-details">
+                                <div class="cancelled-status">Cancelled</div>
+                                <div class="cancelled-date">
+                                    <% 
+                                    let cancelledDate = 'N/A';
+                                    if (order.updatedAt) {
+                                        cancelledDate = new Date(order.updatedAt).toLocaleDateString('en-US', { 
+                                            day: 'numeric', 
+                                            month: 'long', 
+                                            year: 'numeric' 
+                                        });
+                                    }
+                                    %>
+                                    On <%= cancelledDate %>
                                 </div>
-                                <button type="submit" class="btn btn-danger">Submit Return Request</button>
-                            </form>
+                            </div>
                         </div>
                     <% } else { %>
-                        <p class="text-muted mb-0">
-                            <i class="fas fa-truck me-2"></i>
-                            Expected delivery by <%= expectedDate %>
-                        </p>
+                        <div class="delivered-info">
+                            <div class="delivered-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="delivered-details">
+                                <div class="delivered-status">Delivered</div>
+                                <div class="delivered-date">
+                                    <% 
+                                    let formattedDeliveryDate = 'N/A';
+                                    if (order.deliveredAt) {
+                                        formattedDeliveryDate = new Date(order.deliveredAt).toLocaleDateString('en-US', { 
+                                            day: 'numeric', 
+                                            month: 'long', 
+                                            year: 'numeric' 
+                                        });
+                                    } else if (order.updatedAt) {
+                                        formattedDeliveryDate = new Date(order.updatedAt).toLocaleDateString('en-US', { 
+                                            day: 'numeric', 
+                                            month: 'long', 
+                                            year: 'numeric' 
+                                        });
+                                    } else {
+                                        formattedDeliveryDate = new Date().toLocaleDateString('en-US', { 
+                                            day: 'numeric', 
+                                            month: 'long', 
+                                            year: 'numeric' 
+                                        });
+                                    }
+                                    %>
+                                    On <%= formattedDeliveryDate %>
+                                </div>
+                            </div>
+                        </div>
                     <% } %>
                 </div>
             </div>

@@ -123,7 +123,11 @@
                                     <i class="fas fa-clock me-2"></i>
                                     <% if (order.status === 'Delivered') { %>
                                         <span class="text-success">
-                                            Delivered on <%= new Date(order.deliveredAt).toLocaleDateString() %>
+                                            Delivered on <%= new Date(order.deliveredAt || order.updatedAt || order.createdAt).toLocaleDateString('en-US', { 
+                                                day: 'numeric', 
+                                                month: 'long', 
+                                                year: 'numeric' 
+                                            }) %>
                                         </span>
                                         
                                         <!-- Return Request Section -->
@@ -207,7 +211,7 @@
         </div>
         <h3>No Orders Yet</h3>
         <p>Time to treat yourself! Start shopping and your orders will appear here.</p>
-        <a href="/users/products" class="btn btn-primary btn-lg mt-3">
+        <a href="/shop/products" class="btn btn-primary btn-lg mt-3">
             Explore Products
         </a>
     </div>
@@ -644,7 +648,7 @@ function viewOrderDetails(orderId) {
     window.location.href = `/orders/${orderId}/details`;  // Updated to match your route
 }
 </script>
-
+<script>
 function cancelOrder(orderId) {
     Swal.fire({
         title: 'Are you sure?',
