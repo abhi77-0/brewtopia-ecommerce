@@ -2,6 +2,9 @@ const Order = require('../../models/Order');
 const Cart = require('../../models/shopingCart');
 const User = require('../../models/userModel');
 const Product = require('../../models/product');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+const path = require('path');
 
 const orderController = {
     placeOrder: async (req, res) => {
@@ -46,14 +49,25 @@ const orderController = {
                 });
             }
 
+            // Calculate subtotal, discount, shipping, and gst
+            const subtotal = total;
+            const discount = Math.round(subtotal * 0.1);
+            const shipping = 40;
+            const gst = Math.round(subtotal * 0.18);
+            const calculatedTotal = subtotal - discount + shipping + gst;
+
             // Create new order
             const order = new Order({
                 user: userId,
                 items: orderItems,
-                total: total,
+                total: calculatedTotal,
                 address: selectedAddress._id,  // Use the ObjectId of the selected address
                 paymentMethod: paymentMethod,
-                status: 'Pending'
+                status: 'Pending',
+                subtotal,
+                discount,
+                shipping,
+                gst
             });
 
             // Save order
@@ -403,6 +417,152 @@ const orderController = {
         } catch (error) {
             console.error('Error fetching order details:', error);
             req.flash('error', 'Error fetching order details');
+            res.redirect('/orders');
+        }
+    },
+    generateInvoice: async (req, res) => {
+        try {
+            const orderId = req.params.orderId;
+            // Get user ID - handle both normal and Google auth users
+            const userId = req.session.user?._id || req.session.user?.id;
+            
+            if (!userId) {
+                console.error('User ID not found in session:', req.session.user);
+                req.flash('error', 'Authentication error. Please log in again.');
+                return res.redirect('/users/login');
+            }
+            
+            // Find the order and make sure it belongs to the current user
+            const order = await Order.findOne({ 
+                _id: orderId, 
+                user: userId 
+            }).populate({
+                path: 'items.product',
+                select: 'name images brand variants'
+            }).populate('address');
+            
+            if (!order) {
+                req.flash('error', 'Order not found');
+                return res.redirect('/orders');
+            }
+            
+            // Calculate all values to ensure they're valid
+            let subtotal = order.subtotal;
+            if (!subtotal || isNaN(subtotal)) {
+                subtotal = 0;
+                order.items.forEach(item => {
+                    subtotal += (item.price * item.quantity);
+                });
+            }
+            
+            const discountAmount = Math.round(subtotal * 0.1);
+            const shippingAmount = 40;
+            const gstAmount = Math.round(subtotal * 0.18);
+            const totalAmount = Math.round(subtotal - discountAmount + shippingAmount + gstAmount);
+            
+            // Create a PDF document
+            const doc = new PDFDocument({margin: 50});
+            
+            // Set response headers for PDF download
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=invoice-${order._id.toString().slice(-8).toUpperCase()}.pdf`);
+            
+            // Pipe the PDF to the response
+            doc.pipe(res);
+            
+            // Add company logo and header
+            // doc.image('public/images/logo.png', 50, 45, {width: 100});
+            doc.fontSize(20).text('BREWTOPIA', 50, 50);
+            doc.fontSize(10).text('Premium Craft Beer', 50, 75);
+            doc.moveDown();
+            
+            // Add invoice title and order number
+            doc.fontSize(16).text('INVOICE', 50, 120);
+            doc.fontSize(10).text(`Order #${order._id.toString().slice(-8).toUpperCase()}`, 50, 140);
+            
+            // Add order date
+            const orderDate = new Date(order.createdAt).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            doc.text(`Date: ${orderDate}`, 50, 160);
+            
+            // Add customer information
+            doc.fontSize(12).text('Bill To:', 50, 200);
+            doc.fontSize(10).text(`${order.address.name}`, 50, 220);
+            doc.text(`${order.address.street}`, 50, 235);
+            doc.text(`${order.address.city}, ${order.address.state} ${order.address.pinCode}`, 50, 250);
+            doc.text(`Phone: ${order.address.phone}`, 50, 265);
+            
+            // Add table headers
+            let y = 320;
+            doc.fontSize(10).text('Product', 50, y);
+            doc.text('Variant', 200, y);
+            doc.text('Qty', 280, y);
+            doc.text('Price', 350, y);
+            doc.text('Total', 450, y);
+            
+            y += 15;
+            doc.moveTo(50, y).lineTo(550, y).stroke();
+            y += 15;
+            
+            // Add order items
+            order.items.forEach(item => {
+                const productName = item.product.name;
+                const variant = item.variant;
+                const quantity = item.quantity;
+                const price = item.price;
+                const total = price * quantity;
+                
+                doc.text(productName, 50, y, {width: 140});
+                doc.text(variant, 200, y);
+                doc.text(quantity.toString(), 280, y);
+                doc.text(`₹${price}`, 350, y);
+                doc.text(`₹${total}`, 450, y);
+                
+                y += 20;
+            });
+            
+            // Draw a line
+            doc.moveTo(50, y).lineTo(550, y).stroke();
+            y += 20;
+            
+            // Order summary with fixed values
+            doc.fontSize(10).text('Subtotal:', 350, y);
+            doc.text(`₹${subtotal}`, 450, y);
+            y += 15;
+            
+            doc.fontSize(10).text('Discount:', 350, y);
+            doc.text(`-₹${discountAmount}`, 450, y);
+            y += 15;
+            
+            doc.fontSize(10).text('Shipping:', 350, y);
+            doc.text(`₹${shippingAmount}`, 450, y);
+            y += 15;
+            
+            doc.fontSize(10).text('GST (18%):', 350, y);
+            doc.text(`₹${gstAmount}`, 450, y);
+            y += 15;
+            
+            // Draw a line
+            doc.moveTo(350, y).lineTo(550, y).stroke();
+            y += 15;
+            
+            // Total
+            doc.fontSize(12).text('Total:', 350, y, {font: 'Helvetica-Bold'});
+            doc.fontSize(12).text(`₹${totalAmount}`, 450, y, {font: 'Helvetica-Bold'});
+            
+            // Add footer
+            doc.fontSize(10).text('Thank you for shopping with Brewtopia!', 50, 700, {align: 'center'});
+            doc.fontSize(8).text('This is a computer-generated invoice and does not require a signature.', 50, 720, {align: 'center'});
+            
+            // Finalize the PDF
+            doc.end();
+            
+        } catch (error) {
+            console.error('Error generating invoice:', error);
+            req.flash('error', 'Error generating invoice');
             res.redirect('/orders');
         }
     }

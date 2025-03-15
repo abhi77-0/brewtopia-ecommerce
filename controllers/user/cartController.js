@@ -8,6 +8,7 @@ exports.getCart = async (req, res) => {
         let itemCount = 0;
         const shipping = 40; // Fixed shipping cost
         const discountRate = 0.10; 
+        const gstRate = 0.18; // 18% GST
 
         // Get user ID - handle both normal and Google auth users
         const userId = req.session.user._id || req.session.user.id;
@@ -49,7 +50,8 @@ exports.getCart = async (req, res) => {
         }
 
         const discount = subtotal * discountRate;
-        const total = subtotal + shipping + discount;
+        const gst = Math.round(subtotal * gstRate);
+        const total = subtotal + shipping - discount + gst;
 
         res.render('cart/cart', {
             title: 'Shopping Cart',
@@ -61,15 +63,14 @@ exports.getCart = async (req, res) => {
             subtotal,
             shipping,
             discount: Math.round(discount),
+            gst,
             total: Math.round(total),
             hideSearch: true // Add this flag to hide search bar
         });
     } catch (error) {
-        console.error('Error loading cart:', error);
-        res.status(500).render('error', {
-            message: 'Error loading cart',
-            error: error
-        });
+        console.error('Error fetching cart:', error);
+        req.flash('error', 'Failed to load cart');
+        res.redirect('/users/home');
     }
 };
 

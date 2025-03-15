@@ -133,16 +133,19 @@
                         <span>Shipping</span>
                         <span>₹<%= shipping %></span>
                     </div>
+                    <div class="summary-item d-flex justify-content-between">
+                        <span>GST (18%)</span>
+                        <span>₹<%= Math.round(subtotal * 0.18) %></span>
+                    </div>
                     <div class="summary-total d-flex justify-content-between">
                         <span>Total</span>
-                        <span>₹<%= total %></span>
+                        <span>₹<%= total + Math.round(subtotal * 0.18) %></span>
                     </div>
                     <button onclick="window.location.href='/cart/checkout'" 
                             class="btn btn-primary btn-block checkout-btn" 
                             <%= !hasItems ? 'disabled' : '' %>>
                         Proceed to Checkout
                     </button>
-                   
                 </div>
             </div>
         </div>

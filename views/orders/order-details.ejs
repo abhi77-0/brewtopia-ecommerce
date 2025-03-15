@@ -175,10 +175,53 @@
                             </span>
                         </div>
                         <hr>
-                        <div class="summary-total d-flex justify-content-between">
-                            <span>Total Amount</span>
-                            <span class="fw-bold">₹<%= order.total %></span>
+                        
+                        <% 
+                        // Calculate subtotal from items if not available
+                        let subtotal = order.subtotal;
+                        if (!subtotal || isNaN(subtotal)) {
+                            subtotal = 0;
+                            order.items.forEach(item => {
+                                subtotal += (item.price * item.quantity);
+                            });
+                        }
+                        
+                        const discountAmount = Math.round(subtotal * 0.1);
+                        const shippingAmount = 40;
+                        const gstAmount = Math.round(subtotal * 0.18);
+                        const totalAmount = Math.round(subtotal - discountAmount + shippingAmount + gstAmount);
+                        %>
+                        
+                        <!-- Detailed price breakdown - exactly like cart.ejs -->
+                        <div class="summary-item d-flex justify-content-between">
+                            <span>Subtotal (<%= order.items.length %> items)</span>
+                            <span>₹<%= subtotal %></span>
                         </div>
+                        
+                        <div class="summary-item d-flex justify-content-between text-success">
+                            <span>Discount (10%)</span>
+                            <span>-₹<%= discountAmount %></span>
+                        </div>
+                        
+                        <div class="summary-item d-flex justify-content-between">
+                            <span>Shipping</span>
+                            <span>₹<%= shippingAmount %></span>
+                        </div>
+                        
+                        <div class="summary-item d-flex justify-content-between">
+                            <span>GST (18%)</span>
+                            <span>₹<%= gstAmount %></span>
+                        </div>
+                        
+                        <div class="summary-total d-flex justify-content-between">
+                            <span>Total</span>
+                            <span>₹<%= totalAmount %></span>
+                        </div>
+                        
+                        <!-- Download Invoice Button -->
+                        <a href="/orders/invoice/<%= order._id %>" class="btn btn-primary w-100 mt-3" target="_blank">
+                            <i class="fas fa-file-pdf me-2"></i>Download Invoice
+                        </a>
                     </div>
                 </div>
 

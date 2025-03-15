@@ -26,5 +26,6 @@ router.get('/:id/details', isAuthenticated, orderController.getOrderDetails);
 // Cancel order route
 router.delete('/:id/cancel', isAuthenticated, orderController.cancelOrder);
 router.post('/:id/return', isAuthenticated, orderController.returnOrder);
+router.get('/invoice/:orderId', isAuthenticated, orderController.generateInvoice);
 
 module.exports = router; 
