@@ -689,3 +689,76 @@ exports.renderResetPasswordPage = (req, res) => {
         user: null
     });
 };
+
+exports.changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+        const userId = req.session.user._id || req.session.user.id;
+
+        console.log('Changing password for user:', userId);
+
+        // Validate input
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            return res.json({
+                success: false,
+                message: 'All fields are required'
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.json({
+                success: false,
+                message: 'New password must be at least 6 characters'
+            });
+        }
+
+        if (newPassword !== confirmPassword) {
+            return res.json({
+                success: false,
+                message: 'New passwords do not match'
+            });
+        }
+
+        // Find the user
+        const user = await User.findById(userId);
+        if (!user) {
+            console.log('User not found:', userId);
+            return res.json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Check if current password is correct using bcrypt directly
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            console.log('Current password is incorrect');
+            return res.json({
+                success: false,
+                message: 'Current password is incorrect'
+            });
+        }
+
+        // Hash the new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // Update password
+        user.password = hashedPassword;
+        await user.save();
+
+        console.log('Password updated successfully for user:', userId);
+
+        res.json({
+            success: true,
+            message: 'Password updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Error changing password:', error);
+        res.json({
+            success: false,
+            message: 'Error changing password: ' + error.message
+        });
+    }
+}

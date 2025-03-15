@@ -512,22 +512,17 @@
         position: absolute;
         top: 10px;
         right: 10px;
-        background: rgba(255, 255, 255, 0.8);
+        background: none;
         border: none;
+        color: #dc3545;
+        font-size: 1.2rem;
+        padding: 0.25rem 0.5rem;
         border-radius: 50%;
-        width: 36px;
-        height: 36px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        z-index: 2;
         transition: all 0.3s;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     
     .wishlist-btn:hover {
-        background: white;
+        background-color: rgba(220, 53, 69, 0.1);
         transform: scale(1.1);
     }
     
@@ -538,6 +533,45 @@
     
     .wishlist-btn i.fas {
         color: #FF9800;
+    }
+
+    /* Rating styles */
+    .product-rating {
+        display: flex;
+        align-items: center;
+    }
+    
+    .stars {
+        display: flex;
+        align-items: center;
+    }
+    
+    .rating-value {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #FF9800;
+    }
+    
+    .rating-count {
+        font-size: 0.8rem;
+        margin-left: 3px;
+    }
+    
+    /* Add to Cart button styles */
+    .add-to-cart-btn {
+        border-color: #FF9800;
+        color: #FF9800;
+        transition: all 0.3s;
+    }
+    
+    .add-to-cart-btn:hover:not(:disabled) {
+        background-color: #FF9800;
+        color: white;
+    }
+    
+    .add-to-cart-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
 </style>
 
@@ -628,6 +662,28 @@
                         <% products.forEach(function(product) { %>
                             <div class="col">
                                 <div class="card product-card" data-product-id="<%= product._id %>">
+                                    <% 
+                                    // Check if product is out of stock - MOVED THIS UP
+                                    let isOutOfStock = true;
+                                    if (product.variants) {
+                                        Object.keys(product.variants).forEach(size => {
+                                            if (product.variants[size].stock > 0) {
+                                                isOutOfStock = false;
+                                            }
+                                        });
+                                    }
+                                    
+                                    // Check if product has a discount
+                                    let hasDiscount = false;
+                                    let discountPercent = 0;
+                                    if (product.variants && Object.keys(product.variants).length > 0) {
+                                        const firstVariant = product.variants[Object.keys(product.variants)[0]];
+                                        if (firstVariant.mrp && firstVariant.price && firstVariant.mrp > firstVariant.price) {
+                                            hasDiscount = true;
+                                            discountPercent = Math.round((firstVariant.mrp - firstVariant.price) / firstVariant.mrp * 100);
+                                        }
+                                    }
+                                    %>
                                     <div class="product-carousel">
                                         <div id="carousel-<%= product._id %>" class="carousel slide" data-bs-ride="carousel">
                                             <div class="carousel-inner">
@@ -671,18 +727,6 @@
                                             <% } %>
                                         </div>
                                         
-                                        <% 
-                                        let isOutOfStock = true;
-                                        if (product.variants) {
-                                            isOutOfStock = !(
-                                                (product.variants['500ml'] && product.variants['500ml'].stock > 0) || 
-                                                (product.variants['650ml'] && product.variants['650ml'].stock > 0)
-                                            );
-                                        } else {
-                                            isOutOfStock = !(product.stock > 0);
-                                        }
-                                        %>
-
                                         <% if (isOutOfStock) { %>
                                             <div class="out-of-stock-overlay">
                                                 <span>Out of Stock</span>
@@ -698,6 +742,34 @@
                                             </p>
                                         <% } %>
                                         
+                                        <!-- Add dummy ratings here -->
+                                        <div class="product-rating mb-2">
+                                            <% 
+                                            // Generate a random rating between 3.5 and 5
+                                            const rating = (Math.random() * 1.5 + 3.5).toFixed(1);
+                                            const fullStars = Math.floor(rating);
+                                            const hasHalfStar = rating % 1 >= 0.5;
+                                            const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+                                            %>
+                                            
+                                            <div class="stars">
+                                                <% for(let i = 0; i < fullStars; i++) { %>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                <% } %>
+                                                
+                                                <% if(hasHalfStar) { %>
+                                                    <i class="fas fa-star-half-alt text-warning"></i>
+                                                <% } %>
+                                                
+                                                <% for(let i = 0; i < emptyStars; i++) { %>
+                                                    <i class="far fa-star text-warning"></i>
+                                                <% } %>
+                                                
+                                                <span class="rating-value ms-1"><%= rating %></span>
+                                                <span class="rating-count text-muted">(<%= Math.floor(Math.random() * 100) + 10 %>)</span>
+                                            </div>
+                                        </div>
+                                        
                                         <div class="variant-bubbles mb-3">
                                             <% if (product.variants) { %>
                                                 <% Object.keys(product.variants).forEach(size => { %>
@@ -712,9 +784,17 @@
                                             <% } %>
                                         </div>
 
-                                        <button class="wishlist-btn" onclick="toggleWishlist('<%= product._id %>', event)">
-                                            <i class="far fa-heart"></i>
-                                        </button>
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <button class="wishlist-btn" onclick="toggleWishlist('<%= product._id %>', event)">
+                                                <i class="far fa-heart"></i>
+                                            </button>
+                                            
+                                            <!-- Add to Cart Button -->
+                                            <button class="btn btn-sm btn-outline-primary add-to-cart-btn" 
+                                                    <%= isOutOfStock ? 'disabled' : '' %>>
+                                                <i class="fas fa-shopping-cart me-1"></i> Add to Cart
+                                            </button>
+                                        </div>
 
                                         <a href="/shop/products/<%= product._id %>" 
                                            class="btn <%= isOutOfStock ? 'btn-secondary' : 'btn-primary' %> w-100"
@@ -762,6 +842,43 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Add this modal at the bottom of your file, before the closing </body> tag -->
+<div class="modal fade" id="variantSelectModal" tabindex="-1" aria-labelledby="variantSelectModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="variantSelectModalLabel">Select Variant</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Select Size:</label>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" class="btn btn-outline-primary variant-btn" data-variant="500ml">500ml</button>
+            <button type="button" class="btn btn-outline-primary variant-btn" data-variant="650ml">650ml</button>
+          </div>
+          <small id="stockInfo" class="text-success mt-1 d-block">In Stock</small>
+        </div>
+        
+        <div class="mb-3">
+          <label for="modalQuantity" class="form-label fw-bold">Quantity:</label>
+          <select class="form-select" id="modalQuantity">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="addToCartBtn">Add to Cart</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -955,6 +1072,149 @@
             console.error('Error fetching wishlist items:', error);
         });
     });
+
+    // Global variables
+    let currentProductId = '';
+    let selectedVariant = '';
+    
+    // Add click event to all add to cart buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+        
+        addToCartButtons.forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Get product ID from the button's parent card
+                const card = this.closest('.product-card');
+                currentProductId = card.dataset.productId;
+                
+                // Reset selected variant
+                selectedVariant = '';
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('variantSelectModal'));
+                modal.show();
+            });
+        });
+        
+        // Add click event to variant buttons
+        document.querySelectorAll('.variant-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                document.querySelectorAll('.variant-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Store selected variant
+                selectedVariant = this.dataset.variant;
+                
+                // Update stock info (simplified for now)
+                document.getElementById('stockInfo').textContent = 'In Stock';
+                document.getElementById('stockInfo').className = 'text-success mt-1 d-block';
+            });
+        });
+        
+        // Select first variant by default
+        document.querySelector('.variant-btn').classList.add('active');
+        selectedVariant = document.querySelector('.variant-btn').dataset.variant;
+        
+        // Add event listener to Add to Cart button in modal
+        document.getElementById('addToCartBtn').addEventListener('click', function() {
+            // Check if variant is selected
+            if (!selectedVariant) {
+                Swal.fire({
+                    title: 'Please Select a Size',
+                    text: 'You need to select a size variant before adding to cart',
+                    icon: 'warning',
+                    confirmButtonColor: '#FF9800'
+                });
+                return;
+            }
+            
+            // Get quantity
+            const quantity = document.getElementById('modalQuantity').value;
+            
+            // Show loading state
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+            this.disabled = true;
+            
+            // Add to cart
+            fetch('/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    productId: currentProductId,
+                    variant: selectedVariant,
+                    quantity: parseInt(quantity)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Reset button
+                this.innerHTML = 'Add to Cart';
+                this.disabled = false;
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('variantSelectModal'));
+                modal.hide();
+                
+                if (data.success) {
+                    // Show success message with SweetAlert
+                    Swal.fire({
+                        title: 'Added to Cart!',
+                        text: 'Product has been added to your cart',
+                        icon: 'success',
+                        confirmButtonColor: '#FF9800',
+                        showCancelButton: true,
+                        cancelButtonText: 'Continue Shopping',
+                        confirmButtonText: 'View Cart'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Redirect to cart page
+                            window.location.href = '/cart';
+                        }
+                    });
+                    
+                    // Update cart count in navbar if it exists
+                    const cartBadge = document.querySelector('.cart-badge');
+                    if (cartBadge) {
+                        const currentCount = parseInt(cartBadge.textContent || '0');
+                        cartBadge.textContent = currentCount + 1;
+                    }
+                } else {
+                    // Show error message with SweetAlert
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Failed to add to cart',
+                        icon: 'error',
+                        confirmButtonColor: '#FF9800'
+                    });
+                }
+            })
+            .catch(error => {
+                // Reset button
+                this.innerHTML = 'Add to Cart';
+                this.disabled = false;
+                
+                console.error('Error adding to cart:', error);
+                
+                // Show error message with SweetAlert
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Something went wrong. Please try again.',
+                    icon: 'error',
+                    confirmButtonColor: '#FF9800'
+                });
+            });
+        });
+    });
 </script>
 
-<%- include('../partials/footer') %>
+<%- include('../partials/footer') %><%- include('../partials/footer') %>

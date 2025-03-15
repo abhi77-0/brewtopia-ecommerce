@@ -77,4 +77,7 @@ router.delete('/address/:id', isAuthenticated, userController.deleteAddress);
 router.get("/reset-password", userController.renderResetPasswordPage);
 router.post("/reset-password", validateResetPassword, userController.handleResetPassword);
 
+// Add this route to your user routes
+router.post('/profile/change-password', isAuthenticated, userController.changePassword);
+
 module.exports = router;
