@@ -653,11 +653,71 @@
 
 
 
+<!-- Add this at the bottom of your orders.ejs file, before the closing body tag -->
 <script>
-
 function viewOrderDetails(orderId) {
-    console.log('Viewing order details for:', orderId); // Debug log
-    window.location.href = `/orders/${orderId}/details`;  // Updated to match your route
+    window.location.href = `/orders/${orderId}`;
+}
+
+function cancelOrder(orderId) {
+    Swal.fire({
+        title: 'Cancel Order',
+        text: "Are you sure you want to cancel this order?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#FF9800',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, cancel it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Cancelling your order',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch(`/orders/${orderId}/cancel`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Cancelled!',
+                        text: 'Your order has been cancelled.',
+                        icon: 'success',
+                        confirmButtonColor: '#FF9800'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Failed to cancel order',
+                        icon: 'error',
+                        confirmButtonColor: '#FF9800'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Failed to cancel order',
+                    icon: 'error',
+                    confirmButtonColor: '#FF9800'
+                });
+            });
+        }
+    });
 }
 
 function deleteOrderProduct(orderId, productId) {
@@ -671,11 +731,22 @@ function deleteOrderProduct(orderId, productId) {
         confirmButtonText: 'Yes, remove it!'
     }).then((result) => {
         if (result.isConfirmed) {
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Removing product from your order',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
             fetch(`/orders/${orderId}/products/${productId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                credentials: 'same-origin'
             })
             .then(response => response.json())
             .then(data => {
@@ -710,51 +781,82 @@ function deleteOrderProduct(orderId, productId) {
     });
 }
 
-let currentOrderId = null;
-
 function initiateReturn(orderId) {
-    currentOrderId = orderId;
+    // Show the return modal
     const returnModal = new bootstrap.Modal(document.getElementById('returnModal'));
     returnModal.show();
+    
+    // Store the order ID for submission
+    window.currentReturnOrderId = orderId;
 }
 
 function submitReturn() {
-    const reason = document.getElementById('returnReason').value;
-    if (!reason) {
-        Swal.fire('Error', 'Please provide a reason for return', 'error');
+    const orderId = window.currentReturnOrderId;
+    const returnReason = document.getElementById('returnReason').value;
+    
+    if (!returnReason.trim()) {
+        Swal.fire({
+            title: 'Error!',
+            text: 'Please provide a reason for return',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        });
         return;
     }
-
-    fetch(`/orders/${currentOrderId}/return`, {
+    
+    // Hide the modal
+    const returnModal = bootstrap.Modal.getInstance(document.getElementById('returnModal'));
+    returnModal.hide();
+    
+    // Show loading state
+    Swal.fire({
+        title: 'Processing...',
+        text: 'Submitting your return request',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    fetch(`/orders/${orderId}/return`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ returnReason: reason })
+        body: JSON.stringify({ returnReason }),
+        credentials: 'same-origin'
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             Swal.fire({
-                title: 'Success!',
-                text: 'Return request submitted successfully',
-                icon: 'success'
+                title: 'Return Requested!',
+                text: 'Your return request has been submitted successfully.',
+                icon: 'success',
+                confirmButtonColor: '#FF9800'
             }).then(() => {
                 location.reload();
             });
         } else {
-            Swal.fire('Error', data.message, 'error');
+            Swal.fire({
+                title: 'Error!',
+                text: data.message || 'Failed to submit return request',
+                icon: 'error',
+                confirmButtonColor: '#FF9800'
+            });
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        Swal.fire('Error', 'Failed to submit return request', 'error');
+        Swal.fire({
+            title: 'Error!',
+            text: 'Failed to submit return request',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        });
     });
-
-    // Close the modal
-    const returnModal = bootstrap.Modal.getInstance(document.getElementById('returnModal'));
-    returnModal.hide();
 }
+</script>
 
 // Add AOS initialization if you're using it
 document.addEventListener('DOMContentLoaded', function() {

@@ -257,7 +257,7 @@ const orderController = {
             const order = await Order.findOne({ 
                 _id: orderId, 
                 user: userId 
-            });
+            }).populate('items.product');
 
             if (!order) {
                 console.log('Order not found:', orderId);
@@ -265,6 +265,31 @@ const orderController = {
                     success: false,
                     message: 'Order not found or already cancelled'
                 });
+            }
+
+            // Check if order can be cancelled (only Pending or Processing orders)
+            if (order.status !== 'Pending' && order.status !== 'Processing') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Only pending or processing orders can be cancelled'
+                });
+            }
+
+            // Restore stock for each product in the order
+            for (const item of order.items) {
+                try {
+                    // Find the product and update its stock
+                    const product = await Product.findById(item.product._id);
+                    if (product && product.variants[item.variant]) {
+                        console.log(`Restoring stock for product ${item.product._id}, variant ${item.variant}, quantity ${item.quantity}`);
+                        product.variants[item.variant].stock += item.quantity;
+                        await product.save();
+                        console.log(`Stock restored. New stock: ${product.variants[item.variant].stock}`);
+                    }
+                } catch (error) {
+                    console.error(`Error restoring stock for product ${item.product._id}:`, error);
+                    // Continue with other products even if one fails
+                }
             }
 
             // Update the order status instead of deleting it
@@ -569,10 +594,10 @@ const orderController = {
 
 // delete single product from order
 
-deleteProductFromOrder : async (req, res) => {
+deleteProductFromOrder: async (req, res) => {
     try {
         const { orderId, productId } = req.params;
-        const userId = req.user._id;
+        const userId = req.session.user?._id || req.session.user?.id;
         
         // Find the order and verify it belongs to the user
         const order = await Order.findOne({ _id: orderId, user: userId });
@@ -609,6 +634,20 @@ deleteProductFromOrder : async (req, res) => {
         // Get the item before removing it
         const removedItem = order.items[itemIndex];
         
+        // Update inventory - add the quantity back to stock
+        try {
+            const product = await Product.findById(productId);
+            if (product && product.variants[removedItem.variant]) {
+                console.log(`Restoring stock for product ${productId}, variant ${removedItem.variant}, quantity ${removedItem.quantity}`);
+                product.variants[removedItem.variant].stock += removedItem.quantity;
+                await product.save();
+                console.log(`Stock restored. New stock: ${product.variants[removedItem.variant].stock}`);
+            }
+        } catch (error) {
+            console.error(`Error restoring stock for product ${productId}:`, error);
+            // Continue with order update even if stock update fails
+        }
+        
         // Remove the product from the order
         order.items.splice(itemIndex, 1);
         
@@ -617,9 +656,6 @@ deleteProductFromOrder : async (req, res) => {
         
         // Save the updated order
         await order.save();
-        
-        // Update inventory if necessary (add the quantity back to inventory)
-        // This depends on your inventory management system
         
         return res.json({ 
             success: true, 
@@ -631,7 +667,85 @@ deleteProductFromOrder : async (req, res) => {
         console.error('Error removing product from order:', error);
         return res.status(500).json({ success: false, message: 'Server error' });
     }
-}
+},
+
+cancelOrder: async (req, res) => {
+    try {
+        const orderId = req.params.id;
+        // Get user ID - handle both normal and Google auth users
+        const userId = req.session.user?._id || req.session.user?.id;
+        
+        console.log('Cancelling order:', orderId, 'for user:', userId);
+
+        if (!userId) {
+            console.error('User ID not found in session:', req.session.user);
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication error. Please log in again.'
+            });
+        }
+
+        // Find the order first to make sure it exists
+        const order = await Order.findOne({ 
+            _id: orderId, 
+            user: userId 
+        }).populate('items.product');
+
+        if (!order) {
+            console.log('Order not found:', orderId);
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found or already cancelled'
+            });
+        }
+
+        // Check if order can be cancelled (only Pending or Processing orders)
+        if (order.status !== 'Pending' && order.status !== 'Processing') {
+            return res.status(400).json({
+                success: false,
+                message: 'Only pending or processing orders can be cancelled'
+            });
+        }
+
+        // Restore stock for each product in the order
+        for (const item of order.items) {
+            try {
+                // Find the product and update its stock
+                const product = await Product.findById(item.product._id);
+                if (product && product.variants[item.variant]) {
+                    console.log(`Restoring stock for product ${item.product._id}, variant ${item.variant}, quantity ${item.quantity}`);
+                    product.variants[item.variant].stock += item.quantity;
+                    await product.save();
+                    console.log(`Stock restored. New stock: ${product.variants[item.variant].stock}`);
+                }
+            } catch (error) {
+                console.error(`Error restoring stock for product ${item.product._id}:`, error);
+                // Continue with other products even if one fails
+            }
+        }
+
+        // Update the order status instead of deleting it
+        order.status = 'Cancelled';
+        await order.save();
+        
+        console.log('Order cancelled successfully:', orderId);
+
+        res.json({
+            success: true,
+            message: 'Order cancelled successfully'
+        });
+
+    } catch (error) {
+        console.error('Error cancelling order:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error cancelling order: ' + error.message
+        });
+    }
+},
+
+
+
 }
 
 module.exports = orderController;
