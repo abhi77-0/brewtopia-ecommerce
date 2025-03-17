@@ -1,31 +1,59 @@
 const Order = require('../../models/Order');
+const User = require('../../models/UserModel');
+const mongoose = require('mongoose');
 
 const OrderController = {
     getAllOrders: async (req, res) => {
         try {
             const page = parseInt(req.query.page) || 1;
-            const limit = 10; // Orders per page for admin
+            const limit = 10;
 
-            // Define possible order statuses
+            // Build search query
+            let searchQuery = {};
+
+            // Search by Order ID
+            if (req.query.orderId && req.query.orderId.trim() !== '') {
+                try {
+                    const cleanOrderId = req.query.orderId.replace('#', '').trim();
+                    if (mongoose.Types.ObjectId.isValid(cleanOrderId)) {
+                        searchQuery._id = new mongoose.Types.ObjectId(cleanOrderId);
+                    }
+                } catch (err) {
+                    console.log('Invalid Order ID format:', err);
+                }
+            }
+
+            // Search by Customer Name
+            if (req.query.customerName && req.query.customerName.trim() !== '') {
+                const users = await User.find({
+                    name: { $regex: new RegExp(req.query.customerName, 'i') }
+                });
+                
+                if (users.length > 0) {
+                    searchQuery.user = { $in: users.map(user => user._id) };
+                }
+            }
+
             const statusStages = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 
-            // Get total order count
-            const totalOrders = await Order.countDocuments();
-
-            // Calculate pagination
+            // Get total orders count
+            const totalOrders = await Order.countDocuments(searchQuery);
             const totalPages = Math.ceil(totalOrders / limit);
 
-            // Fetch paginated orders
-            const orders = await Order.find()
+            // Fetch orders
+            const orders = await Order.find(searchQuery)
                 .populate({
                     path: 'items.product',
                     select: 'name images brand variants'
                 })
-                .populate('user', 'name email') // Include user details
+                .populate('user', 'name email')
                 .populate('address')
                 .sort({ createdAt: -1 })
                 .skip((page - 1) * limit)
                 .limit(limit);
+
+            console.log('Search Query:', searchQuery);
+            console.log('Found Orders:', orders.length);
 
             res.render('admin/orders', {
                 title: 'Manage Orders',
@@ -37,7 +65,11 @@ const OrderController = {
                 hasPrevPage: page > 1,
                 nextPage: page + 1,
                 prevPage: page - 1,
-                statusStages: statusStages // Pass status stages to the view
+                statusStages: statusStages,
+                searchQuery: {
+                    orderId: req.query.orderId || '',
+                    customerName: req.query.customerName || ''
+                }
             });
 
         } catch (error) {

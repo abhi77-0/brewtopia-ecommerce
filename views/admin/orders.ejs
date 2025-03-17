@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <!-- Add this to your existing style section -->
     <style>
         /* Navbar Styles */
         .navbar {
@@ -214,97 +215,119 @@
         </div>
 
         <!-- Main Content -->
+        <!-- Add this right before the table, inside main-content div -->
         <div class="main-content">
-            <% if (orders && orders.length > 0) { %>
-                <table class="table table-striped">
-                    <thead>
+            <!-- Search Form -->
+            <!-- Replace the existing search form with this simplified version -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form action="/admin/orders" method="GET" class="row g-3">
+                        <div class="col-md-5">
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="orderId" 
+                                   placeholder="Search by Order ID"
+                                   value="<%= searchQuery?.orderId || '' %>">
+                        </div>
+                        <div class="col-md-5">
+                            <input type="text" 
+                                   class="form-control" 
+                                   name="customerName" 
+                                   placeholder="Search by Customer Name"
+                                   value="<%= searchQuery?.customerName || '' %>">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        
+        <% if (orders && orders.length > 0) { %>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Return Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% orders.forEach(order => { %>
                         <tr>
-                            <th>Order ID</th>
-                            <th>Date</th>
-                            <th>Customer</th>
-                            <th>Total</th>
-                            <th>Status</th>
-                            <th>Return Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% orders.forEach(order => { %>
-                            <tr>
-                                <td>#<%= order._id.toString().slice(-6) %></td>
-                                <td><%= new Date(order.createdAt).toLocaleDateString() %></td>
-                                <td><%= order.user.name %></td>
-                                <td>₹<%= order.total.toFixed(2) %></td>
-                                <td>
-                                    <select class="form-select form-select-sm status-select" 
-                                            data-order-id="<%= order._id %>">
-                                        <% statusStages.forEach(status => { %>
-                                            <option value="<%= status %>" 
-                                                    <%= order.status === status ? 'selected' : '' %>>
-                                                <%= status %>
-                                            </option>
-                                        <% }) %>
-                                    </select>
-                                </td>
-                                <td>
-                                    <% if (order.returnRequest) { %>
-                                        <% if (order.returnStatus === 'pending') { %>
-                                            <div class="d-flex align-items-center">
-                                                <span class="badge bg-warning text-dark me-2">Pending</span>
-                                                <button class="btn btn-success btn-sm me-1 return-btn" 
-                                                        data-order-id="<%= order._id %>" 
-                                                        data-action="accept">
-                                                    Accept
-                                                </button>
-                                                <button class="btn btn-danger btn-sm return-btn" 
-                                                        data-order-id="<%= order._id %>" 
-                                                        data-action="reject">
-                                                    Reject
-                                                </button>
-                                            </div>
-                                        <% } else if (order.returnStatus === 'accepted') { %>
-                                            <span class="badge bg-success">Accepted</span>
-                                        <% } else if (order.returnStatus === 'rejected') { %>
-                                            <span class="badge bg-danger">Rejected</span>
-                                        <% } %>
-                                    <% } else { %>
-                                        <span class="badge bg-secondary">No Request</span>
+                            <td>#<%= order._id %></td>
+                            <td><%= new Date(order.createdAt).toLocaleDateString() %></td>
+                            <td><%= order.user.name %></td>
+                            <td>₹<%= order.total.toFixed(2) %></td>
+                            <td>
+                                <select class="form-select form-select-sm status-select" 
+                                        data-order-id="<%= order._id %>">
+                                    <% statusStages.forEach(status => { %>
+                                        <option value="<%= status %>" 
+                                                <%= order.status === status ? 'selected' : '' %>>
+                                            <%= status %>
+                                        </option>
+                                    <% }) %>
+                                </select>
+                            </td>
+                            <td>
+                                <% if (order.returnRequest) { %>
+                                    <% if (order.returnStatus === 'pending') { %>
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge bg-warning text-dark me-2">Pending</span>
+                                            <button class="btn btn-success btn-sm me-1 return-btn" 
+                                                    data-order-id="<%= order._id %>" 
+                                                    data-action="accept">
+                                                Accept
+                                            </button>
+                                            <button class="btn btn-danger btn-sm return-btn" 
+                                                    data-order-id="<%= order._id %>" 
+                                                    data-action="reject">
+                                                Reject
+                                            </button>
+                                        </div>
+                                    <% } else if (order.returnStatus === 'accepted') { %>
+                                        <span class="badge bg-success">Accepted</span>
+                                    <% } else if (order.returnStatus === 'rejected') { %>
+                                        <span class="badge bg-danger">Rejected</span>
                                     <% } %>
-                                </td>
-                                <td>
-                                    <button class="btn btn-info btn-sm" 
-                                            onclick="window.location.href='/admin/orders/<%= order._id %>'">
-                                        View
-                                    </button>
-                                </td>
-                            </tr>
-                        <% }); %>
-                    </tbody>
-                </table>
+                                <% } else { %>
+                                    <span class="badge bg-secondary">No Request</span>
+                                <% } %>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
 
-                <!-- Simple Pagination -->
-                <nav aria-label="Page navigation" class="mt-4">
-                    <ul class="pagination justify-content-center">
-                        <% if (hasPrevPage) { %>
-                            <li class="page-item">
-                                <a class="page-link" href="/admin/orders?page=<%= prevPage %>">Previous</a>
-                            </li>
-                        <% } %>
-                        <% for(let i = 1; i <= totalPages; i++) { %>
-                            <li class="page-item <%= currentPage === i ? 'active' : '' %>">
-                                <a class="page-link" href="/admin/orders?page=<%= i %>"><%= i %></a>
-                            </li>
-                        <% } %>
-                        <% if (hasNextPage) { %>
-                            <li class="page-item">
-                                <a class="page-link" href="/admin/orders?page=<%= nextPage %>">Next</a>
-                            </li>
-                        <% } %>
-                    </ul>
-                </nav>
-            <% } else { %>
-                <div class="alert alert-info">No orders found.</div>
-            <% } %>
+            <!-- Simple Pagination -->
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <% if (hasPrevPage) { %>
+                        <li class="page-item">
+                            <a class="page-link" href="/admin/orders?page=<%= prevPage %>">Previous</a>
+                        </li>
+                    <% } %>
+                    <% for(let i = 1; i <= totalPages; i++) { %>
+                        <li class="page-item <%= currentPage === i ? 'active' : '' %>">
+                            <a class="page-link" href="/admin/orders?page=<%= i %>"><%= i %></a>
+                        </li>
+                    <% } %>
+                    <% if (hasNextPage) { %>
+                        <li class="page-item">
+                            <a class="page-link" href="/admin/orders?page=<%= nextPage %>">Next</a>
+                        </li>
+                    <% } %>
+                </ul>
+            </nav>
+        <% } else { %>
+            <div class="alert alert-info">No orders found.</div>
+        <% } %>
         </div>
     </div>
 
@@ -380,3 +403,33 @@
     </script>
 </body>
 </html>
+
+<!-- Search Form Styles
+.card {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.form-control, .form-select {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #FF9800;
+    box-shadow: 0 0 0 0.2rem rgba(255, 152, 0, 0.25);
+}
+
+.btn-primary {
+    background-color: #FF9800;
+    border-color: #FF9800;
+}
+
+.btn-primary:hover {
+    background-color: #F57C00;
+    border-color: #F57C00;
+} -->
