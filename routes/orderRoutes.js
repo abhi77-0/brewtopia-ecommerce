@@ -28,4 +28,7 @@ router.delete('/:id/cancel', isAuthenticated, orderController.cancelOrder);
 router.post('/:id/return', isAuthenticated, orderController.returnOrder);
 router.get('/invoice/:orderId', isAuthenticated, orderController.generateInvoice);
 
-module.exports = router; 
+// Add the new route for deleting a product from an order
+router.delete('/:orderId/products/:productId', isAuthenticated, orderController.deleteProductFromOrder);
+
+module.exports = router;

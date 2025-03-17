@@ -565,7 +565,73 @@ const orderController = {
             req.flash('error', 'Error generating invoice');
             res.redirect('/orders');
         }
-    }
-};
+    },
 
-module.exports = orderController; 
+// delete single product from order
+
+deleteProductFromOrder : async (req, res) => {
+    try {
+        const { orderId, productId } = req.params;
+        const userId = req.user._id;
+        
+        // Find the order and verify it belongs to the user
+        const order = await Order.findOne({ _id: orderId, user: userId });
+        
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+        
+        // Check if order status allows modification
+        if (order.status !== 'Pending' && order.status !== 'Processing') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot modify orders that are not in Pending or Processing status' 
+            });
+        }
+        
+        // Check if order has more than one product
+        if (order.items.length <= 1) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Cannot remove the last product from an order. Please cancel the entire order instead.' 
+            });
+        }
+        
+        // Find the product in the order
+        const itemIndex = order.items.findIndex(item => 
+            item.product.toString() === productId
+        );
+        
+        if (itemIndex === -1) {
+            return res.status(404).json({ success: false, message: 'Product not found in this order' });
+        }
+        
+        // Get the item before removing it
+        const removedItem = order.items[itemIndex];
+        
+        // Remove the product from the order
+        order.items.splice(itemIndex, 1);
+        
+        // Recalculate order total
+        order.total = order.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+        
+        // Save the updated order
+        await order.save();
+        
+        // Update inventory if necessary (add the quantity back to inventory)
+        // This depends on your inventory management system
+        
+        return res.json({ 
+            success: true, 
+            message: 'Product removed successfully',
+            newTotal: order.total
+        });
+        
+    } catch (error) {
+        console.error('Error removing product from order:', error);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+}
+
+module.exports = orderController;
