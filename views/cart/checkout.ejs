@@ -602,8 +602,156 @@ function placeOrder(addressId, paymentMethod) {
     });
 }
 
-function initiateRazorpayPayment() {
-    // Add Razorpay integration logic
+async function initiateRazorpayPayment() {
+    try {
+        const selectedAddress = document.querySelector('input[name="selectedAddress"]:checked');
+        
+        if (!selectedAddress) {
+            throw new Error('Please select a delivery address');
+        }
+
+        // Show loading state
+        Swal.fire({
+            title: 'Processing',
+            text: 'Initializing payment...',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Log the request payload
+        const payload = {
+            amount: <%= total %>,
+            addressId: selectedAddress.value
+        };
+        console.log('Sending payment request with payload:', payload);
+
+        const response = await fetch('/checkout/razorpay/create-order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload),
+            credentials: 'same-origin'
+        });
+
+        // Log the response status and headers
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+        // Handle non-OK responses
+        if (!response.ok) {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Server error occurred');
+            } else {
+                const textError = await response.text();
+                console.error('Non-JSON error response:', textError);
+                throw new Error('Server error occurred');
+            }
+        }
+
+        const data = await response.json();
+        console.log('Server response:', data);
+
+        if (!data.success || !data.order) {
+            throw new Error(data.message || 'Invalid server response');
+        }
+
+        // Close loading dialog
+        Swal.close();
+
+        // Initialize Razorpay payment
+        const options = {
+            key: '<%= razorpayKeyId %>',
+            amount: data.order.amount,
+            currency: "INR",
+            name: "Your Store Name",
+            description: "Order Payment",
+            order_id: data.order.id,
+            handler: async function(response) {
+                await handlePaymentSuccess(response, selectedAddress.value);
+            },
+            prefill: {
+                name: "<%= user.name %>",
+                email: "<%= user.email %>",
+                contact: "<%= user.phone || '' %>"
+            },
+            theme: {
+                color: "#FF9800"
+            }
+        };
+
+        console.log('Initializing Razorpay with options:', { ...options, key: 'HIDDEN' });
+        const rzp = new Razorpay(options);
+        rzp.open();
+
+    } catch (error) {
+        console.error('Payment initialization error:', error);
+        Swal.close();
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to initiate payment',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        });
+    }
+}
+
+async function handlePaymentSuccess(response, addressId) {
+    try {
+        // Show loading state
+        Swal.fire({
+            title: 'Verifying Payment',
+            text: 'Please wait...',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        const verifyResponse = await fetch('/checkout/razorpay/verify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                addressId: addressId
+            }),
+            credentials: 'same-origin'
+        });
+
+        const verifyData = await verifyResponse.json();
+        
+        if (verifyData.success) {
+            // Redirect to success page with order ID
+            window.location.href = `/checkout/razorpay/success/${verifyData.orderId}`;
+        } else {
+            throw new Error(verifyData.message || 'Payment verification failed');
+        }
+    } catch (error) {
+        console.error('Payment verification error:', error);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Payment verification failed',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        }).then(() => {
+            // Redirect to failure page if orderId is available
+            if (error.orderId) {
+                window.location.href = `/checkout/razorpay/failure/${error.orderId}`;
+            }
+        });
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {

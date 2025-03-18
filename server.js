@@ -100,6 +100,7 @@ app.use('/cart', cartRoutes);
 app.use('/cart', checkoutRoutes);
 app.use('/orders', orderRoutes);
 app.use('/products', productRoutes);
+app.use('/checkout', checkoutRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

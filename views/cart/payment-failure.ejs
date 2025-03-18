@@ -1,87 +1,92 @@
 <%- include('../partials/header') %>
 
 <div class="container my-5 text-center">
-    <div class="failure-animation mb-4">
-        <i class="fas fa-times-circle text-danger" style="font-size: 5rem;"></i>
-    </div>
-    
-    <h1 class="mb-4">Payment Failed</h1>
-    <p class="lead mb-4">We're sorry, but your payment could not be processed.</p>
-    
-    <div class="order-details mb-4">
-        <h4>Order #<%= order._id %></h4>
-        <p>Total Amount: ₹<%= order.total %></p>
-    </div>
-
-    <div class="action-buttons">
-        <button onclick="retryPayment('<%= order._id %>')" class="btn btn-primary me-3">
-            Retry Payment
-        </button>
-        <a href="/orders/<%= order._id %>" class="btn btn-outline-primary">
-            View Order Details
-        </a>
+    <div class="failure-page">
+        <div class="failure-icon mb-4">
+            <i class="fas fa-times-circle"></i>
+        </div>
+        
+        <h1 class="mb-3">Payment Failed</h1>
+        <p class="lead mb-4">We couldn't process your payment. Please try again or choose a different payment method.</p>
+        
+        <div class="order-info mb-4">
+            <h5>Order #<%= order._id %></h5>
+            <p class="text-muted">Amount: ₹<%= order.total %></p>
+        </div>
+        
+        <div class="action-buttons">
+            <button onclick="retryPayment()" class="btn btn-primary me-3">
+                <i class="fas fa-redo me-2"></i>Retry Payment
+            </button>
+            <a href="/orders/<%= order._id %>" class="btn btn-outline-primary">
+                <i class="fas fa-file-alt me-2"></i>View Order Details
+            </a>
+        </div>
     </div>
 </div>
 
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
-function retryPayment(orderId) {
-    fetch(`/checkout/retry-payment/${orderId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
+async function retryPayment() {
+    try {
+        const response = await fetch('/checkout/razorpay/retry/<%= order._id %>', {
+            method: 'GET'
+        });
+        const data = await response.json();
+        
         if (data.success) {
             const options = {
-                key: "<%= process.env.RAZORPAY_KEY_ID %>",
+                key: '<%= razorpayKeyId %>',
                 amount: data.order.amount,
-                currency: data.order.currency,
-                order_id: data.order.id,
-                name: "Brewtopia",
+                currency: "INR",
+                name: "Your Store Name",
                 description: "Order Payment",
-                handler: function (response) {
-                    verifyPayment(response, orderId);
+                order_id: data.order.id,
+                handler: async function (response) {
+                    window.location.href = `/checkout/razorpay/verify?orderId=<%= order._id %>`;
+                },
+                prefill: {
+                    name: "<%= user.name %>",
+                    email: "<%= user.email %>"
+                },
+                theme: {
+                    color: "#FF9800"
                 }
             };
+            
             const rzp = new Razorpay(options);
             rzp.open();
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Failed to initiate payment. Please try again.');
-    });
-}
-
-function verifyPayment(response, orderId) {
-    fetch('/checkout/verify-payment', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_signature: response.razorpay_signature,
-            orderId: orderId
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            window.location.href = `/checkout/success/${orderId}`;
-        } else {
-            window.location.href = `/checkout/failure/${orderId}`;
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Payment verification failed. Please contact support.');
-    });
+    } catch (error) {
+        console.error('Retry payment error:', error);
+        alert('Failed to retry payment. Please try again.');
+    }
 }
 </script>
+
+<style>
+.failure-page {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.failure-icon {
+    font-size: 5rem;
+    color: #f44336;
+    animation: shake 0.5s ease-in-out;
+}
+
+.order-info {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+</style>
 
 <%- include('../partials/footer') %>
