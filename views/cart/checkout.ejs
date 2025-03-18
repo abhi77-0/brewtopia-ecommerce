@@ -159,34 +159,47 @@
 
         <!-- Right Column - Order Summary -->
         <div class="col-lg-4">
-            <div class="order-summary">
-                <div class="summary-header">
-                    <h5>Order Summary</h5>
+            <div class="cart-summary">
+                <h3 class="summary-title">Order Summary</h3>
+                
+                <div class="summary-item d-flex justify-content-between">
+                    <span>Subtotal (<%= itemCount %> items)</span>
+                    <span>₹<%= subtotal %></span>
                 </div>
-                <div class="summary-body">
-                    <div class="price-summary">
-                        <div class="summary-item">
-                            <span>Subtotal</span>
-                            <span id="subtotal">₹<%= subtotal %></span>
-                        </div>
-                        <div class="summary-item">
-                            <span>Shipping</span>
-                            <span id="shipping">₹<%= shipping %></span>
-                        </div>
-                        <div class="summary-item discount-row" id="discountRow" style="display: none;">
-                            <span>Discount (<span id="couponCode"></span>)</span>
-                            <span id="discount" class="text-success">-₹0</span>
-                            <button class="btn btn-sm btn-link text-danger" onclick="removeCoupon()">Remove</button>
-                        </div>
-                        <div class="summary-total">
-                            <span>Total Amount</span>
-                            <span id="total">₹<%= total %></span>
-                        </div>
+                
+                <div class="summary-item d-flex justify-content-between text-success">
+                    <span>Discount (10%)</span>
+                    <span>-₹<%= discount %></span>
+                </div>
+                
+                <div class="summary-item d-flex justify-content-between">
+                    <span>Shipping</span>
+                    <span>₹<%= shipping %></span>
+                </div>
+                
+                <div class="summary-item d-flex justify-content-between">
+                    <span>GST (18%)</span>
+                    <span>₹<%= gst %></span>
+                </div>
+                
+                <div class="summary-total d-flex justify-content-between">
+                    <span>Total</span>
+                    <span>₹<%= total %></span>
+                </div>
+
+                <!-- Coupon Section -->
+                <div class="coupon-section mb-3 mt-3">
+                    <div class="input-group">
+                        <input type="text" id="couponCode" class="form-control" placeholder="Enter coupon code">
+                        <button class="btn btn-primary" type="button" onclick="applyCoupon()">Apply</button>
                     </div>
-                    <button onclick="proceedToPayment()" class="btn btn-primary btn-lg w-100">
-                        Place Order
-                    </button>
+                    <div id="couponMessage" class="form-text"></div>
                 </div>
+
+                <!-- Place Order Button -->
+                <button onclick="proceedToPayment()" class="btn btn-primary btn-block checkout-btn mt-3">
+                    <i class="fas fa-check-circle me-2"></i>Place Order
+                </button>
             </div>
         </div>
     </div>
@@ -540,6 +553,77 @@
     margin-top: 0.5rem;
     font-size: 0.875rem;
 }
+
+/* Copy the cart summary styles from cart.ejs */
+.cart-summary {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    padding: 24px;
+    position: sticky;
+    top: 20px;
+}
+
+.summary-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    color: #666;
+    font-size: 15px;
+}
+
+.summary-item.discount {
+    color: #4CAF50;
+}
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 16px;
+    margin-top: 16px;
+    border-top: 1px solid #eee;
+    font-weight: 600;
+    font-size: 18px;
+    color: #333;
+}
+
+.checkout-btn {
+    background: #FF9800;
+    border: none;
+    padding: 14px;
+    font-weight: 500;
+    font-size: 16px;
+    border-radius: 8px;
+    width: 100%;
+    color: white;
+    margin-top: 20px;
+    transition: background-color 0.2s ease;
+}
+
+.checkout-btn:hover:not(:disabled) {
+    background: #F57C00;
+}
+
+.checkout-btn:disabled {
+    background: #ccc;
+}
+
+/* Coupon section styles */
+.coupon-section {
+    margin-top: 1rem;
+}
+
+#couponMessage {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+}
 </style>
 
 <script>
@@ -874,12 +958,36 @@ async function applyCoupon() {
         if (data.success) {
             messageElement.innerHTML = `<span class="text-success">${data.message}</span>`;
             updatePriceSummary(data.data);
-            showDiscountRow(data.data.couponCode);
         } else {
             messageElement.innerHTML = `<span class="text-danger">${data.message}</span>`;
         }
     } catch (error) {
         messageElement.innerHTML = '<span class="text-danger">Failed to apply coupon</span>';
+    }
+}
+
+function updatePriceSummary(data) {
+    // Update basic values
+    document.getElementById('subtotal').textContent = `₹${data.subtotal}`;
+    document.getElementById('shipping').textContent = `₹${data.shipping}`;
+    document.getElementById('discount').textContent = `-₹${data.discount}`;
+    document.getElementById('gst').textContent = `₹${data.gst}`;
+    document.getElementById('total').textContent = `₹${data.total}`;
+    
+    // Update savings callout
+    const savingsCallout = document.querySelector('.savings-callout');
+    if (data.discount > 0) {
+        if (!savingsCallout) {
+            const newSavingsCallout = document.createElement('div');
+            newSavingsCallout.className = 'savings-callout';
+            newSavingsCallout.innerHTML = `<i class="fas fa-tags me-2"></i>You're saving ₹${data.discount} on this order!`;
+            document.querySelector('.price-summary').after(newSavingsCallout);
+        } else {
+            savingsCallout.innerHTML = `<i class="fas fa-tags me-2"></i>You're saving ₹${data.discount} on this order!`;
+            savingsCallout.style.display = 'block';
+        }
+    } else if (savingsCallout) {
+        savingsCallout.style.display = 'none';
     }
 }
 
@@ -898,28 +1006,10 @@ async function removeCoupon() {
             document.getElementById('couponCode').value = '';
             document.getElementById('couponMessage').innerHTML = '';
             updatePriceSummary(data.data);
-            hideDiscountRow();
         }
     } catch (error) {
         console.error('Error removing coupon:', error);
     }
-}
-
-function updatePriceSummary(data) {
-    document.getElementById('subtotal').textContent = `₹${data.subtotal}`;
-    document.getElementById('shipping').textContent = `₹${data.shipping}`;
-    document.getElementById('discount').textContent = `-₹${data.discount}`;
-    document.getElementById('total').textContent = `₹${data.total}`;
-}
-
-function showDiscountRow(couponCode) {
-    const discountRow = document.getElementById('discountRow');
-    discountRow.style.display = 'flex';
-    document.getElementById('couponCode').textContent = couponCode;
-}
-
-function hideDiscountRow() {
-    document.getElementById('discountRow').style.display = 'none';
 }
 </script>
 

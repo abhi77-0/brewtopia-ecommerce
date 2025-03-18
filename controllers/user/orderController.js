@@ -5,107 +5,136 @@ const Product = require('../../models/product');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
+const Address = require('../../models/address');
 
 const orderController = {
     placeOrder: async (req, res) => {
         try {
             console.log('Starting place order process...');
-            const userId = req.session.user.id;
+            
             const { addressId, paymentMethod } = req.body;
-
-            // Get cart with populated product details
-            const cart = await Cart.findOne({ user: userId }).populate('items.product');
+            
+            // Find the cart for the user
+            const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
             
             if (!cart || cart.items.length === 0) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: 'Cart is empty' 
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cart is empty'
                 });
             }
-
+            
             console.log('Cart found, creating order...');
-
-            // Create order items and calculate total
-            let total = 0;
+            
+            // Get the shipping address
+            const address = await Address.findById(addressId);
+            
+            if (!address) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Shipping address not found'
+                });
+            }
+            
+            // Calculate order totals
+            const subtotal = cart.items.reduce((sum, item) => {
+                return sum + (item.product.variants[item.variant].price * item.quantity);
+            }, 0);
+            
+            // Set shipping fee based on your business logic
+            const shippingFee = subtotal >= 1000 ? 0 : 40; // Free shipping for orders above 1000
+            
+            // Get coupon details from session if applied
+            let discount = 0;
+            let couponCode = null;
+            let couponId = null;
+            let couponDiscount = 0;
+            
+            if (req.session.coupon) {
+                discount = req.session.coupon.discount;
+                couponCode = req.session.coupon.code;
+                couponId = req.session.coupon.couponId;
+                couponDiscount = req.session.coupon.discount;
+            }
+            
+            const total = subtotal + shippingFee - discount;
+            
+            // Create order items array
             const orderItems = cart.items.map(item => {
-                const itemTotal = item.product.variants[item.variant].price * item.quantity;
-                total += itemTotal;
                 return {
                     product: item.product._id,
                     variant: item.variant,
-                    quantity: item.quantity,
-                    price: item.product.variants[item.variant].price
+                    price: item.product.variants[item.variant].price,
+                    quantity: item.quantity
                 };
             });
 
-            // Fetch the selected address
-            const user = await User.findById(userId);
-            const selectedAddress = user.addresses.find(addr => addr._id.toString() === addressId);
+            // Calculate expected delivery date (e.g., 7 days from now)
+            const expectedDeliveryDate = new Date();
+            expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 7);
+            
+            // Create new order with all required fields
+            const orderData = {
+                user: req.user._id,
+                items: orderItems,
+                address: addressId,
+                total: total,
+                status: 'Pending',
+                paymentMethod: paymentMethod,
+                paymentStatus: 'Pending',
+                expectedDeliveryDate: expectedDeliveryDate,
+                subtotal: subtotal,
+                shippingFee: shippingFee, // Make sure this is set
+                discount: discount
+            };
 
-            if (!selectedAddress) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid address selected'
-                });
+            // Add coupon data if exists
+            if (couponId) {
+                orderData.coupon = {
+                    code: couponCode,
+                    discount: couponDiscount,
+                    couponId: couponId
+                };
             }
 
-            // Calculate subtotal, discount, shipping, and gst
-            const subtotal = total;
-            const discount = Math.round(subtotal * 0.1);
-            const shipping = 40;
-            const gst = Math.round(subtotal * 0.18);
-            const calculatedTotal = subtotal - discount + shipping + gst;
-
-            // Create new order
-            const order = new Order({
-                user: userId,
-                items: orderItems,
-                total: calculatedTotal,
-                address: selectedAddress._id,  // Use the ObjectId of the selected address
-                paymentMethod: paymentMethod,
-                status: 'Pending',
-                subtotal,
-                discount,
-                shipping,
-                gst
-            });
-
-            // Save order
+            // Create and save the order
+            const order = new Order(orderData);
             await order.save();
-            console.log('Order saved, updating stock...');
-
-            // Update stock for each product
+            
+            // Update product stock
+            const stockUpdates = [];
             for (const item of cart.items) {
-                console.log(`Updating stock for product ${item.product._id}, variant ${item.variant}`);
-                
-                // Find the product and update its stock
                 const product = await Product.findById(item.product._id);
                 if (product && product.variants[item.variant]) {
                     product.variants[item.variant].stock -= item.quantity;
-                    await product.save();
-                    console.log(`Stock updated. New stock: ${product.variants[item.variant].stock}`);
+                    stockUpdates.push(product.save());
                 }
             }
-
-            // Clear cart
+            
+            await Promise.all(stockUpdates);
+            
+            // Clear the cart
             await Cart.findOneAndUpdate(
-                { user: userId },
+                { user: req.user._id },
                 { $set: { items: [] } }
             );
-
-            console.log('Order process completed successfully');
-
+            
+            // Clear coupon from session
+            if (req.session.coupon) {
+                delete req.session.coupon;
+            }
+            
             res.status(200).json({
                 success: true,
                 message: 'Order placed successfully',
                 orderId: order._id
             });
-
         } catch (error) {
             console.error('Error in placeOrder:', error);
             res.status(500).json({
                 success: false,
-                message: 'Error placing order'
+                message: 'Failed to place order',
+                error: error.message
             });
         }
     },

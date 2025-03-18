@@ -1,0 +1,214 @@
+<%- include('../partials/header') %>
+
+<div class="container py-5">
+    <h2 class="mb-4">My Wishlist</h2>
+
+    <% if (wishlist.products && wishlist.products.length > 0) { %>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            <% wishlist.products.forEach(product => { %>
+                <div class="col">
+                    <div class="card product-card h-100">
+                        <div class="product-image">
+                            <img src="<%= product.images.image1 || 'https://via.placeholder.com/300x300?text=No+Image' %>" 
+                                 class="card-img-top" 
+                                 alt="<%= product.name %>">
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title"><%= product.name %></h5>
+                            <% if (product.category) { %>
+                                <p class="card-text text-muted mb-2">
+                                    <small><%= product.category.name %></small>
+                                </p>
+                            <% } %>
+
+                            <div class="variant-section mb-3">
+                                <% if (product.variants) { %>
+                                    <% Object.entries(product.variants).forEach(([size, details]) => { %>
+                                        <div class="variant-item mb-2">
+                                            <span class="size"><%= size %></span>
+                                            <span class="price">₹<%= details.price %></span>
+                                            <% if (details.stock > 0) { %>
+                                                <span class="stock text-success">In Stock</span>
+                                            <% } else { %>
+                                                <span class="stock text-danger">Out of Stock</span>
+                                            <% } %>
+                                        </div>
+                                    <% }); %>
+                                <% } %>
+                            </div>
+
+                            <div class="action-buttons">
+                                <button class="btn btn-danger remove-from-wishlist" 
+                                        onclick="removeFromWishlist('<%= product._id %>', this)">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
+                                <button class="btn btn-primary move-to-cart" 
+                                        onclick="showMoveToCartModal('<%= product._id %>')">
+                                    <i class="fas fa-shopping-cart"></i> Move to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+    <% } else { %>
+        <div class="text-center py-5">
+            <i class="far fa-heart fa-3x mb-3 text-muted"></i>
+            <h3>Your wishlist is empty</h3>
+            <p class="text-muted">Add items that you like to your wishlist</p>
+            <a href="/shop/products" class="btn btn-primary">Continue Shopping</a>
+        </div>
+    <% } %>
+</div>
+
+<!-- Move to Cart Modal -->
+<div class="modal fade" id="moveToCartModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Move to Cart</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Select Size</label>
+                    <select class="form-select" id="variantSelect">
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Quantity</label>
+                    <select class="form-select" id="quantitySelect">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="moveToCart()">Add to Cart</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedProductId = null;
+
+function showMoveToCartModal(productId) {
+    selectedProductId = productId;
+    const modal = new bootstrap.Modal(document.getElementById('moveToCartModal'));
+    modal.show();
+}
+
+async function moveToCart() {
+    const variant = document.getElementById('variantSelect').value;
+    const quantity = document.getElementById('quantitySelect').value;
+
+    try {
+        const response = await fetch('/wishlist/move-to-cart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                productId: selectedProductId,
+                variant,
+                quantity: parseInt(quantity)
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('moveToCartModal')).hide();
+            
+            // Remove product card from wishlist
+            const productCard = document.querySelector(`[data-product-id="${selectedProductId}"]`);
+            if (productCard) {
+                productCard.remove();
+            }
+
+            // Show success message
+            Swal.fire({
+                title: 'Success!',
+                text: 'Product moved to cart successfully',
+                icon: 'success',
+                confirmButtonColor: '#FF9800'
+            });
+
+            // Update cart count in navbar if it exists
+            const cartBadge = document.querySelector('.cart-badge');
+            if (cartBadge) {
+                const currentCount = parseInt(cartBadge.textContent || '0');
+                cartBadge.textContent = currentCount + 1;
+            }
+
+            // Refresh page if wishlist is empty
+            if (document.querySelectorAll('.product-card').length === 0) {
+                location.reload();
+            }
+        } else {
+            throw new Error(data.message);
+        }
+    } catch (error) {
+        Swal.fire({
+            title: 'Error!',
+            text: error.message || 'Failed to move product to cart',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        });
+    }
+}
+
+function removeFromWishlist(productId, button) {
+    Swal.fire({
+        title: 'Remove from Wishlist',
+        text: 'Are you sure you want to remove this item from your wishlist?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, remove it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/wishlist/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ productId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const productCard = button.closest('.col');
+                    productCard.remove();
+
+                    // Refresh page if wishlist is empty
+                    if (document.querySelectorAll('.product-card').length === 0) {
+                        location.reload();
+                    }
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.message || 'Failed to remove from wishlist',
+                    icon: 'error',
+                    confirmButtonColor: '#FF9800'
+                });
+            });
+        }
+    });
+}
+</script>
+
+<%- include('../partials/footer') %> 

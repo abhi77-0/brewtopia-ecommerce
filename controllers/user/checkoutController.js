@@ -5,6 +5,7 @@ const User = require('../../models/userModel');
 const Order = require('../../models/Order');
 const Coupon = require('../../models/Coupon');
 const Product = require('../../models/product');
+const Address = require('../../models/address');
 
 // Initialize Razorpay with error handling
 let razorpay;
@@ -291,125 +292,96 @@ exports.createRazorpayOrder = async (req, res) => {
 // Verify Razorpay payment
 exports.verifyPayment = async (req, res) => {
     try {
-        const {
-            razorpay_payment_id,
-            razorpay_order_id,
-            razorpay_signature,
-            addressId
-        } = req.body;
-
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, addressId } = req.body;
+        
         // Verify the payment signature
-        const body = razorpay_order_id + "|" + razorpay_payment_id;
-        const expectedSignature = crypto
-            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-            .update(body.toString())
-            .digest("hex");
-
-        const isAuthentic = expectedSignature === razorpay_signature;
-
-        if (!isAuthentic) {
+        const generated_signature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(razorpay_order_id + "|" + razorpay_payment_id)
+            .digest('hex');
+            
+        if (generated_signature !== razorpay_signature) {
             return res.status(400).json({
                 success: false,
                 message: 'Payment verification failed'
             });
         }
-
-        // Get cart data
-        const cart = await Cart.findOne({ user: req.user._id })
-            .populate('items.product');
-
+        
+        // Get cart details
+        const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
         if (!cart) {
-            return res.status(400).json({
+            return res.status(404).json({
                 success: false,
                 message: 'Cart not found'
             });
         }
 
-        // Verify stock availability and update stock
-        for (const item of cart.items) {
-            const product = await Product.findById(item.product._id);
-            if (!product) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Product ${item.product.name} not found`
-                });
-            }
-
-            // Check if variant exists and has enough stock
-            if (!product.variants[item.variant] || 
-                product.variants[item.variant].stock < item.quantity) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Insufficient stock for ${product.name} (${item.variant})`
-                });
-            }
-
-            // Reduce stock
-            product.variants[item.variant].stock -= item.quantity;
-            await product.save();
+        // Get address details
+        const address = await Address.findById(addressId);
+        if (!address) {
+            return res.status(404).json({
+                success: false,
+                message: 'Delivery address not found'
+            });
         }
-
-        // Calculate order total
+        
+        // Calculate order totals
+        let subtotal = 0;
+        cart.items.forEach(item => {
+            if (item.product && item.product.variants && item.variant) {
+                const variantPrice = item.product.variants[item.variant]?.price || 0;
+                subtotal += variantPrice * item.quantity;
+            }
+        });
+        
+        const shipping = 40; // Your standard shipping fee
+        const discountRate = 0.10; // 10% discount
+        const gstRate = 0.18; // 18% GST
+        
+        const discount = subtotal * discountRate;
+        const gst = Math.round(subtotal * gstRate);
+        const total = subtotal + shipping - discount + gst;
+        
+        // Create order items
         const orderItems = cart.items.map(item => ({
             product: item.product._id,
             variant: item.variant,
             quantity: item.quantity,
             price: item.product.variants[item.variant].price
         }));
-
-        // Calculate total
-        const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const shippingFee = 40;
-        const discount = subtotal * 0.1;
-        const total = subtotal + shippingFee - discount;
-
-        // Calculate expected delivery date (7 days from now)
-        const expectedDeliveryDate = new Date();
-        expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 7);
-
-        // Create order data
-        const orderData = {
+        
+        // Create the order
+        const order = new Order({
             user: req.user._id,
             items: orderItems,
-            address: addressId,
-            total: Math.round(total),
-            status: 'Processing',
+            address: addressId,  // Changed from shippingAddress to address
             paymentMethod: 'razorpay',
-            paymentStatus: 'Completed',
-            expectedDeliveryDate: expectedDeliveryDate
-        };
-
-        // Create the order
-        const order = await Order.create(orderData);
-
-        // Clear the cart after successful order
-        await Cart.findOneAndDelete({ user: req.user._id });
-
-        // Send success response
+            paymentId: razorpay_payment_id,
+            orderId: razorpay_order_id,
+            status: 'Processing',
+            subtotal: subtotal,
+            shippingFee: shipping,
+            discount: discount,
+            tax: gst,
+            total: total
+        });
+        
+        await order.save();
+        
+        // Clear the cart
+        await Cart.findOneAndUpdate(
+            { user: req.user._id },
+            { $set: { items: [] } }
+        );
+        
         res.status(200).json({
             success: true,
-            message: 'Payment verified successfully',
+            message: 'Payment verified and order placed successfully',
             orderId: order._id
         });
-
-    } catch (error) {
-        console.error('Payment verification error:', error);
         
-        // If there's an error, attempt to rollback any stock changes
-        if (error.stockUpdates) {
-            try {
-                for (const update of error.stockUpdates) {
-                    const product = await Product.findById(update.productId);
-                    if (product) {
-                        product.variants[update.variant].stock += update.quantity;
-                        await product.save();
-                    }
-                }
-            } catch (rollbackError) {
-                console.error('Error rolling back stock updates:', rollbackError);
-            }
-        }
-
+    } catch (error) {
+        console.warn('Payment verification error:', error);
         res.status(500).json({
             success: false,
             message: 'Payment verification failed',
