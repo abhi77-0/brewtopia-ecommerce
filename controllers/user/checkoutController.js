@@ -324,6 +324,30 @@ exports.verifyPayment = async (req, res) => {
             });
         }
 
+        // Verify stock availability and update stock
+        for (const item of cart.items) {
+            const product = await Product.findById(item.product._id);
+            if (!product) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Product ${item.product.name} not found`
+                });
+            }
+
+            // Check if variant exists and has enough stock
+            if (!product.variants[item.variant] || 
+                product.variants[item.variant].stock < item.quantity) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Insufficient stock for ${product.name} (${item.variant})`
+                });
+            }
+
+            // Reduce stock
+            product.variants[item.variant].stock -= item.quantity;
+            await product.save();
+        }
+
         // Calculate order total
         const orderItems = cart.items.map(item => ({
             product: item.product._id,
@@ -334,8 +358,8 @@ exports.verifyPayment = async (req, res) => {
 
         // Calculate total
         const subtotal = orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const shippingFee = 40; // or your shipping fee logic
-        const discount = subtotal * 0.1; // 10% discount or your discount logic
+        const shippingFee = 40;
+        const discount = subtotal * 0.1;
         const total = subtotal + shippingFee - discount;
 
         // Calculate expected delivery date (7 days from now)
@@ -347,14 +371,12 @@ exports.verifyPayment = async (req, res) => {
             user: req.user._id,
             items: orderItems,
             address: addressId,
-            total: Math.round(total), // Round to avoid decimal issues
+            total: Math.round(total),
             status: 'Processing',
             paymentMethod: 'razorpay',
             paymentStatus: 'Completed',
             expectedDeliveryDate: expectedDeliveryDate
         };
-
-        console.log('Creating order with data:', orderData); // Debug log
 
         // Create the order
         const order = await Order.create(orderData);
@@ -371,6 +393,22 @@ exports.verifyPayment = async (req, res) => {
 
     } catch (error) {
         console.error('Payment verification error:', error);
+        
+        // If there's an error, attempt to rollback any stock changes
+        if (error.stockUpdates) {
+            try {
+                for (const update of error.stockUpdates) {
+                    const product = await Product.findById(update.productId);
+                    if (product) {
+                        product.variants[update.variant].stock += update.quantity;
+                        await product.save();
+                    }
+                }
+            } catch (rollbackError) {
+                console.error('Error rolling back stock updates:', rollbackError);
+            }
+        }
+
         res.status(500).json({
             success: false,
             message: 'Payment verification failed',
