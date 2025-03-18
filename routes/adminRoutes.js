@@ -7,6 +7,7 @@ const adminController = require('../controllers/admin/adminController');
 const categoryController = require('../controllers/user/categoryController');
 const productController = require('../controllers/user/productController');
 const orderController = require('../controllers/admin/orderController');
+const couponController = require('../controllers/admin/couponController');
 
 // Import middleware and configurations
 const { isAdmin } = require('../middlewares/adminAuth');
@@ -66,5 +67,10 @@ router.put('/orders/:orderId/return', isAdmin, (req, res, next) => {
     });
     next();
 }, orderController.handleReturn);
+
+// Coupon Management Routes
+router.get('/coupons', isAdmin, couponController.getCoupons);
+router.post('/coupons', isAdmin, couponController.createCoupon);
+router.patch('/coupons/:id/toggle', isAdmin, couponController.toggleCouponStatus);
 
 module.exports = router;

@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const Cart = require('../../models/shopingCart');
 const User = require('../../models/userModel');
 const Order = require('../../models/Order');
+const Coupon = require('../../models/Coupon');
 const Product = require('../../models/product');
 
 // Initialize Razorpay with error handling
@@ -494,3 +495,121 @@ exports.retryPayment = async (req, res) => {
         });
     }
 };
+
+exports.applyCoupon = async (req, res) => {
+    try {
+        const { couponCode } = req.body;
+        const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+
+        if (!cart) {
+            return res.status(404).json({
+                success: false,
+                message: 'Cart not found'
+            });
+        }
+
+        // Calculate cart subtotal
+        const subtotal = cart.items.reduce((sum, item) => {
+            return sum + (item.product.variants[item.variant].price * item.quantity);
+        }, 0);
+
+        // Find valid coupon
+        const coupon = await Coupon.findOne({
+            code: couponCode.toUpperCase(),
+            isActive: true,
+            startDate: { $lte: new Date() },
+            endDate: { $gte: new Date() },
+            usageLimit: { $gt: 0 }
+        });
+
+        if (!coupon) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired coupon code'
+            });
+        }
+
+        // Check minimum purchase requirement
+        if (subtotal < coupon.minimumPurchase) {
+            return res.status(400).json({
+                success: false,
+                message: `Minimum purchase of ₹${coupon.minimumPurchase} required`
+            });
+        }
+
+        // Calculate discount
+        let discountAmount;
+        if (coupon.discountType === 'percentage') {
+            discountAmount = (subtotal * coupon.discountAmount) / 100;
+            if (coupon.maxDiscount) {
+                discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+            }
+        } else {
+            discountAmount = coupon.discountAmount;
+        }
+
+        // Store coupon in session
+        req.session.coupon = {
+            code: coupon.code,
+            discountAmount: discountAmount
+        };
+
+        // Calculate final amounts
+        const shipping = 40; // Your shipping calculation
+        const total = subtotal + shipping - discountAmount;
+
+        res.json({
+            success: true,
+            message: 'Coupon applied successfully',
+            data: {
+                subtotal,
+                shipping,
+                discount: discountAmount,
+                total: Math.max(0, total),
+                couponCode: coupon.code
+            }
+        });
+
+    } catch (error) {
+        console.error('Error applying coupon:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to apply coupon'
+        });
+    }
+};
+
+exports.removeCoupon = async (req, res) => {
+    try {
+        // Remove coupon from session
+        req.session.coupon = null;
+
+        const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+        
+        // Recalculate totals without coupon
+        const subtotal = cart.items.reduce((sum, item) => {
+            return sum + (item.product.variants[item.variant].price * item.quantity);
+        }, 0);
+
+        const shipping = 40; // Your shipping calculation
+        const total = subtotal + shipping;
+
+        res.json({
+            success: true,
+            message: 'Coupon removed successfully',
+            data: {
+                subtotal,
+                shipping,
+                discount: 0,
+                total
+            }
+        });
+
+    } catch (error) {
+        console.error('Error removing coupon:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to remove coupon'
+        });
+    }
+}

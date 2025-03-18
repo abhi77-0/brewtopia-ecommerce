@@ -64,7 +64,27 @@ const orderSchema = new mongoose.Schema({
         default: 'Pending'
     },
     expectedDeliveryDate: Date,
-    deliveredAt: Date
+    deliveredAt: Date,
+    subtotal: {
+        type: Number,
+        required: true
+    },
+    shippingFee: {
+        type: Number,
+        required: true
+    },
+    discount: {
+        type: Number,
+        default: 0
+    },
+    coupon: {
+        code: String,
+        discount: Number,
+        couponId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Coupon'
+        }
+    }
 }, {
     timestamps: true
 });

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Coupons - Brewtopia Admin</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <style>
+        .navbar {
+            background-color: #FF9800;
+            padding: 1rem 0;
+        }
+        .navbar-brand {
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .admin-container {
+            display: flex;
+            min-height: calc(100vh - 76px);
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            padding-top: 2rem;
+            color: white;
+        }
+        .sidebar-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            display: block;
+            transition: all 0.3s;
+        }
+        .sidebar-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffc107;
+        }
+        .sidebar-link.active {
+            background-color: #ffc107;
+            color: #1a1a1a;
+        }
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            background-color: #f8f9fa;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/admin/dashboard">Brewtopia Admin</a>
+            <div class="d-flex">
+                <a href="/admin/logout" class="btn btn-outline-light">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="/admin/dashboard" class="sidebar-link">
+                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+            </a>
+            <a href="/admin/products" class="sidebar-link">
+                <i class="fas fa-beer me-2"></i> Products
+            </a>
+            <a href="/admin/categories" class="sidebar-link">
+                <i class="fas fa-list me-2"></i> Categories
+            </a>
+            <a href="/admin/orders" class="sidebar-link">
+                <i class="fas fa-shopping-cart me-2"></i> Orders
+            </a>
+            <a href="/admin/users" class="sidebar-link">
+                <i class="fas fa-users me-2"></i> Users
+            </a>
+            <a href="/admin/coupons" class="sidebar-link active">
+                <i class="fas fa-ticket-alt me-2"></i> Coupons
+            </a>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Manage Coupons</h2>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCouponModal">
+                        <i class="fas fa-plus"></i> Add New Coupon
+                    </button>
+                </div>
+
+                <% if (messages && messages.success && messages.success.length > 0) { %>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <%= messages.success %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <% } %>
+
+                <% if (messages && messages.error && messages.error.length > 0) { %>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <%= messages.error %>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <% } %>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                        <th>Min. Purchase</th>
+                                        <th>Usage/Limit</th>
+                                        <th>Valid Until</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% coupons.forEach(coupon => { %>
+                                        <tr>
+                                            <td><%= coupon.code %></td>
+                                            <td><%= coupon.discountType === 'percentage' ? `${coupon.discountAmount}%` : `₹${coupon.discountAmount}` %></td>
+                                            <td>
+                                                <% if (coupon.discountType === 'percentage' && coupon.maxDiscount) { %>
+                                                    Up to ₹<%= coupon.maxDiscount %>
+                                                <% } else if (coupon.discountType === 'fixed') { %>
+                                                    ₹<%= coupon.discountAmount %>
+                                                <% } %>
+                                            </td>
+                                            <td>₹<%= coupon.minimumPurchase %></td>
+                                            <td><%= coupon.usedCount %>/<%= coupon.usageLimit || '∞' %></td>
+                                            <td><%= new Date(coupon.endDate).toLocaleDateString() %></td>
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" 
+                                                        onchange="toggleCouponStatus('<%= coupon._id %>')"
+                                                        <%= coupon.isActive ? 'checked' : '' %>>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-danger"
+                                                        onclick="deleteCoupon('<%= coupon._id %>')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Coupon Modal -->
+    <div class="modal fade" id="addCouponModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Coupon</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/admin/coupons" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Coupon Code</label>
+                            <input type="text" class="form-control" name="code" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" name="description" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Discount Type</label>
+                            <select class="form-select" name="discountType" onchange="toggleMaxDiscount(this)">
+                                <option value="percentage">Percentage</option>
+                                <option value="fixed">Fixed Amount</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Discount Amount</label>
+                            <input type="number" class="form-control" name="discountAmount" required>
+                        </div>
+                        <div class="mb-3" id="maxDiscountField">
+                            <label class="form-label">Maximum Discount</label>
+                            <input type="number" class="form-control" name="maxDiscount">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Minimum Purchase</label>
+                            <input type="number" class="form-control" name="minimumPurchase" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" name="startDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" name="endDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Usage Limit</label>
+                            <input type="number" class="form-control" name="usageLimit">
+                            <small class="text-muted">Leave empty for unlimited uses</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Coupon</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        function toggleCouponStatus(couponId) {
+            fetch(`/admin/coupons/${couponId}/toggle`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Success',
+                        text: data.message,
+                        icon: 'success',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'Error',
+                    text: error.message || 'Failed to update coupon status',
+                    icon: 'error',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            });
+        }
+
+        function toggleMaxDiscount(select) {
+            const maxDiscountField = document.getElementById('maxDiscountField');
+            maxDiscountField.style.display = select.value === 'percentage' ? 'block' : 'none';
+        }
+
+        // Set default dates when opening the modal
+        document.getElementById('addCouponModal').addEventListener('show.bs.modal', function () {
+            const today = new Date().toISOString().split('T')[0];
+            document.querySelector('input[name="startDate"]').value = today;
+            
+            const nextMonth = new Date();
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            document.querySelector('input[name="endDate"]').value = nextMonth.toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html> 

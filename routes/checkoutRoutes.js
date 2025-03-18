@@ -22,4 +22,8 @@ router.get('/razorpay/success/:orderId', isAuthenticated, checkoutController.pay
 router.get('/razorpay/failure/:orderId', isAuthenticated, checkoutController.paymentFailure);
 router.get('/razorpay/retry/:orderId', isAuthenticated, checkoutController.retryPayment);
 
+// Add these routes
+router.post('/apply-coupon', isAuthenticated, checkoutController.applyCoupon);
+router.post('/remove-coupon', isAuthenticated, checkoutController.removeCoupon);
+
 module.exports = router;

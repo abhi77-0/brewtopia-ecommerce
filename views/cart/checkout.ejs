@@ -146,6 +146,15 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Coupon Section -->
+            <div class="coupon-section mb-3">
+                <div class="input-group">
+                    <input type="text" id="couponCode" class="form-control" placeholder="Enter coupon code">
+                    <button class="btn btn-primary" type="button" onclick="applyCoupon()">Apply</button>
+                </div>
+                <div id="couponMessage" class="form-text"></div>
+            </div>
         </div>
 
         <!-- Right Column - Order Summary -->
@@ -155,21 +164,24 @@
                     <h5>Order Summary</h5>
                 </div>
                 <div class="summary-body">
-                    <div class="summary-row">
-                        <span>Subtotal</span>
-                        <span>₹<%= subtotal %></span>
-                    </div>
-                    <div class="summary-row discount">
-                        <span>Discount (10%)</span>
-                        <span>-₹<%= discount %></span>
-                    </div>
-                    <div class="summary-row">
-                        <span>Delivery Fee</span>
-                        <span>₹<%= shipping %></span>
-                    </div>
-                    <div class="summary-total">
-                        <span>Total Amount</span>
-                        <span>₹<%= total %></span>
+                    <div class="price-summary">
+                        <div class="summary-item">
+                            <span>Subtotal</span>
+                            <span id="subtotal">₹<%= subtotal %></span>
+                        </div>
+                        <div class="summary-item">
+                            <span>Shipping</span>
+                            <span id="shipping">₹<%= shipping %></span>
+                        </div>
+                        <div class="summary-item discount-row" id="discountRow" style="display: none;">
+                            <span>Discount (<span id="couponCode"></span>)</span>
+                            <span id="discount" class="text-success">-₹0</span>
+                            <button class="btn btn-sm btn-link text-danger" onclick="removeCoupon()">Remove</button>
+                        </div>
+                        <div class="summary-total">
+                            <span>Total Amount</span>
+                            <span id="total">₹<%= total %></span>
+                        </div>
                     </div>
                     <button onclick="proceedToPayment()" class="btn btn-primary btn-lg w-100">
                         Place Order
@@ -507,6 +519,27 @@
         grid-template-columns: 1fr;
     }
 }
+
+.coupon-section {
+    border: 1px solid #dee2e6;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.discount-row {
+    color: #28a745;
+    align-items: center;
+}
+
+.discount-row button {
+    padding: 0;
+    margin-left: 8px;
+}
+
+#couponMessage {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
 </style>
 
 <script>
@@ -704,17 +737,6 @@ async function initiateRazorpayPayment() {
 
 async function handlePaymentSuccess(response, addressId) {
     try {
-        // Show loading state
-        Swal.fire({
-            title: 'Verifying Payment',
-            text: 'Please wait...',
-            allowOutsideClick: false,
-            showConfirmButton: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
         const verifyResponse = await fetch('/checkout/razorpay/verify', {
             method: 'POST',
             headers: {
@@ -730,10 +752,12 @@ async function handlePaymentSuccess(response, addressId) {
             credentials: 'same-origin'
         });
 
+        if (!verifyResponse.ok) {
+            throw new Error('Payment verification failed');
+        }
+
         const verifyData = await verifyResponse.json();
-        
         if (verifyData.success) {
-            // Redirect to success page with order ID
             window.location.href = `/checkout/razorpay/success/${verifyData.orderId}`;
         } else {
             throw new Error(verifyData.message || 'Payment verification failed');
@@ -745,11 +769,6 @@ async function handlePaymentSuccess(response, addressId) {
             text: error.message || 'Payment verification failed',
             icon: 'error',
             confirmButtonColor: '#FF9800'
-        }).then(() => {
-            // Redirect to failure page if orderId is available
-            if (error.orderId) {
-                window.location.href = `/checkout/razorpay/failure/${error.orderId}`;
-            }
         });
     }
 }
@@ -831,6 +850,77 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+async function applyCoupon() {
+    const couponCode = document.getElementById('couponCode').value;
+    const messageElement = document.getElementById('couponMessage');
+    
+    if (!couponCode) {
+        messageElement.innerHTML = '<span class="text-danger">Please enter a coupon code</span>';
+        return;
+    }
+
+    try {
+        const response = await fetch('/checkout/apply-coupon', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ couponCode })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            messageElement.innerHTML = `<span class="text-success">${data.message}</span>`;
+            updatePriceSummary(data.data);
+            showDiscountRow(data.data.couponCode);
+        } else {
+            messageElement.innerHTML = `<span class="text-danger">${data.message}</span>`;
+        }
+    } catch (error) {
+        messageElement.innerHTML = '<span class="text-danger">Failed to apply coupon</span>';
+    }
+}
+
+async function removeCoupon() {
+    try {
+        const response = await fetch('/checkout/remove-coupon', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            document.getElementById('couponCode').value = '';
+            document.getElementById('couponMessage').innerHTML = '';
+            updatePriceSummary(data.data);
+            hideDiscountRow();
+        }
+    } catch (error) {
+        console.error('Error removing coupon:', error);
+    }
+}
+
+function updatePriceSummary(data) {
+    document.getElementById('subtotal').textContent = `₹${data.subtotal}`;
+    document.getElementById('shipping').textContent = `₹${data.shipping}`;
+    document.getElementById('discount').textContent = `-₹${data.discount}`;
+    document.getElementById('total').textContent = `₹${data.total}`;
+}
+
+function showDiscountRow(couponCode) {
+    const discountRow = document.getElementById('discountRow');
+    discountRow.style.display = 'flex';
+    document.getElementById('couponCode').textContent = couponCode;
+}
+
+function hideDiscountRow() {
+    document.getElementById('discountRow').style.display = 'none';
+}
 </script>
 
 <%- include('../partials/footer') %> 
