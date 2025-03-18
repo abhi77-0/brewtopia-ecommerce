@@ -15,6 +15,7 @@ const cloudinary = require('./config/cloudinary');
 const productRoutes = require('./routes/productRoutes');
 const flash = require('connect-flash');
 const cartRoutes = require('./routes/cartRoutes');
+const checkoutRoutes=require('./routes/checkoutRoutes')
 const orderRoutes = require('./routes/orderRoutes');
 require('./config/googleAuth');
 
@@ -96,6 +97,7 @@ app.use("/users", userRoutes);
 app.use("/admin", adminRoutes);
 app.use('/shop', shopRoutes);
 app.use('/cart', cartRoutes);
+app.use('/cart', checkoutRoutes);
 app.use('/orders', orderRoutes);
 app.use('/products', productRoutes);
 

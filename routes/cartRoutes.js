@@ -13,7 +13,4 @@ router.delete('/remove/:productId/:variant', cartController.removeFromCart);
 router.post('/add', cartController.addToCart);
 router.get('/check/:productId/:variant', cartController.checkItemInCart);
 
-// Add new checkout route
-router.get('/checkout', isAuthenticated, cartController.getCheckout);
-
 module.exports = router; 

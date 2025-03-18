@@ -1,0 +1,25 @@
+const express = require('express');
+const router = express.Router();
+const checkoutController = require('../controllers/user/checkoutController');
+
+// Import the middleware object and destructure to get the isAuthenticated function
+const authMiddleware = require('../middlewares/authMiddleware');
+const { isAuthenticated } = authMiddleware;
+
+// Checkout page
+router.get('/checkout', isAuthenticated, checkoutController.getCheckout);
+
+// Process checkout 
+router.post('/process', isAuthenticated, checkoutController.processCheckout);
+
+// Order confirmation
+router.get('/confirmation/:orderId', isAuthenticated, checkoutController.orderConfirmation);
+
+// Add these routes for Razorpay
+router.post('/razorpay/create-order', isAuthenticated, checkoutController.createRazorpayOrder);
+router.post('/razorpay/verify', isAuthenticated, checkoutController.verifyPayment);
+router.get('/razorpay/success/:orderId', isAuthenticated, checkoutController.paymentSuccess);
+router.get('/razorpay/failure/:orderId', isAuthenticated, checkoutController.paymentFailure);
+router.get('/razorpay/retry/:orderId', isAuthenticated, checkoutController.retryPayment);
+
+module.exports = router;

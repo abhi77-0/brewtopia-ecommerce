@@ -1,0 +1,87 @@
+<%- include('../partials/header') %>
+
+<div class="container my-5 text-center">
+    <div class="failure-animation mb-4">
+        <i class="fas fa-times-circle text-danger" style="font-size: 5rem;"></i>
+    </div>
+    
+    <h1 class="mb-4">Payment Failed</h1>
+    <p class="lead mb-4">We're sorry, but your payment could not be processed.</p>
+    
+    <div class="order-details mb-4">
+        <h4>Order #<%= order._id %></h4>
+        <p>Total Amount: ₹<%= order.total %></p>
+    </div>
+
+    <div class="action-buttons">
+        <button onclick="retryPayment('<%= order._id %>')" class="btn btn-primary me-3">
+            Retry Payment
+        </button>
+        <a href="/orders/<%= order._id %>" class="btn btn-outline-primary">
+            View Order Details
+        </a>
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+function retryPayment(orderId) {
+    fetch(`/checkout/retry-payment/${orderId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            const options = {
+                key: "<%= process.env.RAZORPAY_KEY_ID %>",
+                amount: data.order.amount,
+                currency: data.order.currency,
+                order_id: data.order.id,
+                name: "Brewtopia",
+                description: "Order Payment",
+                handler: function (response) {
+                    verifyPayment(response, orderId);
+                }
+            };
+            const rzp = new Razorpay(options);
+            rzp.open();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to initiate payment. Please try again.');
+    });
+}
+
+function verifyPayment(response, orderId) {
+    fetch('/checkout/verify-payment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            orderId: orderId
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = `/checkout/success/${orderId}`;
+        } else {
+            window.location.href = `/checkout/failure/${orderId}`;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Payment verification failed. Please contact support.');
+    });
+}
+</script>
+
+<%- include('../partials/footer') %>
