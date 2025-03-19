@@ -5,7 +5,8 @@ const User = require('../../models/userModel');
 const Order = require('../../models/Order');
 const Coupon = require('../../models/Coupon');
 const Product = require('../../models/product');
-const Address = require('../../models/address');
+const Address = require('../../models/Address');
+const Wallet = require('../../models/walletModel');
 
 // Initialize Razorpay with error handling
 let razorpay;
@@ -27,6 +28,20 @@ exports.getCheckout = async (req, res) => {
         const shipping = 40;
         const discountRate = 0.10;
         const gstRate = 0.18;
+
+        // Find or create wallet for the user
+        let wallet = await Wallet.findOne({ userId });
+        if (!wallet) {
+            wallet = new Wallet({
+                userId,
+                balance: 0,
+                transactions: []
+            });
+            await wallet.save();
+            
+            // Update user with wallet reference
+            await User.findByIdAndUpdate(userId, { wallet: wallet._id });
+        }
 
         const cart = await Cart.findOne({ user: userId })
             .populate({
@@ -63,6 +78,8 @@ exports.getCheckout = async (req, res) => {
             ? user.addresses[0] 
             : null;
 
+        console.log('Wallet balance:', wallet.balance); // Debug log
+
         res.render('cart/checkout', {
             title: 'Checkout',
             cart,
@@ -74,6 +91,7 @@ exports.getCheckout = async (req, res) => {
             gst,
             total: Math.round(total),
             itemCount,
+            walletBalance: wallet.balance, // Use wallet directly
             razorpayKeyId: process.env.RAZORPAY_KEY_ID
         });
 

@@ -132,14 +132,18 @@
                             </label>
                         </div>
                         <div class="payment-option">
-                            <input type="radio" name="paymentMethod" id="wallet" value="wallet">
+                            <input type="radio" name="paymentMethod" id="wallet" value="wallet" 
+                                   <%= (walletBalance < total) ? 'disabled' : '' %>>
                             <label for="wallet">
                                 <div class="icon-wrapper">
                                     <i class="fas fa-wallet"></i>
                                 </div>
                                 <div class="payment-details">
                                     <h6>Wallet</h6>
-                                    <small>Available balance: ₹0</small>
+                                    <small>Available balance: ₹<%= walletBalance ? walletBalance.toFixed(2) : '0.00' %></small>
+                                    <% if (walletBalance < total) { %>
+                                        <small class="text-danger d-block">Insufficient balance</small>
+                                    <% } %>
                                 </div>
                             </label>
                         </div>

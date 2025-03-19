@@ -15,6 +15,7 @@ const cloudinary = require('./config/cloudinary');
 const productRoutes = require('./routes/productRoutes');
 const flash = require('connect-flash');
 const cartRoutes = require('./routes/cartRoutes');
+const walletRoutes = require('./routes/walletRoutes');
 const checkoutRoutes=require('./routes/checkoutRoutes')
 const wishlistRoutes = require('./routes/wishlistRoutes');
 const orderRoutes = require('./routes/orderRoutes');
@@ -103,6 +104,7 @@ app.use('/orders', orderRoutes);
 app.use('/products', productRoutes);
 app.use('/checkout', checkoutRoutes);
 app.use('/', wishlistRoutes);
+app.use('/wallet', walletRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

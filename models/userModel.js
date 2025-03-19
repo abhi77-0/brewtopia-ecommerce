@@ -59,6 +59,11 @@ const userSchema = new Schema({
     },
     picture: {
         type: String
+    },
+    // Replace wallet fields with wallet reference
+    wallet: {
+        type: Schema.Types.ObjectId,
+        ref: 'Wallet'
     }
 }, {
     timestamps: true
