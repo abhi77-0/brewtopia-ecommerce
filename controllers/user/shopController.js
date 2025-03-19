@@ -172,4 +172,62 @@ exports.searchProductsAutocomplete = async (req, res) => {
     } catch (error) {
         // ... existing error handling ...
     }
+};
+
+exports.getProductVariants = async (req, res) => {
+    try {
+        const productId = req.params.id;
+        console.log('Fetching variants for product:', productId); // Debug log
+        
+        const product = await Product.findById(productId);
+        console.log('Found product:', product); // Debug log
+        
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        // Create variants object
+        const variants = {};
+        
+        // Log the product variants
+        console.log('Product variants:', product.variants);
+
+        // Check if variants exist and add them to the response
+        if (product.variants) {
+            if (product.variants['500ml']) {
+                variants['500ml'] = {
+                    stock: product.variants['500ml'].stock || 0,
+                    price: product.variants['500ml'].price || product.price
+                };
+            }
+            
+            if (product.variants['650ml']) {
+                variants['650ml'] = {
+                    stock: product.variants['650ml'].stock || 0,
+                    price: product.variants['650ml'].price || product.price
+                };
+            }
+        }
+
+        // Log the final variants object
+        console.log('Sending variants:', variants);
+
+        res.json({
+            success: true,
+            variants: variants,
+            productName: product.name,
+            basePrice: product.price
+        });
+
+    } catch (error) {
+        console.error('Error fetching product variants:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch product variants',
+            error: error.message // Include error message for debugging
+        });
+    }
 }; 

@@ -509,30 +509,40 @@
 
     /* Wishlist button styles */
     .wishlist-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
         background: none;
         border: none;
-        color: #dc3545;
-        font-size: 1.2rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 50%;
-        transition: all 0.3s;
+        padding: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
-    
-    .wishlist-btn:hover {
-        background-color: rgba(220, 53, 69, 0.1);
-        transform: scale(1.1);
-    }
-    
+
     .wishlist-btn i {
         color: #FF9800;
-        font-size: 1.2rem;
+        font-size: 1.5rem;
+        transition: all 0.3s ease;
     }
-    
-    .wishlist-btn i.fas {
+
+    .wishlist-btn.active i {
         color: #FF9800;
+        transform: scale(1.1);
+    }
+
+    .wishlist-btn:hover i {
+        transform: scale(1.1);
+    }
+
+    /* Animation for heart click */
+    @keyframes heartPop {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+
+    .heart-pop {
+        animation: heartPop 0.3s ease;
     }
 
     /* Rating styles */
@@ -785,7 +795,7 @@
                                         </div>
 
                                         <div class="d-flex justify-content-between mb-3">
-                                            <button class="wishlist-btn" onclick="toggleWishlist('<%= product._id %>', event)">
+                                            <button class="wishlist-btn" onclick="toggleWishlist('<%= product._id %>', this, event)">
                                                 <i class="far fa-heart"></i>
                                             </button>
                                             
@@ -991,86 +1001,91 @@
     }
 
     // Add wishlist functionality
-    function toggleWishlist(productId, event) {
+    function toggleWishlist(productId, button, event) {
+        // Prevent any parent click events
         event.preventDefault();
         event.stopPropagation();
-        
-        const button = event.currentTarget;
+
         const icon = button.querySelector('i');
+        const isAdding = icon.classList.contains('far');
         
-        // Toggle heart icon
-        if (icon.classList.contains('far')) {
-            icon.classList.remove('far');
-            icon.classList.add('fas');
-            addToWishlist(productId);
-        } else {
-            icon.classList.remove('fas');
-            icon.classList.add('far');
-            removeFromWishlist(productId);
-        }
-    }
-    
-    function addToWishlist(productId) {
-        fetch('/wishlist/add', {
+        // Add animation class
+        icon.classList.add('heart-pop');
+        
+        // Remove animation class after animation ends
+        setTimeout(() => {
+            icon.classList.remove('heart-pop');
+        }, 300);
+
+        fetch(`/users/wishlist/${isAdding ? 'add' : 'remove'}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ productId })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                console.log('Added to wishlist');
+                // Toggle icon
+                icon.classList.toggle('far');
+                icon.classList.toggle('fas');
+                button.classList.toggle('active');
+
+                // Show success toast
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    icon: 'success',
+                    title: isAdding ? 'Added to wishlist' : 'Removed from wishlist'
+                });
             } else {
-                console.error('Failed to add to wishlist:', data.message);
+                throw new Error(data.message || 'Failed to update wishlist');
             }
         })
         .catch(error => {
-            console.error('Error adding to wishlist:', error);
+            console.error('Error:', error);
+            // Show error message
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                icon: 'error',
+                title: 'Error updating wishlist'
+            });
         });
     }
-    
-    function removeFromWishlist(productId) {
-        fetch('/wishlist/remove', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ productId })
-        })
-        .then(response => response.json())
-        .then(data => {
+
+    // Check wishlist status on page load
+    document.addEventListener('DOMContentLoaded', async function() {
+        try {
+            const response = await fetch('/users/wishlist/items');
+            const data = await response.json();
             if (data.success) {
-                console.log('Removed from wishlist');
-            } else {
-                console.error('Failed to remove from wishlist:', data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error removing from wishlist:', error);
-        });
-    }
-    
-    // Check if products are in wishlist on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        fetch('/wishlist/items')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success && data.items) {
-                const wishlistItems = data.items;
-                wishlistItems.forEach(item => {
-                    const button = document.querySelector(`.product-card[data-product-id="${item}"] .wishlist-btn i`);
-                    if (button) {
-                        button.classList.remove('far');
-                        button.classList.add('fas');
+                const wishlistItems = new Set(data.items);
+                document.querySelectorAll('.product-card').forEach(card => {
+                    const productId = card.dataset.productId;
+                    const wishlistBtn = card.querySelector('.wishlist-btn');
+                    const icon = wishlistBtn.querySelector('i');
+                    
+                    if (wishlistItems.has(productId)) {
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                        wishlistBtn.classList.add('active');
                     }
                 });
             }
-        })
-        .catch(error => {
-            console.error('Error fetching wishlist items:', error);
-        });
+        } catch (error) {
+            console.error('Error checking wishlist status:', error);
+        }
     });
 
     // Global variables

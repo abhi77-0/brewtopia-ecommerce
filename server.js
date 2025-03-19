@@ -16,6 +16,7 @@ const productRoutes = require('./routes/productRoutes');
 const flash = require('connect-flash');
 const cartRoutes = require('./routes/cartRoutes');
 const checkoutRoutes=require('./routes/checkoutRoutes')
+const wishlistRoutes = require('./routes/wishlistRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 require('./config/googleAuth');
 
@@ -101,6 +102,7 @@ app.use('/cart', checkoutRoutes);
 app.use('/orders', orderRoutes);
 app.use('/products', productRoutes);
 app.use('/checkout', checkoutRoutes);
+app.use('/', wishlistRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

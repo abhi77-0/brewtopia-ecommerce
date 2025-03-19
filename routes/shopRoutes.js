@@ -14,6 +14,7 @@ router.get('/products', shopController.getAllProducts);
 
 // Product details page
 router.get('/products/:productId', shopController.getProductDetails);
+router.get('/product/:id/variants', shopController.getProductVariants);
 
 // Filter products by category
 //router.get('/category/:categoryId', shopController.getProducts);
@@ -34,5 +35,6 @@ router.get('/api/products/:id', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch product' });
     }
 });
+
 
 module.exports = router; 
