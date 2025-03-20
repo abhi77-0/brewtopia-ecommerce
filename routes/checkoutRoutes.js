@@ -26,4 +26,7 @@ router.get('/razorpay/retry/:orderId', isAuthenticated, checkoutController.retry
 router.post('/apply-coupon', isAuthenticated, checkoutController.applyCoupon);
 router.post('/remove-coupon', isAuthenticated, checkoutController.removeCoupon);
 
+// Coupon routes
+router.get('/available-coupons', isAuthenticated, checkoutController.availableCoupons);
+
 module.exports = router;

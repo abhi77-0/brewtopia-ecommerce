@@ -25,8 +25,7 @@ exports.getCheckout = async (req, res) => {
         const userId = req.session.user?._id || req.session.user?.id;
         let subtotal = 0;
         let itemCount = 0;
-        const shipping = 40;
-        const discountRate = 0.10;
+        const shipping = 40
         const gstRate = 0.18;
 
         // Find or create wallet for the user
@@ -69,9 +68,9 @@ exports.getCheckout = async (req, res) => {
             }
         });
 
-        const discount = subtotal * discountRate;
+        
         const gst = Math.round(subtotal * gstRate);
-        const total = subtotal + shipping - discount + gst;
+        const total = subtotal + shipping + gst;
 
         // Get the default or first address
         const defaultAddress = user.addresses && user.addresses.length > 0 
@@ -87,7 +86,6 @@ exports.getCheckout = async (req, res) => {
             defaultAddress,
             subtotal,
             shipping,
-            discount: Math.round(discount),
             gst,
             total: Math.round(total),
             itemCount,
@@ -126,7 +124,6 @@ exports.processCheckout = async (req, res) => {
         let subtotal = 0;
         let itemCount = 0;
         const shipping = 40;
-        const discountRate = 0.10;
         const gstRate = 0.18;
         
         // Verify stock and prepare order items
@@ -184,7 +181,6 @@ exports.processCheckout = async (req, res) => {
             items: orderItems,
             subtotal,
             shipping,
-            discount: Math.round(discount),
             gst,
             total: Math.round(total),
             shippingAddress,
@@ -603,3 +599,60 @@ exports.removeCoupon = async (req, res) => {
         });
     }
 }
+
+exports.availableCoupons = async (req, res) => {
+    try {
+        const userId = req.session.user?._id || req.session.user?.id;
+        console.log('Fetching coupons for user:', userId);
+        
+        // Get the cart to check total amount
+        const cart = await Cart.findOne({ user: userId })
+            .populate({
+                path: 'items.product',
+                model: 'Product',
+                select: 'name description images variants brand'
+            });
+            
+        if (!cart) {
+            console.log('Cart not found for user:', userId);
+            return res.status(400).json({
+                success: false,
+                message: 'Cart not found'
+            });
+        }
+        
+        // Calculate cart subtotal
+        let subtotal = 0;
+        cart.items.forEach(item => {
+            if (item.product && item.product.variants && item.variant) {
+                const variantPrice = item.product.variants[item.variant]?.price || 0;
+                subtotal += variantPrice * item.quantity;
+            }
+        });
+        console.log('Cart subtotal:', subtotal);
+        
+        // Find all active coupons regardless of minimum purchase
+        const activeCoupons = await Coupon.find({
+            isActive: true,
+            endDate: { $gt: new Date() },
+            startDate: { $lte: new Date() }
+        });
+        
+        console.log('Active non-expired coupons:', activeCoupons.length);
+        
+        // Return all active coupons
+        res.json({
+            success: true,
+            coupons: activeCoupons,
+            cartSubtotal: subtotal
+        });
+        
+    } catch (error) {
+        console.error('Error fetching available coupons:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch coupons',
+            error: error.message
+        });
+    }
+};

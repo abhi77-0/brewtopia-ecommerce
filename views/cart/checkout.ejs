@@ -159,36 +159,40 @@
                 
                 <div class="summary-item d-flex justify-content-between">
                     <span>Subtotal (<%= itemCount %> items)</span>
-                    <span>₹<%= subtotal %></span>
-                </div>
-                
-                <div class="summary-item d-flex justify-content-between text-success">
-                    <span>Discount (10%)</span>
-                    <span>-₹<%= discount %></span>
+                    <span id="subtotal">₹<%= subtotal %></span>
                 </div>
                 
                 <div class="summary-item d-flex justify-content-between">
                     <span>Shipping</span>
-                    <span>₹<%= shipping %></span>
+                    <span id="shipping">₹<%= shipping %></span>
                 </div>
                 
                 <div class="summary-item d-flex justify-content-between">
                     <span>GST (18%)</span>
-                    <span>₹<%= gst %></span>
+                    <span id="gst">₹<%= gst %></span>
                 </div>
                 
                 <div class="summary-total d-flex justify-content-between">
                     <span>Total</span>
-                    <span>₹<%= total %></span>
+                    <span id="total">₹<%= total %></span>
                 </div>
 
                 <!-- Coupon Section -->
-                <div class="coupon-section mb-3 mt-3">
-                    <div class="input-group">
-                        <input type="text" id="couponCode" class="form-control" placeholder="Enter coupon code">
-                        <button class="btn btn-primary" type="button" onclick="applyCoupon()">Apply</button>
+                <div class="coupon-section mt-3 mb-3">
+                    <div id="appliedCouponSection" style="display: none;">
+                        <div class="applied-coupon">
+                            <span class="text-success">
+                                <i class="fas fa-check-circle me-1"></i>
+                                <span id="appliedCouponMessage"></span>
+                            </span>
+                            <button class="btn btn-sm text-danger" onclick="removeCoupon()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div id="couponMessage" class="form-text"></div>
+                    <button class="btn btn-outline-primary w-100" type="button" data-bs-toggle="modal" data-bs-target="#couponsModal">
+                        <i class="fas fa-tag me-2"></i>Apply Coupon
+                    </button>
                 </div>
 
                 <!-- Place Order Button -->
@@ -249,6 +253,31 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-primary" id="saveAddressBtn">Save Address</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add this at the end of your body, before the closing </body> tag -->
+<div class="modal fade" id="couponsModal" tabindex="-1" aria-labelledby="couponsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="couponsModalLabel">Available Coupons</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="coupon-list">
+          <div id="availableCoupons" class="d-flex flex-column gap-3">
+            <!-- Coupons will be loaded here -->
+            <div class="spinner-border text-primary mx-auto" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -619,6 +648,122 @@
     margin-top: 0.5rem;
     font-size: 0.85rem;
 }
+
+.coupon-card {
+    border: 1px dashed var(--primary-color);
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #FFF9E6;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.coupon-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.coupon-card::before, .coupon-card::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transform: translateY(-50%);
+}
+
+.coupon-card::before {
+    left: -10px;
+}
+
+.coupon-card::after {
+    right: -10px;
+}
+
+.coupon-content {
+    flex: 1;
+}
+
+.coupon-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.coupon-code {
+    font-weight: 600;
+    color: var(--primary-dark);
+    margin: 0;
+}
+
+.coupon-discount {
+    background: var(--primary-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.coupon-description {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.coupon-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.applied-coupon {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #e8f5e9;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+#couponsModal .modal-body {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.inactive-coupon {
+    opacity: 0.8;
+    background-color: #f8f9fa;
+    border: 1px dashed #dee2e6;
+}
+
+.invalid-coupon-message {
+    font-size: 0.75rem;
+    color: #dc3545;
+}
+
+.coupon-min {
+    font-weight: 500;
+}
+
+.coupon-min.text-danger {
+    color: #dc3545;
+}
+
+.btn-secondary:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+}
 </style>
 
 <script>
@@ -930,15 +1075,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-async function applyCoupon() {
-    const couponCode = document.getElementById('couponCode').value;
-    const messageElement = document.getElementById('couponMessage');
-    
-    if (!couponCode) {
-        messageElement.innerHTML = '<span class="text-danger">Please enter a coupon code</span>';
-        return;
-    }
-
+async function applyCoupon(couponCode) {
     try {
         const response = await fetch('/checkout/apply-coupon', {
             method: 'POST',
@@ -951,41 +1088,52 @@ async function applyCoupon() {
         const data = await response.json();
 
         if (data.success) {
-            messageElement.innerHTML = `<span class="text-success">${data.message}</span>`;
-            updatePriceSummary(data.data);
+            // Close the modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('couponsModal'));
+            modal.hide();
+            
+            // Show applied coupon section
+            const appliedCouponSection = document.getElementById('appliedCouponSection');
+            const appliedCouponMessage = document.getElementById('appliedCouponMessage');
+            appliedCouponSection.style.display = 'block';
+            appliedCouponMessage.textContent = `Coupon ${couponCode} applied successfully!`;
+            
+            // Update price summary
+            if (data.data) {
+                document.getElementById('subtotal').textContent = `₹${data.data.subtotal}`;
+                document.getElementById('shipping').textContent = `₹${data.data.shipping}`;
+                
+                // Add discount row if it doesn't exist
+                let discountRow = document.querySelector('.summary-item.discount');
+                if (!discountRow && data.data.discount > 0) {
+                    discountRow = document.createElement('div');
+                    discountRow.className = 'summary-item discount d-flex justify-content-between';
+                    discountRow.innerHTML = `
+                        <span>Discount</span>
+                        <span id="discount">-₹${data.data.discount}</span>
+                    `;
+                    document.getElementById('shipping').closest('.summary-item').after(discountRow);
+                } else if (discountRow) {
+                    document.getElementById('discount').textContent = `-₹${data.data.discount}`;
+                }
+                
+                document.getElementById('total').textContent = `₹${data.data.total}`;
+            }
         } else {
-            messageElement.innerHTML = `<span class="text-danger">${data.message}</span>`;
+            throw new Error(data.message);
         }
     } catch (error) {
-        messageElement.innerHTML = '<span class="text-danger">Failed to apply coupon</span>';
+        console.error('Error applying coupon:', error);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to apply coupon',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        });
     }
 }
 
-function updatePriceSummary(data) {
-    // Update basic values
-    document.getElementById('subtotal').textContent = `₹${data.subtotal}`;
-    document.getElementById('shipping').textContent = `₹${data.shipping}`;
-    document.getElementById('discount').textContent = `-₹${data.discount}`;
-    document.getElementById('gst').textContent = `₹${data.gst}`;
-    document.getElementById('total').textContent = `₹${data.total}`;
-    
-    // Update savings callout
-    const savingsCallout = document.querySelector('.savings-callout');
-    if (data.discount > 0) {
-        if (!savingsCallout) {
-            const newSavingsCallout = document.createElement('div');
-            newSavingsCallout.className = 'savings-callout';
-            newSavingsCallout.innerHTML = `<i class="fas fa-tags me-2"></i>You're saving ₹${data.discount} on this order!`;
-            document.querySelector('.price-summary').after(newSavingsCallout);
-        } else {
-            savingsCallout.innerHTML = `<i class="fas fa-tags me-2"></i>You're saving ₹${data.discount} on this order!`;
-            savingsCallout.style.display = 'block';
-        }
-    } else if (savingsCallout) {
-        savingsCallout.style.display = 'none';
-    }
-}
-
+// Add the removeCoupon function
 async function removeCoupon() {
     try {
         const response = await fetch('/checkout/remove-coupon', {
@@ -998,14 +1146,118 @@ async function removeCoupon() {
         const data = await response.json();
 
         if (data.success) {
-            document.getElementById('couponCode').value = '';
-            document.getElementById('couponMessage').innerHTML = '';
-            updatePriceSummary(data.data);
+            // Hide applied coupon section
+            document.getElementById('appliedCouponSection').style.display = 'none';
+            
+            // Update price summary
+            if (data.data) {
+                document.getElementById('subtotal').textContent = `₹${data.data.subtotal}`;
+                document.getElementById('shipping').textContent = `₹${data.data.shipping}`;
+                
+                // Remove discount row if it exists
+                const discountRow = document.querySelector('.summary-item.discount');
+                if (discountRow) {
+                    discountRow.remove();
+                }
+                
+                document.getElementById('total').textContent = `₹${data.data.total}`;
+            }
+        } else {
+            throw new Error(data.message);
         }
     } catch (error) {
         console.error('Error removing coupon:', error);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to remove coupon',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        });
+    }
+}
+
+// Add event listener for modal show event
+document.addEventListener('DOMContentLoaded', function() {
+    const couponsModal = document.getElementById('couponsModal');
+    if (couponsModal) {
+        couponsModal.addEventListener('show.bs.modal', function() {
+            console.log('Coupons modal is opening, fetching coupons...');
+            fetchAvailableCoupons();
+        });
+    }
+});
+
+// Function to fetch available coupons
+async function fetchAvailableCoupons() {
+    const couponsContainer = document.getElementById('availableCoupons');
+    const loadingSpinner = document.getElementById('couponLoadingSpinner');
+    
+    try {
+        const response = await fetch('/checkout/available-coupons');
+        const data = await response.json();
+        
+        if (data.coupons && data.coupons.length > 0) {
+            let couponsHTML = '';
+            const cartSubtotal = <%= subtotal %>; // Get cart subtotal from EJS
+            
+            data.coupons.forEach(coupon => {
+                const isApplicable = !coupon.minimumPurchase || cartSubtotal >= coupon.minimumPurchase;
+                const discountText = coupon.discountType === 'percentage' 
+                    ? `${coupon.discountAmount}% OFF` 
+                    : `₹${coupon.discountAmount} OFF`;
+                
+                couponsHTML += `
+                    <div class="coupon-card mb-3 ${!isApplicable ? 'inactive-coupon' : ''}">
+                        <div class="coupon-content">
+                            <div class="coupon-header">
+                                <h6 class="coupon-code">${coupon.code}</h6>
+                                <span class="coupon-discount">${discountText}</span>
+                            </div>
+                            <p class="coupon-description mb-2">${coupon.description || 'Discount on your order'}</p>
+                            <div class="coupon-meta">
+                                <span class="coupon-validity">Valid till: ${new Date(coupon.endDate).toLocaleDateString()}</span>
+                                ${coupon.minimumPurchase ? 
+                                    `<span class="coupon-min ${!isApplicable ? 'text-danger' : ''}">
+                                        Min purchase: ₹${coupon.minimumPurchase}
+                                    </span>` : 
+                                    ''}
+                            </div>
+                            ${!isApplicable ? 
+                                `<div class="invalid-coupon-message text-danger mt-2">
+                                    Add ₹${coupon.minimumPurchase - cartSubtotal} more to apply this coupon
+                                </div>` : 
+                                ''}
+                        </div>
+                        <button class="btn btn-sm ${isApplicable ? 'btn-primary' : 'btn-secondary'} apply-coupon-btn" 
+                                onclick="applyCoupon('${coupon.code}')"
+                                ${!isApplicable ? 'disabled' : ''}>
+                            ${isApplicable ? 'Apply' : 'Not Applicable'}
+                        </button>
+                    </div>
+                `;
+            });
+            
+            couponsContainer.innerHTML = couponsHTML;
+        } else {
+            couponsContainer.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-ticket-alt fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No coupons available at the moment</p>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error fetching coupons:', error);
+        couponsContainer.innerHTML = `
+            <div class="text-center py-4 text-danger">
+                <i class="fas fa-exclamation-circle fa-3x mb-3"></i>
+                <p>Failed to load coupons. Please try again.</p>
+            </div>
+        `;
+    } finally {
+        loadingSpinner.style.display = 'none';
     }
 }
 </script>
 
-<%- include('../partials/footer') %> 
+<%- include('../partials/footer') %>
