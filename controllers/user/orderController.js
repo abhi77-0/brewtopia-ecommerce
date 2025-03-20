@@ -39,11 +39,25 @@ const orderController = {
             
             // Calculate order totals
             const subtotal = cart.items.reduce((sum, item) => {
-                return sum + (item.product.variants[item.variant].price * item.quantity);
+                // Check if item.product and item.product.variants exist
+                if (!item.product || !item.product.variants || !item.product.variants[item.variant]) {
+                    console.log('Warning: Invalid product or variant:', item);
+                    return sum; // Skip this item
+                }
+                
+                const price = parseFloat(item.product.variants[item.variant].price) || 0;
+                const quantity = parseInt(item.quantity) || 0;
+                
+                console.log(`Product: ${item.product.name}, Variant: ${item.variant}, Price: ${price}, Quantity: ${quantity}`);
+                
+                return sum + (price * quantity);
             }, 0);
-            
+
+            console.log('Calculated subtotal:', subtotal);
+
             // Set shipping fee based on your business logic
             const shippingFee = subtotal >= 1000 ? 0 : 40; // Free shipping for orders above 1000
+            console.log('Shipping fee:', shippingFee);
             
             // Get coupon details from session if applied
             let discount = 0;
@@ -52,13 +66,26 @@ const orderController = {
             let couponDiscount = 0;
             
             if (req.session.coupon) {
-                discount = req.session.coupon.discount;
+                discount = parseFloat(req.session.coupon.discount) || 0;
                 couponCode = req.session.coupon.code;
                 couponId = req.session.coupon.couponId;
-                couponDiscount = req.session.coupon.discount;
+                couponDiscount = parseFloat(req.session.coupon.discount) || 0;
             }
             
-            const total = subtotal + shippingFee - discount;
+            console.log('Discount:', discount);
+            
+            // Calculate total with validation
+            const total = parseFloat(subtotal) + parseFloat(shippingFee) - parseFloat(discount);
+            console.log('Final total:', total);
+            
+            // Validate total before proceeding
+            if (isNaN(total) || total < 0) {
+                console.error('Invalid total calculated:', total);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Could not calculate order total. Please try again.'
+                });
+            }
             
             // Create order items array
             const orderItems = cart.items.map(item => {

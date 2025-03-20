@@ -63,13 +63,10 @@ exports.postAddOffer = async (req, res) => {
             name,
             description,
             type,
-            discountType,
-            discountAmount,
-            maxDiscountAmount,
-            applicableToId,
             startDate,
+            discountPercentage,
             endDate,
-            minimumPurchaseAmount
+            applicableToId,
         } = req.body;
 
         // Validate dates
@@ -100,13 +97,10 @@ exports.postAddOffer = async (req, res) => {
             name,
             description,
             type,
-            discountType,
-            discountAmount,
-            maxDiscountAmount: maxDiscountAmount || undefined,
+            discountPercentage,
             applicableTo: applicableToId,
             startDate,
             endDate,
-            minimumPurchaseAmount: minimumPurchaseAmount || 0,
             isActive: true
         });
 
@@ -145,12 +139,10 @@ exports.postEditOffer = async (req, res) => {
         const {
             name,
             description,
-            discountType,
-            discountAmount,
-            maxDiscountAmount,
+            discountPercentage,
             startDate,
             endDate,
-            minimumPurchaseAmount,
+            applicableToId,
             isActive
         } = req.body;
 
@@ -166,12 +158,10 @@ exports.postEditOffer = async (req, res) => {
         Object.assign(offer, {
             name,
             description,
-            discountType,
-            discountAmount,
-            maxDiscountAmount: maxDiscountAmount || undefined,
+            discountPercentage,
             startDate,
             endDate,
-            minimumPurchaseAmount: minimumPurchaseAmount || 0,
+            applicableToId,
             isActive: isActive === 'true'
         });
 

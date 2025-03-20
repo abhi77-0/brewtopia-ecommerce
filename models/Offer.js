@@ -15,18 +15,9 @@ const offerSchema = new mongoose.Schema({
         required: true,
         enum: ['product', 'category', 'referral']
     },
-    discountType: {
-        type: String,
-        required: true,
-        enum: ['percentage', 'fixed']
-    },
-    discountAmount: {
+    discountPercentage: {
         type: Number,
         required: true,
-        min: 0
-    },
-    maxDiscountAmount: {
-        type: Number,
         min: 0
     },
     applicableTo: {

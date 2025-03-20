@@ -214,74 +214,64 @@
                     </button>
                 </div>
 
-                <div class="row g-4">
-                    <% if (offers && offers.length > 0) { %>
-                        <% offers.forEach(offer => { %>
-                            <div class="col-md-6 col-lg-4">
-                                <div class="offer-card card">
-                                    <div class="card-body">
-                                        <div class="card-title">
-                                            <h5 class="mb-0"><%= offer.name %></h5>
-                                            <span class="badge bg-<%= offer.type === 'product' ? 'success' : 'primary' %>">
-                                                <%= offer.type.charAt(0).toUpperCase() + offer.type.slice(1) %>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Description</th>
+                                <th>Discount</th>
+                                <th>Valid From</th>
+                                <th>Valid Until</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (offers && offers.length > 0) { %>
+                                <% offers.forEach(offer => { %>
+                                    <tr>
+                                        <td><%= offer.name %></td>
+                                        <td><%= offer.description %></td>
+                                        <td><%= offer.discountPercentage %>%</td>
+                                        <td><%= new Date(offer.startDate).toLocaleDateString() %></td>
+                                        <td><%= new Date(offer.endDate).toLocaleDateString() %></td>
+                                        <td>
+                                            <% const now = new Date(); %>
+                                            <span class="badge bg-<%= 
+                                                !offer.isActive ? 'secondary' :
+                                                now < new Date(offer.startDate) ? 'info' :
+                                                now > new Date(offer.endDate) ? 'danger' :
+                                                'success'
+                                            %>">
+                                                <%= 
+                                                    !offer.isActive ? 'Inactive' :
+                                                    now < new Date(offer.startDate) ? 'Scheduled' :
+                                                    now > new Date(offer.endDate) ? 'Expired' :
+                                                    'Active'
+                                                %>
                                             </span>
-                                        </div>
-                                        <p class="card-text"><%= offer.description %></p>
-                                        
-                                        <div class="offer-details">
-                                            <div class="detail-item">
-                                                <span>Discount:</span>
-                                                <strong>
-                                                    <%= offer.discountType === 'percentage' ? 
-                                                        `${offer.discountAmount}%` : 
-                                                        `₹${offer.discountAmount}` %>
-                                                </strong>
-                                            </div>
-                                            <div class="detail-item">
-                                                <span>Valid From:</span>
-                                                <span><%= new Date(offer.startDate).toLocaleDateString() %></span>
-                                            </div>
-                                            <div class="detail-item">
-                                                <span>Valid Until:</span>
-                                                <span><%= new Date(offer.endDate).toLocaleDateString() %></span>
-                                            </div>
-                                            <div class="detail-item">
-                                                <span>Status:</span>
-                                                <% const now = new Date(); %>
-                                                <span class="badge bg-<%= 
-                                                    !offer.isActive ? 'secondary' :
-                                                    now < new Date(offer.startDate) ? 'info' :
-                                                    now > new Date(offer.endDate) ? 'danger' :
-                                                    'success'
-                                                %>">
-                                                    <%= 
-                                                        !offer.isActive ? 'Inactive' :
-                                                        now < new Date(offer.startDate) ? 'Scheduled' :
-                                                        now > new Date(offer.endDate) ? 'Expired' :
-                                                        'Active'
-                                                    %>
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div class="action-buttons">
-                                            <button class="btn btn-outline-primary btn-action" onclick="editOffer('<%= offer._id %>')">
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-outline-primary btn-sm" onclick="editOffer('<%= offer._id %>')">
                                                 <i class="fas fa-edit"></i> Edit
                                             </button>
-                                            <button class="btn btn-outline-danger btn-action" onclick="deleteOffer('<%= offer._id %>')">
+                                            <button class="btn btn-outline-danger btn-sm" onclick="deleteOffer('<%= offer._id %>')">
                                                 <i class="fas fa-trash-alt"></i> Delete
                                             </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <% }); %>
-                    <% } else { %>
-                        <div class="col-12 text-center py-5">
-                            <i class="fas fa-gift fa-3x mb-3 text-muted"></i>
-                            <p class="text-muted">No offers found. Create your first offer!</p>
-                        </div>
-                    <% } %>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted">
+                                        <i class="fas fa-gift fa-3x mb-3"></i>
+                                        <p>No offers found. Create your first offer!</p>
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -329,18 +319,14 @@
                             </div>
                         </div>
 
-                        <!-- Discount Type and Amount -->
+                        <!-- Discount Amount with Percentage Symbol -->
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="discountType" class="form-label">Discount Type</label>
-                                <select class="form-select" id="discountType" name="discountType" required>
-                                    <option value="percentage">Percentage</option>
-                                    <option value="fixed">Fixed Amount</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="discountAmount" class="form-label">Discount Amount</label>
-                                <input type="number" class="form-control" id="discountAmount" name="discountAmount" required>
+                            <div class="col-md-12 mb-3">
+                                <label for="discountPercentage" class="form-label">Discount Percentage</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="discountPercentage" name="discountPercentage" required min="0" max="100" step="0.01">
+                                    <span class="input-group-text">%</span>
+                                </div>
                             </div>
                         </div>
 
@@ -356,11 +342,6 @@
                             </div>
                         </div>
 
-                        <!-- Minimum Purchase Amount -->
-                        <div class="mb-3">
-                            <label for="minimumPurchaseAmount" class="form-label">Minimum Purchase Amount</label>
-                            <input type="number" class="form-control" id="minimumPurchaseAmount" name="minimumPurchaseAmount" value="0">
-                        </div>
 
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
