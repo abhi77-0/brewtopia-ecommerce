@@ -8,6 +8,7 @@ const categoryController = require('../controllers/user/categoryController');
 const productController = require('../controllers/user/productController');
 const orderController = require('../controllers/admin/orderController');
 const couponController = require('../controllers/admin/couponController');
+const offerController = require('../controllers/admin/offerController');
 
 // Import middleware and configurations
 const { isAdmin } = require('../middlewares/adminAuth');
@@ -73,5 +74,12 @@ router.put('/orders/:orderId/return', isAdmin, (req, res, next) => {
 router.get('/coupons', isAdmin, couponController.getCoupons);
 router.post('/coupons', isAdmin, couponController.createCoupon);
 router.patch('/coupons/:id/toggle', isAdmin, couponController.toggleCouponStatus);
+
+// Offer Management Routes (New)
+router.get('/offers', isAdmin, offerController.getOffers);
+router.get('/offers/:id', isAdmin, offerController.getOffer);
+router.post('/offers/add', isAdmin, offerController.postAddOffer);
+router.put('/offers/edit/:id', isAdmin, offerController.postEditOffer);
+router.delete('/offers/delete/:id', isAdmin, offerController.deleteOffer);
 
 module.exports = router;

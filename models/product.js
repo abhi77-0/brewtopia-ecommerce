@@ -68,6 +68,14 @@ const productSchema = new Schema({
         type: String,
         required: true,
         enum: ['kingfisher', 'heineken', 'budweiser', 'corona', 'carlsberg']
+    },
+    offer: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Offer'
+    },
+    categoryOffer: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Offer'
     }
 }, {
     timestamps: true

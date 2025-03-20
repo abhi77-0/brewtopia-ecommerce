@@ -30,6 +30,5 @@ categorySchema.virtual('productCount', {
     match: { isDeleted: false }
 });
 
-const Category = mongoose.model('Category', categorySchema);
-
-module.exports = Category; 
+// Export the model, checking if it already exists first
+module.exports = mongoose.models.Category || mongoose.model('Category', categorySchema);

@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Brewtopia Admin</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Navbar Styles */
+        .navbar {
+            background-color: #FF9800;
+            padding: 1rem 0;
+        }
+
+        .navbar-brand {
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .navbar-brand:hover {
+            color: #ffc107;
+        }
+
+        /* Sidebar Styles */
+        .admin-container {
+            display: flex;
+            min-height: calc(100vh - 76px);
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            padding-top: 2rem;
+            color: white;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+
+        .sidebar-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            display: block;
+            transition: all 0.3s;
+        }
+
+        .sidebar-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffc107;
+        }
+
+        .sidebar-link.active {
+            background-color: #ffc107;
+            color: #1a1a1a;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            background-color: #f8f9fa;
+        }
+
+        /* Offer Card Styles */
+        .offer-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            margin-bottom: 2rem;
+            height: 100%;
+        }
+
+        .offer-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .offer-card .card-body {
+            padding: 2rem;
+        }
+
+        .offer-card .card-title {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .offer-card .card-text {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .offer-details {
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .offer-details .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .offer-card .action-buttons {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .offer-card .btn-action {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            justify-content: center;
+        }
+
+        /* Modal Styles */
+        .modal-content {
+            border-radius: 10px;
+            border: none;
+        }
+
+        .modal-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .modal-footer {
+            background-color: #f8f9fa;
+            border-top: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .btn-primary {
+            background-color: #FF9800;
+            border-color: #FF9800;
+        }
+
+        .btn-primary:hover {
+            background-color: #e68a00;
+            border-color: #e68a00;
+        }
+
+        .badge {
+            padding: 0.5em 0.8em;
+            font-weight: 500;
+        }
+
+        .badge-product {
+            background-color: #4CAF50;
+        }
+
+        .badge-category {
+            background-color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/admin/dashboard">Brewtopia Admin</a>
+            <div class="d-flex">
+                <a href="/admin/logout" class="btn btn-outline-light">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="/admin/dashboard" class="sidebar-link">
+                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+            </a>
+            <a href="/admin/products" class="sidebar-link">
+                <i class="fas fa-beer me-2"></i> Products
+            </a>
+            <a href="/admin/categories" class="sidebar-link">
+                <i class="fas fa-list me-2"></i> Categories
+            </a>
+            <a href="/admin/offers" class="sidebar-link active">
+                <i class="fas fa-gift me-2"></i> Offers
+            </a>
+            <a href="/admin/orders" class="sidebar-link">
+                <i class="fas fa-shopping-cart me-2"></i> Orders
+            </a>
+            <a href="/admin/users" class="sidebar-link">
+                <i class="fas fa-users me-2"></i> Users
+            </a>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Offers Management</h1>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#offerModal" onclick="resetOfferForm()">
+                        <i class="fas fa-plus me-2"></i>Add New Offer
+                    </button>
+                </div>
+
+                <div class="row g-4">
+                    <% if (offers && offers.length > 0) { %>
+                        <% offers.forEach(offer => { %>
+                            <div class="col-md-6 col-lg-4">
+                                <div class="offer-card card">
+                                    <div class="card-body">
+                                        <div class="card-title">
+                                            <h5 class="mb-0"><%= offer.name %></h5>
+                                            <span class="badge bg-<%= offer.type === 'product' ? 'success' : 'primary' %>">
+                                                <%= offer.type.charAt(0).toUpperCase() + offer.type.slice(1) %>
+                                            </span>
+                                        </div>
+                                        <p class="card-text"><%= offer.description %></p>
+                                        
+                                        <div class="offer-details">
+                                            <div class="detail-item">
+                                                <span>Discount:</span>
+                                                <strong>
+                                                    <%= offer.discountType === 'percentage' ? 
+                                                        `${offer.discountAmount}%` : 
+                                                        `₹${offer.discountAmount}` %>
+                                                </strong>
+                                            </div>
+                                            <div class="detail-item">
+                                                <span>Valid From:</span>
+                                                <span><%= new Date(offer.startDate).toLocaleDateString() %></span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <span>Valid Until:</span>
+                                                <span><%= new Date(offer.endDate).toLocaleDateString() %></span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <span>Status:</span>
+                                                <% const now = new Date(); %>
+                                                <span class="badge bg-<%= 
+                                                    !offer.isActive ? 'secondary' :
+                                                    now < new Date(offer.startDate) ? 'info' :
+                                                    now > new Date(offer.endDate) ? 'danger' :
+                                                    'success'
+                                                %>">
+                                                    <%= 
+                                                        !offer.isActive ? 'Inactive' :
+                                                        now < new Date(offer.startDate) ? 'Scheduled' :
+                                                        now > new Date(offer.endDate) ? 'Expired' :
+                                                        'Active'
+                                                    %>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="action-buttons">
+                                            <button class="btn btn-outline-primary btn-action" onclick="editOffer('<%= offer._id %>')">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                            <button class="btn btn-outline-danger btn-action" onclick="deleteOffer('<%= offer._id %>')">
+                                                <i class="fas fa-trash-alt"></i> Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="col-12 text-center py-5">
+                            <i class="fas fa-gift fa-3x mb-3 text-muted"></i>
+                            <p class="text-muted">No offers found. Create your first offer!</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Offer Modal -->
+    <div class="modal fade" id="offerModal" tabindex="-1" aria-labelledby="offerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="offerModalLabel">Add New Offer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="offerForm">
+                        <input type="hidden" name="offerId" value="">
+                        
+                        <!-- Offer Name -->
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Offer Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" required></textarea>
+                        </div>
+
+                        <!-- Type and Applicable To -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="type" class="form-label">Offer Type</label>
+                                <select class="form-select" id="type" name="type" required onchange="handleTypeChange(this.value)">
+                                    <option value="">Select Type</option>
+                                    <option value="product">Product Offer</option>
+                                    <option value="category">Category Offer</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="applicableToId" class="form-label">Applicable To</label>
+                                <select class="form-select" id="applicableToId" name="applicableToId" required>
+                                    <option value="">Select...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Discount Type and Amount -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="discountType" class="form-label">Discount Type</label>
+                                <select class="form-select" id="discountType" name="discountType" required>
+                                    <option value="percentage">Percentage</option>
+                                    <option value="fixed">Fixed Amount</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="discountAmount" class="form-label">Discount Amount</label>
+                                <input type="number" class="form-control" id="discountAmount" name="discountAmount" required>
+                            </div>
+                        </div>
+
+                        <!-- Dates -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="startDate" class="form-label">Start Date</label>
+                                <input type="datetime-local" class="form-control" id="startDate" name="startDate" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="endDate" class="form-label">End Date</label>
+                                <input type="datetime-local" class="form-control" id="endDate" name="endDate" required>
+                            </div>
+                        </div>
+
+                        <!-- Minimum Purchase Amount -->
+                        <div class="mb-3">
+                            <label for="minimumPurchaseAmount" class="form-label">Minimum Purchase Amount</label>
+                            <input type="number" class="form-control" id="minimumPurchaseAmount" name="minimumPurchaseAmount" value="0">
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Offer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Debug: Log the available products and categories
+        console.log('Products:', <%- JSON.stringify(products) %>);
+        console.log('Categories:', <%- JSON.stringify(categories) %>);
+
+        // Store data globally
+        const products = <%- JSON.stringify(products) %>;
+        const categories = <%- JSON.stringify(categories) %>;
+
+        // Function to handle type change
+        function handleTypeChange(selectedType) {
+            console.log('Selected type:', selectedType);
+            const applicableToSelect = document.getElementById('applicableToId');
+            
+            // Clear existing options
+            applicableToSelect.innerHTML = '<option value="">Select...</option>';
+            
+            if (selectedType === 'product') {
+                products.forEach(product => {
+                    applicableToSelect.innerHTML += `
+                        <option value="${product._id}">${product.name}</option>
+                    `;
+                });
+            } else if (selectedType === 'category') {
+                categories.forEach(category => {
+                    applicableToSelect.innerHTML += `
+                        <option value="${category._id}">${category.name}</option>
+                    `;
+                });
+            }
+        }
+
+        // Initialize form with current date and tomorrow as default dates
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            document.getElementById('startDate').value = now.toISOString().slice(0, 16);
+            document.getElementById('endDate').value = tomorrow.toISOString().slice(0, 16);
+        });
+
+        // Form submission handler
+        document.getElementById('offerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            try {
+                const formData = new FormData(this);
+                const offerId = formData.get('offerId');
+                const url = offerId ? `/admin/offers/edit/${offerId}` : '/admin/offers/add';
+                
+                const response = await fetch(url, {
+                    method: offerId ? 'PUT' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(Object.fromEntries(formData))
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to save offer');
+                }
+
+                // Close modal and reload page
+                const modal = bootstrap.Modal.getInstance(document.getElementById('offerModal'));
+                modal.hide();
+                window.location.reload();
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+
+        // Edit offer
+        async function editOffer(id) {
+            try {
+                const response = await fetch(`/admin/offers/${id}`);
+                const offer = await response.json();
+                
+                if (!response.ok) throw new Error(offer.message);
+                
+                // Fill the form
+                const form = document.getElementById('offerForm');
+                Object.keys(offer).forEach(key => {
+                    const input = form.elements[key];
+                    if (input) {
+                        if (key === 'startDate' || key === 'endDate') {
+                            input.value = new Date(offer[key]).toISOString().slice(0, 16);
+                        } else {
+                            input.value = offer[key];
+                        }
+                    }
+                });
+                
+                // Update modal title
+                document.querySelector('.modal-title').textContent = 'Edit Offer';
+                
+                // Show modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('offerModal'));
+                modal.show();
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        // Delete offer
+        async function deleteOffer(id) {
+            try {
+                const result = await Swal.fire({
+                    title: 'Are you sure?',
+                    text: "This action cannot be undone!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, delete it!'
+                });
+
+                if (result.isConfirmed) {
+                    const response = await fetch(`/admin/offers/delete/${id}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) throw new Error(data.message);
+                    
+                    window.location.reload();
+                }
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        // Function to reset the form when adding a new offer
+        function resetOfferForm() {
+            document.getElementById('offerForm').reset();
+            document.querySelector('.modal-title').textContent = 'Add New Offer';
+            document.querySelector('input[name="offerId"]').value = '';
+            
+            // Reset the applicable to dropdown
+            const applicableToSelect = document.querySelector('select[name="applicableToId"]');
+            applicableToSelect.innerHTML = '<option value="">Select...</option>';
+            
+            // Set default dates
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            const startDateInput = document.querySelector('input[name="startDate"]');
+            const endDateInput = document.querySelector('input[name="endDate"]');
+            
+            startDateInput.value = now.toISOString().slice(0, 16);
+            endDateInput.value = tomorrow.toISOString().slice(0, 16);
+        }
+    </script>
+</body>
+</html> 
