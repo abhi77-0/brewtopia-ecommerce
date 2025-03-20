@@ -1,5 +1,6 @@
 const Order = require('../../models/Order');
 const User = require('../../models/userModel');
+const Wallet = require('../../models/walletModel');
 const mongoose = require('mongoose');
 
 const OrderController = {
@@ -129,7 +130,7 @@ const OrderController = {
 
             console.log('Processing return request:', { orderId, status });
 
-            const order = await Order.findById(orderId);
+            const order = await Order.findById(orderId).populate('user');
             console.log('Found order:', order ? 'yes' : 'no', {
                 orderId: order?._id,
                 currentStatus: order?.status,
@@ -153,12 +154,54 @@ const OrderController = {
                 status: order.status
             });
 
+            // Process refund if return is accepted and payment was completed
+            if (status === 'accept' && order.paymentStatus === 'Completed') {
+                try {
+                    // Find user's wallet
+                    const userId = order.user._id || order.user;
+                    const wallet = await Wallet.findOne({ userId });
+                    
+                    if (!wallet) {
+                        console.error('Wallet not found for user:', userId);
+                    } else {
+                        // Calculate new balance
+                        const newBalance = wallet.balance + order.total;
+                        
+                        // Add refund transaction to wallet
+                        wallet.transactions.push({
+                            type: 'credit',
+                            amount: order.total,
+                            description: `Refund for returned order #${order._id.toString().slice(-6).toUpperCase()}`,
+                            orderId: order._id,
+                            date: new Date(),
+                            balance: newBalance,
+                            userId
+                        });
+                        
+                        // Update wallet balance
+                        wallet.balance = newBalance;
+                        
+                        // Save wallet changes
+                        await wallet.save();
+                        
+                        // Update order payment status to reflect refund
+                        order.paymentStatus = 'Refunded';
+                        
+                        console.log(`Refund processed: ${order.total} added to wallet for user ${userId}`);
+                    }
+                } catch (refundError) {
+                    console.error('Error processing refund:', refundError);
+                    // Continue with order update even if refund fails
+                    // We can implement a retry mechanism or manual intervention later
+                }
+            }
+
             await order.save();
             console.log('Order updated successfully');
 
             res.json({
                 success: true,
-                message: `Return request ${status}ed successfully`
+                message: `Return request ${status}ed successfully${status === 'accept' ? ' and refund processed' : ''}`
             });
 
         } catch (error) {

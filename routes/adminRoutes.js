@@ -46,7 +46,6 @@ router.delete('/categories/:categoryId', isAdmin, categoryController.deleteCateg
 
 // Order Management Routes
 router.get('/orders', isAdmin, orderController.getAllOrders);
-//router.put('/orders/:id/status', isAdmin, orderController.updateOrderStatus);
 router.put('/orders/:id/status', isAdmin, orderController.updateOrderStatus);
 
 // Add debugging middleware
@@ -67,6 +66,8 @@ router.put('/orders/:orderId/return', isAdmin, (req, res, next) => {
     });
     next();
 }, orderController.handleReturn);
+
+
 
 // Coupon Management Routes
 router.get('/coupons', isAdmin, couponController.getCoupons);

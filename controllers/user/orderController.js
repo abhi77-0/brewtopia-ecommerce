@@ -5,7 +5,8 @@ const Product = require('../../models/product');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
-const Address = require('../../models/address');
+const Address = require('../../models/Address');
+const Wallet = require('../../models/walletModel');
 
 const orderController = {
     placeOrder: async (req, res) => {
@@ -122,6 +123,51 @@ const orderController = {
             // Clear coupon from session
             if (req.session.coupon) {
                 delete req.session.coupon;
+            }
+            
+            // Handle wallet payment if selected
+            if (paymentMethod === 'wallet') {
+                // Find user's wallet
+                const wallet = await Wallet.findOne({ userId: req.user._id });
+                
+                if (!wallet) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Wallet not found'
+                    });
+                }
+                
+                // Check if wallet has sufficient balance
+                if (wallet.balance < total) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Insufficient wallet balance'
+                    });
+                }
+                
+                // Calculate new balance
+                const newBalance = wallet.balance - total;
+                
+                // Create transaction record with all required fields
+                wallet.transactions.push({
+                    type: 'debit',
+                    amount: total,
+                    description: `Payment for order #${order._id.toString().slice(-6).toUpperCase()}`,
+                    orderId: order._id,
+                    date: new Date(),
+                    balance: newBalance,
+                    userId: req.user._id
+                });
+                
+                // Update wallet balance
+                wallet.balance = newBalance;
+                
+                // Save wallet changes
+                await wallet.save();
+                
+                // Update order payment status to 'Completed' (valid enum value from Order model)
+                order.paymentStatus = 'Completed';
+                await order.save();
             }
             
             res.status(200).json({
@@ -321,8 +367,43 @@ const orderController = {
                 }
             }
 
+            // Process refund if payment was already made
+            if (order.paymentStatus === 'Completed' && 
+                (order.paymentMethod === 'razorpay' || order.paymentMethod === 'wallet')) {
+                
+                // Find user's wallet
+                const wallet = await Wallet.findOne({ userId });
+                
+                if (!wallet) {
+                    console.error('Wallet not found for user:', userId);
+                    // Continue with cancellation even if wallet is not found
+                } else {
+                    // Calculate new balance
+                    const newBalance = wallet.balance + order.total;
+                    
+                    // Add refund transaction to wallet
+                    wallet.transactions.push({
+                        type: 'credit',
+                        amount: order.total,
+                        description: `Refund for cancelled order #${order._id.toString().slice(-6).toUpperCase()}`,
+                        orderId: order._id,
+                        date: new Date(),
+                        balance: newBalance,
+                        userId
+                    });
+                    
+                    // Update wallet balance
+                    wallet.balance = newBalance;
+                    
+                    // Save wallet changes
+                    await wallet.save();
+                    console.log(`Refund processed: ${order.total} added to wallet for user ${userId}`);
+                }
+            }
+
             // Update the order status instead of deleting it
             order.status = 'Cancelled';
+            order.paymentStatus = order.paymentStatus === 'Completed' ? 'Refunded' : order.paymentStatus;
             await order.save();
             
             console.log('Order cancelled successfully:', orderId);
@@ -697,83 +778,6 @@ deleteProductFromOrder: async (req, res) => {
         return res.status(500).json({ success: false, message: 'Server error' });
     }
 },
-
-cancelOrder: async (req, res) => {
-    try {
-        const orderId = req.params.id;
-        // Get user ID - handle both normal and Google auth users
-        const userId = req.session.user?._id || req.session.user?.id;
-        
-        console.log('Cancelling order:', orderId, 'for user:', userId);
-
-        if (!userId) {
-            console.error('User ID not found in session:', req.session.user);
-            return res.status(401).json({
-                success: false,
-                message: 'Authentication error. Please log in again.'
-            });
-        }
-
-        // Find the order first to make sure it exists
-        const order = await Order.findOne({ 
-            _id: orderId, 
-            user: userId 
-        }).populate('items.product');
-
-        if (!order) {
-            console.log('Order not found:', orderId);
-            return res.status(404).json({
-                success: false,
-                message: 'Order not found or already cancelled'
-            });
-        }
-
-        // Check if order can be cancelled (only Pending or Processing orders)
-        if (order.status !== 'Pending' && order.status !== 'Processing') {
-            return res.status(400).json({
-                success: false,
-                message: 'Only pending or processing orders can be cancelled'
-            });
-        }
-
-        // Restore stock for each product in the order
-        for (const item of order.items) {
-            try {
-                // Find the product and update its stock
-                const product = await Product.findById(item.product._id);
-                if (product && product.variants[item.variant]) {
-                    console.log(`Restoring stock for product ${item.product._id}, variant ${item.variant}, quantity ${item.quantity}`);
-                    product.variants[item.variant].stock += item.quantity;
-                    await product.save();
-                    console.log(`Stock restored. New stock: ${product.variants[item.variant].stock}`);
-                }
-            } catch (error) {
-                console.error(`Error restoring stock for product ${item.product._id}:`, error);
-                // Continue with other products even if one fails
-            }
-        }
-
-        // Update the order status instead of deleting it
-        order.status = 'Cancelled';
-        await order.save();
-        
-        console.log('Order cancelled successfully:', orderId);
-
-        res.json({
-            success: true,
-            message: 'Order cancelled successfully'
-        });
-
-    } catch (error) {
-        console.error('Error cancelling order:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error cancelling order: ' + error.message
-        });
-    }
-},
-
-
 
 }
 
