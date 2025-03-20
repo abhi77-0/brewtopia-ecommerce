@@ -8,7 +8,7 @@ exports.getAllProducts = async (req, res) => {
         const categoryId = req.query.category;
         const minPrice = parseInt(req.query.minPrice) || 0;
         const brand = req.query.brand;
-        const sort = req.query.sort || '';  // Ensure sort has a default value
+        const sort = req.query.sort || '';
         const searchTerm = req.query.search || '';
         
         // Pagination parameters
@@ -16,12 +16,48 @@ exports.getAllProducts = async (req, res) => {
         const limit = parseInt(req.query.limit) || 6;
         const skip = (page - 1) * limit;
         
-        // Build query - only check for isVisible since isDeleted doesn't exist
+        // Build query - only show visible products
         const query = { 
-            isVisible: true  // Only show visible products
+            isVisible: true
         };
         
-        if (categoryId) query.category = categoryId;
+        // If category filter is applied, check if the category is visible
+        if (categoryId) {
+            // First check if the category is visible
+            const category = await Category.findOne({ 
+                _id: categoryId,
+                isVisible: true 
+            });
+            
+            // Only apply category filter if the category exists and is visible
+            if (category) {
+                query.category = categoryId;
+            } else {
+                // If category is not visible, return no products
+                return res.render('shop/products', {
+                    title: 'Our Products',
+                    products: [],
+                    categories: [],
+                    selectedCategory: '',
+                    selectedBrand: '',
+                    minPrice: 0,
+                    brands: [],
+                    path: '/shop/products',
+                    sort: '',
+                    pagination: {
+                        page: 1,
+                        limit,
+                        totalProducts: 0,
+                        totalPages: 1,
+                        hasNextPage: false,
+                        hasPrevPage: false,
+                        nextPage: 1,
+                        prevPage: 1
+                    }
+                });
+            }
+        }
+        
         if (brand) query.brand = brand;
         
         // Add search term to query if provided
@@ -32,21 +68,19 @@ exports.getAllProducts = async (req, res) => {
         // Define sort options based on the sort parameter
         const sortOptions = {};
         if (sort === 'price-low') {
-            sortOptions['variants.500ml.price'] = 1;  // Ascending order
+            sortOptions['variants.500ml.price'] = 1;
         } else if (sort === 'price-high') {
-            sortOptions['variants.500ml.price'] = -1;  // Descending order
+            sortOptions['variants.500ml.price'] = -1;
         } else if (sort === 'name-asc') {
-            sortOptions.name = 1;  // Alphabetical A-Z
+            sortOptions.name = 1;
         } else if (sort === 'name-desc') {
-            sortOptions.name = -1;  // Alphabetical Z-A
+            sortOptions.name = -1;
         } else {
-            // Default sort by creation date (newest first)
             sortOptions.createdAt = -1;
         }
 
-        // Price filter - modified to be more flexible
+        // Price filter
         if (minPrice > 0) {
-            // Check if we have any products with variants structure first
             const hasVariantProducts = await Product.countDocuments({
                 'variants.500ml.price': { $exists: true }
             });
@@ -57,48 +91,63 @@ exports.getAllProducts = async (req, res) => {
                     { 'variants.650ml.price': { $gte: minPrice } }
                 ];
             } else {
-                // Fall back to a regular price field if no variants exist
                 query.price = { $gte: minPrice };
             }
         }
 
-        // First get all products to extract unique brands (without price filter)
+        // Get all visible products to extract unique brands
         const allProducts = await Product.find({ 
-            isVisible: true  // Only filter by isVisible
+            isVisible: true
+        }).populate({
+            path: 'category',
+            match: { isVisible: true } // Only include products with visible categories
         });
         
+        // Filter out products whose category is null (category not visible)
+        const filteredProducts = allProducts.filter(product => product.category !== null);
         
-        const brands = [...new Set(allProducts.map(product => product.brand).filter(Boolean))];
+        const brands = [...new Set(filteredProducts.map(product => product.brand).filter(Boolean))];
 
-        // Get total count for pagination
-        const totalProducts = await Product.countDocuments(query);
-        const totalPages = Math.ceil(totalProducts / limit) || 1; // Ensure at least 1 page
+        // Get total count for pagination (only count products with visible categories)
+        const productsWithVisibleCategories = await Product.find(query)
+            .populate({
+                path: 'category',
+                match: { isVisible: true }
+            });
+        
+        const filteredProductsCount = productsWithVisibleCategories.filter(p => p.category !== null).length;
+        const totalPages = Math.ceil(filteredProductsCount / limit) || 1;
 
-        // Then fetch filtered products with pagination
+        // Fetch filtered products with pagination
         const products = await Product.find(query)
-            .populate('category')
-            .sort(sortOptions)  // Always use sortOptions now
+            .populate({
+                path: 'category',
+                match: { isVisible: true }
+            })
+            .sort(sortOptions)
             .skip(skip)
             .limit(limit);
-
         
-        // Get all categories for the filter sidebar
-        const categories = await Category.find();
+        // Filter out products whose category is null (category not visible)
+        const visibleProducts = products.filter(product => product.category !== null);
+
+        // Get all visible categories for the filter sidebar
+        const categories = await Category.find({ isVisible: true });
 
         res.render('shop/products', {
             title: 'Our Products',
-            products,
+            products: visibleProducts,
             categories,
             selectedCategory: categoryId || '',
             selectedBrand: brand || '',
             minPrice: minPrice,
             brands,
             path: '/shop/products',
-            sort: sort || '',  
+            sort: sort || '',
             pagination: {
                 page,
                 limit,
-                totalProducts,
+                totalProducts: filteredProductsCount,
                 totalPages,
                 hasNextPage: page < totalPages,
                 hasPrevPage: page > 1,
@@ -118,7 +167,7 @@ exports.getAllProducts = async (req, res) => {
             brands: [],
             error: 'Error fetching products',
             path: '/shop/products',
-            sort: ''  // Add default sort value here too
+            sort: ''
         });
     }
 };
@@ -128,10 +177,10 @@ exports.getProductDetails = async (req, res) => {
     try {
         const productId = req.params.productId;
         
-        // Fetch the product with all its details
-        const product = await Product.findById(productId);
+        // Fetch the product with all its details and populate category
+        const product = await Product.findById(productId).populate('category');
         
-        if (!product) {
+        if (!product || !product.isVisible || (product.category && !product.category.isVisible)) {
             req.flash('error', 'Product not found');
             return res.redirect('/shop/products');
         }
@@ -150,7 +199,7 @@ exports.getProductDetails = async (req, res) => {
     }
 };
 
-// Update search autocomplete to only show visible products
+// Update search autocomplete to only show products from visible categories
 exports.searchProductsAutocomplete = async (req, res) => {
     try {
         const searchTerm = req.query.term;
@@ -163,14 +212,30 @@ exports.searchProductsAutocomplete = async (req, res) => {
         const products = await Product.find({
             name: { $regex: searchTerm, $options: 'i' },
             isDeleted: false,
-            isVisible: true  // Only show visible products
+            isVisible: true
+        })
+        .populate({
+            path: 'category',
+            match: { isVisible: true }
         })
         .select('name images _id')
         .limit(5);
         
-        // ... rest of your existing code ...
+        // Filter out products whose category is null (category not visible)
+        const visibleProducts = products.filter(product => product.category !== null);
+        
+        // Format the results for autocomplete
+        const results = visibleProducts.map(product => ({
+            id: product._id,
+            value: product.name,
+            label: product.name,
+            image: product.images && product.images.length > 0 ? product.images[0] : null
+        }));
+        
+        res.json(results);
     } catch (error) {
-        // ... existing error handling ...
+        console.error('Error in product search:', error);
+        res.status(500).json([]);
     }
 };
 

@@ -155,35 +155,6 @@ const toggleUserBlockStatus = async (req, res) => {
     }
 };
 
-// Category management controllers
-const getCategories = async (req, res) => {
-    try {
-        const categories = await Category.find();
-        const categoriesWithCounts = await Promise.all(categories.map(async (category) => {
-            const productCount = await Product.countDocuments({ category: category._id });
-            return {
-                ...category.toObject(),
-                productCount
-            };
-        }));
-
-        res.render('admin/categories', {
-            title: 'Manage Categories',
-            adminUser: req.session.adminUser,
-            path: '/admin/categories',
-            categories: categoriesWithCounts
-        });
-    } catch (error) {
-        console.error('Error fetching categories:', error);
-        res.status(500).render('admin/categories', {
-            title: 'Manage Categories',
-            adminUser: req.session.adminUser,
-            path: '/admin/categories',
-            categories: []
-        });
-    }
-};
-
 // Admin Product management controllers
 const getAdminProducts = async (req, res) => {
     try {
@@ -426,9 +397,7 @@ module.exports = {
     getUsers,
     toggleUserBlockStatus,
     
-    // Category management controllers
-    getCategories,
-    
+
     // Admin Product management controllers
     getAdminProducts,
     getAdminProductDetail,

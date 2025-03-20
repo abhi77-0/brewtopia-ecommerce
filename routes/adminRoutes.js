@@ -4,7 +4,7 @@ const router = express.Router();
 
 // Import controllers
 const adminController = require('../controllers/admin/adminController');
-const categoryController = require('../controllers/user/categoryController');
+const categoryController = require('../controllers/admin/categoryController');
 const productController = require('../controllers/user/productController');
 const orderController = require('../controllers/admin/orderController');
 const couponController = require('../controllers/admin/couponController');
@@ -39,11 +39,11 @@ router.get('/users', isAdmin, adminController.getUsers);
 router.put('/users/:id/block', isAdmin, adminController.toggleUserBlockStatus);
 
 // Category Management Routes
-router.get('/categories', isAdmin, adminController.getCategories);
+router.get('/categories', isAdmin, categoryController.getCategories);
 router.get('/categories/:id', isAdmin, categoryController.getCategory);
 router.post('/categories/add', isAdmin, categoryController.addCategory);
 router.put('/categories/:categoryId', isAdmin, categoryController.updateCategory);
-router.delete('/categories/:categoryId', isAdmin, categoryController.deleteCategory);
+router.patch('/categories/:id/toggle-visibility', isAdmin, categoryController.toggleVisibility);
 
 // Order Management Routes
 router.get('/orders', isAdmin, orderController.getAllOrders);
