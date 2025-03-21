@@ -583,6 +583,32 @@
         opacity: 0.6;
         cursor: not-allowed;
     }
+
+    .offer-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background-color: #FF9800;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 3px;
+        font-weight: bold;
+        z-index: 10;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    .original-price {
+        text-decoration: line-through;
+        color: #999;
+        margin-right: 5px;
+        font-size: 0.9em;
+    }
+    
+    .final-price {
+        color: #FF9800;
+        font-weight: bold;
+        font-size: 1.1em;
+    }
 </style>
 
 <div class="shop-container">
@@ -789,8 +815,11 @@
                                         </div>
 
                                         <div class="price-section mb-3">
-                                            <% if (product.variants && product.variants['500ml']) { %>
-                                                <span class="price">₹<%= product.variants['500ml'].price %></span>
+                                            <% if (product.bestOffer) { %>
+                                                <span class="original-price">₹<%= product.variants['500ml'].price.toFixed(2) %></span>
+                                                <span class="final-price">₹<%= product.finalPrice.toFixed(2) %></span>
+                                            <% } else { %>
+                                                <span class="final-price">₹<%= product.variants['500ml'].price.toFixed(2) %></span>
                                             <% } %>
                                         </div>
 

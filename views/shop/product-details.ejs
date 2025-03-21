@@ -721,6 +721,30 @@
     .heart-pop {
         animation: heartPop 0.3s ease;
     }
+
+    .product-offer-badge {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        background: #FF5722;
+        color: white;
+        border-radius: 20px;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+    }
+    
+    .offer-name {
+        display: block;
+        font-size: 0.8rem;
+        margin-top: 0.2rem;
+    }
+    
+    .original-price {
+        text-decoration: line-through;
+        color: #999;
+        margin-right: 5px;
+        font-size: 0.9rem;
+    }
 </style>
 
 <div class="product-details-container">
@@ -765,6 +789,17 @@
             <div class="col-lg-6">
                 <div class="product-info-section">
                     <h1 class="product-title"><%= product.name %></h1>
+                    
+                    <!-- Show offer badge if there's an offer -->
+                    <% if (product.bestOffer) { %>
+                        <div class="product-offer-badge">
+                            <span><%= product.discountPercentage %>% OFF</span>
+                            <% if (product.bestOffer.name) { %>
+                                <small class="offer-name"><%= product.bestOffer.name %></small>
+                            <% } %>
+                        </div>
+                    <% } %>
+
                     <% if (product.category) { %>
                         <div class="product-category">
                             <%= product.category.name %>
@@ -789,7 +824,6 @@
                             <div class="size-selector-container">
                                 <div class="size-label">
                                     <span>Select Size</span>
-                                    <!-- <span class="selected-price" id="selectedPrice">₹0.00</span> -->
                                 </div>
                                 
                                 <div class="size-options">
@@ -800,7 +834,14 @@
                                              data-stock="<%= product.variants['500ml'].stock %>">
                                             <div class="size-info">
                                                 <span class="size-value">500ml</span>
-                                                <span class="size-price">₹<%= product.variants['500ml'].price %></span>
+                                                <div class="price-container">
+                                                    <% if (product.bestOffer) { %>
+                                                        <span class="original-price">₹<%= product.variants['500ml'].price.toFixed(2) %></span>
+                                                        <span class="size-price">₹<%= (product.variants['500ml'].price * (1 - product.discountPercentage/100)).toFixed(2) %></span>
+                                                    <% } else { %>
+                                                        <span class="size-price">₹<%= product.variants['500ml'].price.toFixed(2) %></span>
+                                                    <% } %>
+                                                </div>
                                             </div>
                                             <div class="stock-info <%= product.variants['500ml'].stock < 5 ? 'low-stock' : '' %>">
                                                 <% if (product.variants['500ml'].stock === 0) { %>
@@ -821,7 +862,14 @@
                                              data-stock="<%= product.variants['650ml'].stock %>">
                                             <div class="size-info">
                                                 <span class="size-value">650ml</span>
-                                                <span class="size-price">₹<%= product.variants['650ml'].price %></span>
+                                                <div class="price-container">
+                                                    <% if (product.bestOffer) { %>
+                                                        <span class="original-price">₹<%= product.variants['650ml'].price.toFixed(2) %></span>
+                                                        <span class="size-price">₹<%= (product.variants['650ml'].price * (1 - product.discountPercentage/100)).toFixed(2) %></span>
+                                                    <% } else { %>
+                                                        <span class="size-price">₹<%= product.variants['650ml'].price.toFixed(2) %></span>
+                                                    <% } %>
+                                                </div>
                                             </div>
                                             <div class="stock-info <%= product.variants['650ml'].stock < 5 ? 'low-stock' : '' %>">
                                                 <% if (product.variants['650ml'].stock === 0) { %>

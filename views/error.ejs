@@ -32,10 +32,20 @@
 <body>
     <div class="container">
         <div class="error-container">
-            <div class="error-icon">⚠️</div>
-            <h1 class="mb-4">Oops!</h1>
-            <p class="text-muted mb-4"><%= error %></p>
-            <a href="/users/login" class="btn btn-primary">Go Back to Login</a>
+            <div class="error-content text-center">
+                <div class="error-icon">⚠️</div>
+                <h1 class="mb-4">Oops!</h1>
+                <% if (typeof message !== 'undefined') { %>
+                    <p class="text-muted mb-4"><%= message %></p>
+                <% } %>
+                <% if (typeof error !== 'undefined' && error.status) { %>
+                    <p class="text-muted mb-2">Status: <%= error.status %></p>
+                <% } %>
+                <% if (process.env.NODE_ENV === 'development' && typeof error !== 'undefined' && error.stack) { %>
+                    <pre class="error-stack"><%= error.stack %></pre>
+                <% } %>
+                <a href="/users/home" class="btn btn-primary">Go Back to Home</a>
+            </div>
         </div>
     </div>
 </body>

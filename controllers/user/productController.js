@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const Product = require('../../models/product');
-const Category = require('../../models/category');
+const Category = require('../../models/Category');
 const { Readable } = require('stream');
 const sharp = require('sharp');
 const path = require('path');
@@ -16,10 +16,24 @@ const getAllProductsForUser = async (req, res) => {
             isDeleted: false
         })
         .populate('category')
+        .populate('offer')
+        .populate('categoryOffer')
         .sort({ createdAt: -1 });
         
+        // Calculate best offer for each product
+        const productsWithOffers = products.map(product => {
+            const offerInfo = calculateBestOffer(product);
+            return {
+                ...product._doc,
+                bestOffer: offerInfo.bestOffer,
+                discountAmount: offerInfo.discountAmount,
+                discountPercentage: offerInfo.discountPercentage,
+                finalPrice: offerInfo.finalPrice
+            };
+        });
+        
         res.render('user/products', { 
-            products,
+            products: productsWithOffers,
             title: 'Our Products'
         });
     } catch (error) {
@@ -39,6 +53,8 @@ const getProductDetails = async (req, res) => {
 
         const product = await Product.findById(productId)
             .populate('category')
+            .populate('offer')
+            .populate('categoryOffer')
             .lean();
 
         if (!product || product.isDeleted || !product.isVisible) {
@@ -83,9 +99,18 @@ const getProductDetails = async (req, res) => {
             .populate('category')
             .limit(4); 
           
+        const offerInfo = calculateBestOffer(product);
+        const productWithOffer = {
+            ...product,
+            bestOffer: offerInfo.bestOffer,
+            discountAmount: offerInfo.discountAmount,
+            discountPercentage: offerInfo.discountPercentage,
+            finalPrice: offerInfo.finalPrice
+        };
+
         // Render the product details page with product and similar products
         res.render('/shop/product-details', {
-            product,
+            product: productWithOffer,
             similarProducts,
             title: product.name
         });
@@ -215,6 +240,50 @@ const filterProducts = async (req, res) => {
             error: error.message
         });
     }
+};
+
+// Add this helper function to calculate the best offer for a product
+const calculateBestOffer = (product) => {
+    let bestOffer = null;
+    let discountAmount = 0;
+    let discountPercentage = 0;
+    
+    // Check product-specific offer
+    if (product.offer && product.offer.isActive) {
+        const offerDiscount = product.offer.discountType === 'percentage' 
+            ? (product.variants[0].price * product.offer.discountAmount / 100)
+            : product.offer.discountAmount;
+            
+        if (offerDiscount > discountAmount) {
+            discountAmount = offerDiscount;
+            bestOffer = product.offer;
+            discountPercentage = product.offer.discountType === 'percentage'
+                ? product.offer.discountAmount
+                : Math.round((offerDiscount / product.variants[0].price) * 100);
+        }
+    }
+    
+    // Check category offer
+    if (product.categoryOffer && product.categoryOffer.isActive) {
+        const categoryDiscount = product.categoryOffer.discountType === 'percentage'
+            ? (product.variants[0].price * product.categoryOffer.discountAmount / 100)
+            : product.categoryOffer.discountAmount;
+            
+        if (categoryDiscount > discountAmount) {
+            discountAmount = categoryDiscount;
+            bestOffer = product.categoryOffer;
+            discountPercentage = product.categoryOffer.discountType === 'percentage'
+                ? product.categoryOffer.discountAmount
+                : Math.round((categoryDiscount / product.variants[0].price) * 100);
+        }
+    }
+    
+    return {
+        bestOffer,
+        discountAmount,
+        discountPercentage,
+        finalPrice: product.variants[0].price - discountAmount
+    };
 };
 
 // Export all functions

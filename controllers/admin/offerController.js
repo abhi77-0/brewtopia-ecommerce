@@ -148,17 +148,8 @@ exports.postAddOffer = async (req, res) => {
 
         await offer.save();
 
-        // Update product/category references
-        if (type === 'product') {
-            await Product.findByIdAndUpdate(applicableToId, {
-                $set: { offer: offer._id }
-            });
-        } else if (type === 'category') {
-            await Product.updateMany(
-                { category: applicableToId },
-                { $set: { categoryOffer: offer._id } }
-            );
-        }
+        // Update product references
+        await updateProductReferences(offer);
 
         res.json({
             success: true,
@@ -247,7 +238,7 @@ exports.postEditOffer = async (req, res) => {
 
         await offer.save();
 
-        // Update product/category references
+        // Update product references
         await updateProductReferences(offer);
 
         res.json({
@@ -291,8 +282,6 @@ async function updateProductReferences(offer) {
     }
 }
 
-// ... existing code ...
-
 // Delete offer
 exports.deleteOffer = async (req, res) => {
     try {
@@ -335,6 +324,4 @@ exports.deleteOffer = async (req, res) => {
     }
 };
 
-// ... rest of your existing code ...
-
-// Keep the existing deleteOffer and calculateBestOffer functions as they are 
+// ... rest of your existing code ... 
