@@ -122,8 +122,7 @@
                                 <thead>
                                     <tr>
                                         <th>Code</th>
-                                        <th>Type</th>
-                                        <th>Amount</th>
+                                        <th>Discount</th>
                                         <th>Min. Purchase</th>
                                         <th>Usage/Limit</th>
                                         <th>Valid Until</th>
@@ -135,14 +134,7 @@
                                     <% coupons.forEach(coupon => { %>
                                         <tr>
                                             <td><%= coupon.code %></td>
-                                            <td><%= coupon.discountType === 'percentage' ? `${coupon.discountAmount}%` : `₹${coupon.discountAmount}` %></td>
-                                            <td>
-                                                <% if (coupon.discountType === 'percentage' && coupon.maxDiscount) { %>
-                                                    Up to ₹<%= coupon.maxDiscount %>
-                                                <% } else if (coupon.discountType === 'fixed') { %>
-                                                    ₹<%= coupon.discountAmount %>
-                                                <% } %>
-                                            </td>
+                                            <td>₹<%= coupon.discountAmount %></td>
                                             <td>₹<%= coupon.minimumPurchase %></td>
                                             <td><%= coupon.usedCount %>/<%= coupon.usageLimit || '∞' %></td>
                                             <td><%= new Date(coupon.endDate).toLocaleDateString() %></td>
@@ -189,31 +181,22 @@
                             <textarea class="form-control" name="description" required></textarea>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Discount Type</label>
-                            <select class="form-select" name="discountType" onchange="toggleMaxDiscount(this)">
-                                <option value="percentage">Percentage</option>
-                                <option value="fixed">Fixed Amount</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Discount Amount</label>
-                            <input type="number" class="form-control" name="discountAmount" required>
-                        </div>
-                        <div class="mb-3" id="maxDiscountField">
-                            <label class="form-label">Maximum Discount</label>
-                            <input type="number" class="form-control" name="maxDiscount">
+                            <label class="form-label">Discount Amount (₹)</label>
+                            <input type="number" class="form-control" name="discountAmount" required min="1">
+                            <small class="text-muted">Enter the fixed discount amount in rupees</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Minimum Purchase</label>
                             <input type="number" class="form-control" name="minimumPurchase" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Start Date</label>
-                            <input type="date" class="form-control" name="startDate" required>
+                            <label class="form-label">Start Date and Time (UTC)</label>
+                            <input type="datetime-local" class="form-control" name="startDate" required>
+                            <small class="text-muted">Current time is shown in your local timezone, but stored as UTC</small>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">End Date</label>
-                            <input type="date" class="form-control" name="endDate" required>
+                            <label class="form-label">End Date and Time (UTC)</label>
+                            <input type="datetime-local" class="form-control" name="endDate" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Usage Limit</label>
@@ -271,19 +254,78 @@
             });
         }
 
-        function toggleMaxDiscount(select) {
-            const maxDiscountField = document.getElementById('maxDiscountField');
-            maxDiscountField.style.display = select.value === 'percentage' ? 'block' : 'none';
+        // Add this function for deleting coupons
+        function deleteCoupon(couponId) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/coupons/${couponId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => {
+                        // Check if the response is JSON
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            return response.json().then(data => {
+                                if (!response.ok) {
+                                    throw new Error(data.message || 'Failed to delete coupon');
+                                }
+                                return data;
+                            });
+                        } else {
+                            // If not JSON, handle as text
+                            return response.text().then(text => {
+                                throw new Error('Server returned non-JSON response. Check if the delete route is properly configured.');
+                            });
+                        }
+                    })
+                    .then(data => {
+                        Swal.fire({
+                            title: 'Deleted!',
+                            text: data.message || 'Coupon deleted successfully',
+                            icon: 'success'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Delete error:', error);
+                        Swal.fire({
+                            title: 'Error',
+                            text: error.message || 'Failed to delete coupon',
+                            icon: 'error'
+                        });
+                    });
+                }
+            });
         }
 
         // Set default dates when opening the modal
         document.getElementById('addCouponModal').addEventListener('show.bs.modal', function () {
-            const today = new Date().toISOString().split('T')[0];
-            document.querySelector('input[name="startDate"]').value = today;
+            // Get current date and time in ISO format
+            const now = new Date();
+            const localISOString = new Date(now.getTime() - (now.getTimezoneOffset() * 60000))
+                .toISOString().slice(0, 16);
             
-            const nextMonth = new Date();
+            document.querySelector('input[name="startDate"]').value = localISOString;
+            
+            // Set end date to one month from now
+            const nextMonth = new Date(now);
             nextMonth.setMonth(nextMonth.getMonth() + 1);
-            document.querySelector('input[name="endDate"]').value = nextMonth.toISOString().split('T')[0];
+            const nextMonthISOString = new Date(nextMonth.getTime() - (nextMonth.getTimezoneOffset() * 60000))
+                .toISOString().slice(0, 16);
+            
+            document.querySelector('input[name="endDate"]').value = nextMonthISOString;
         });
     </script>
 </body>

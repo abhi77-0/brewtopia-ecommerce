@@ -218,7 +218,8 @@
                                                 <td><%= user.email %></td>
                                                 <td><span class="badge <%= user.blocked ? 'bg-danger' : 'bg-success' %>"><%= user.blocked ? 'Blocked' : 'Active' %></span></td>
                                                 <td>
-                                                                                                            <%= user.blocked ? 'Unblock' : 'Block' %>
+                                                    <button onclick="toggleBlockUser('<%= user._id %>', <%= user.blocked %>)" class="btn btn-sm <%= user.blocked ? 'btn-success' : 'btn-danger' %>">
+                                                        <%= user.blocked ? 'Unblock' : 'Block' %>
                                                     </button>
                                                 </td>
                                             </tr>

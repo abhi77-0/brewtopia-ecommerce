@@ -74,6 +74,7 @@ router.put('/orders/:orderId/return', isAdmin, (req, res, next) => {
 router.get('/coupons', isAdmin, couponController.getCoupons);
 router.post('/coupons', isAdmin, couponController.createCoupon);
 router.patch('/coupons/:id/toggle', isAdmin, couponController.toggleCouponStatus);
+router.delete('/coupons/:id', isAdmin,couponController.deleteCoupon);
 
 // Offer Management Routes (New)
 router.get('/offers', isAdmin, offerController.getOffers);
