@@ -434,32 +434,76 @@
         // Edit offer
         async function editOffer(id) {
             try {
+                console.log('Fetching offer with ID:', id);
                 const response = await fetch(`/admin/offers/${id}`);
-                const offer = await response.json();
                 
-                if (!response.ok) throw new Error(offer.message);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to fetch offer');
+                }
+                
+                const offer = await response.json();
+                console.log('Offer data received:', offer);
                 
                 // Fill the form
                 const form = document.getElementById('offerForm');
-                Object.keys(offer).forEach(key => {
-                    const input = form.elements[key];
-                    if (input) {
-                        if (key === 'startDate' || key === 'endDate') {
-                            input.value = new Date(offer[key]).toISOString().slice(0, 16);
-                        } else {
-                            input.value = offer[key];
+                
+                // Set the offer ID
+                form.elements['offerId'].value = offer._id;
+                
+                // Set basic fields
+                form.elements['name'].value = offer.name || '';
+                form.elements['description'].value = offer.description || '';
+                form.elements['discountPercentage'].value = offer.discountPercentage || '';
+                
+                // Set dates
+                if (offer.startDate) {
+                    form.elements['startDate'].value = new Date(offer.startDate).toISOString().slice(0, 16);
+                }
+                if (offer.endDate) {
+                    form.elements['endDate'].value = new Date(offer.endDate).toISOString().slice(0, 16);
+                }
+                
+                // Set isActive status - make sure you have this field in your form
+                if (form.elements['isActive']) {
+                    form.elements['isActive'].checked = offer.isActive;
+                } else {
+                    // If there's no checkbox, add a hidden field
+                    const isActiveField = document.createElement('input');
+                    isActiveField.type = 'hidden';
+                    isActiveField.name = 'isActive';
+                    isActiveField.value = offer.isActive ? 'true' : 'false';
+                    form.appendChild(isActiveField);
+                }
+                
+                // Set type and handle dropdown population
+                if (offer.type) {
+                    form.elements['type'].value = offer.type;
+                    handleTypeChange(offer.type);
+                    
+                    // Set the applicableTo value after populating the dropdown
+                    setTimeout(() => {
+                        if (offer.applicableTo && offer.applicableTo._id) {
+                            form.elements['applicableToId'].value = offer.applicableTo._id;
                         }
-                    }
-                });
+                    }, 300);
+                }
                 
                 // Update modal title
-                document.querySelector('.modal-title').textContent = 'Edit Offer';
+                document.querySelector('#offerModalLabel').textContent = 'Edit Offer';
                 
-                // Show modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('offerModal'));
-                modal.show();
+                // Show the modal using vanilla JavaScript
+                const modalElement = document.getElementById('offerModal');
+                const bsModal = new bootstrap.Modal(modalElement);
+                bsModal.show();
             } catch (error) {
-                alert(error.message);
+                console.error('Error editing offer:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.message,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
             }
         }
 

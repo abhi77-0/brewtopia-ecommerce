@@ -16,7 +16,7 @@ exports.getCart = async (req, res) => {
         const cart = await Cart.findOne({ user: userId })
             .populate({
                 path: 'items.product',
-                model: 'Product',
+                model: 'product',
                 select: 'name description images variants brand'
             });
 

@@ -69,8 +69,20 @@ exports.postAddOffer = async (req, res) => {
             applicableToId,
         } = req.body;
 
-        // Validate dates
-        if (new Date(startDate) >= new Date(endDate)) {
+        const now = new Date();
+        const startDateObj = new Date(startDate);
+        const endDateObj = new Date(endDate);
+
+        // Validate start date is not in the past
+        if (startDateObj < now) {
+            return res.status(400).json({
+                success: false,
+                message: 'Start date cannot be in the past'
+            });
+        }
+
+        // Validate end date is after start date
+        if (startDateObj >= endDateObj) {
             return res.status(400).json({
                 success: false,
                 message: 'End date must be after start date'
@@ -81,7 +93,7 @@ exports.postAddOffer = async (req, res) => {
         const existingOffer = await Offer.findOne({
             type,
             applicableTo: applicableToId,
-            endDate: { $gte: new Date() },
+            endDate: { $gte: now },
             isActive: true
         });
 
@@ -139,12 +151,33 @@ exports.postEditOffer = async (req, res) => {
         const {
             name,
             description,
+            type,
             discountPercentage,
             startDate,
             endDate,
             applicableToId,
             isActive
         } = req.body;
+
+        const now = new Date();
+        const startDateObj = new Date(startDate);
+        const endDateObj = new Date(endDate);
+
+        // Validate start date is not in the past
+        if (startDateObj < now) {
+            return res.status(400).json({
+                success: false,
+                message: 'Start date cannot be in the past'
+            });
+        }
+
+        // Validate end date is after start date
+        if (startDateObj >= endDateObj) {
+            return res.status(400).json({
+                success: false,
+                message: 'End date must be after start date'
+            });
+        }
 
         const offer = await Offer.findById(offerId);
         if (!offer) {
@@ -154,16 +187,33 @@ exports.postEditOffer = async (req, res) => {
             });
         }
 
+        // Check for existing offers (excluding this one)
+        if (type && applicableToId && (type !== offer.type || applicableToId !== offer.applicableTo.toString())) {
+            const existingOffer = await Offer.findOne({
+                _id: { $ne: offerId },
+                type,
+                applicableTo: applicableToId,
+                endDate: { $gte: now },
+                isActive: true
+            });
+
+            if (existingOffer) {
+                return res.status(400).json({
+                    success: false,
+                    message: `An active offer already exists for this ${type}`
+                });
+            }
+        }
+
         // Update offer fields
-        Object.assign(offer, {
-            name,
-            description,
-            discountPercentage,
-            startDate,
-            endDate,
-            applicableToId,
-            isActive: isActive === 'true'
-        });
+        offer.name = name;
+        offer.description = description;
+        if (type) offer.type = type;
+        offer.discountPercentage = discountPercentage;
+        if (applicableToId) offer.applicableTo = applicableToId;
+        offer.startDate = startDate;
+        offer.endDate = endDate;
+        offer.isActive = isActive === 'true' || isActive === true;
 
         await offer.save();
 
@@ -179,7 +229,7 @@ exports.postEditOffer = async (req, res) => {
         console.error('Error updating offer:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to update offer'
+            message: 'Failed to update offer: ' + error.message
         });
     }
 };
