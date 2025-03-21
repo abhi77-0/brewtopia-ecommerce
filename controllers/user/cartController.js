@@ -1,5 +1,5 @@
 const Cart = require('../../models/shopingCart'); 
-const Product = require('../../models/product');
+const product = require('../../models/Product');
 const User = require('../../models/userModel');
 
 exports.getCart = async (req, res) => {
@@ -16,7 +16,7 @@ exports.getCart = async (req, res) => {
         const cart = await Cart.findOne({ user: userId })
             .populate({
                 path: 'items.product',
-                model: 'product',
+                model: 'Product',
                 select: 'name description images variants brand'
             });
 

@@ -92,4 +92,4 @@ productSchema.methods.canDelete = async function() {
 };
 
 // Export the model only if it hasn't been compiled yet
-module.exports = mongoose.model('product', productSchema);
+module.exports = mongoose.models.Product || mongoose.model('Product', productSchema);

@@ -4,7 +4,7 @@ const Cart = require('../../models/shopingCart');
 const User = require('../../models/userModel');
 const Order = require('../../models/Order');
 const Coupon = require('../../models/Coupon');
-const Product = require('../../models/product');
+const Product = require('../../models/Product');
 const Address = require('../../models/Address');
 const Wallet = require('../../models/walletModel');
 
@@ -322,7 +322,11 @@ exports.verifyPayment = async (req, res) => {
         }
         
         // Get cart details
-        const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+        const cart = await Cart.findOne({ user: req.user._id })
+            .populate({
+                path: 'items.product',
+                model: 'Product'
+            });
         if (!cart) {
             return res.status(404).json({
                 success: false,
@@ -485,7 +489,11 @@ exports.retryPayment = async (req, res) => {
 exports.applyCoupon = async (req, res) => {
     try {
         const { couponCode } = req.body;
-        const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+        const cart = await Cart.findOne({ user: req.user._id })
+            .populate({
+                path: 'items.product',
+                model: 'Product'
+            });
 
         if (!cart) {
             return res.status(404).json({
@@ -570,7 +578,11 @@ exports.removeCoupon = async (req, res) => {
         // Remove coupon from session
         req.session.coupon = null;
 
-        const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+        const cart = await Cart.findOne({ user: req.user._id })
+            .populate({
+                path: 'items.product',
+                model: 'Product'
+            });
         
         // Recalculate totals without coupon
         const subtotal = cart.items.reduce((sum, item) => {

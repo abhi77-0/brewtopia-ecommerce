@@ -1,19 +1,35 @@
 const Offer = require('../../models/Offer');
-const Product = require('../../models/product');
-const Category = require('../../models/category');
+const Product = require('../../models/Product');
+const Category = require('../../models/Category');
+const mongoose = require('mongoose');
 
 // Get all offers and render the main offer page
 exports.getOffers = async (req, res) => {
     try {
-        const offers = await Offer.find()
-            .populate('applicableTo')
-            .sort('-createdAt');
+        // First, get all offers without populating
+        const offers = await Offer.find().sort('-createdAt');
+        
+        // Manually populate the applicableTo field based on type
+        for (let offer of offers) {
+            if (offer.type === 'product') {
+                const product = await Product.findById(offer.applicableTo);
+                offer.applicableTo = product;
+            } else if (offer.type === 'category' || offer.type === 'Category') {
+                try {
+                    const category = await mongoose.model('Category').findById(offer.applicableTo);
+                    offer.applicableTo = category;
+                } catch (err) {
+                    console.error('Error populating category:', err);
+                    // Continue without populating this field
+                }
+            }
+        }
 
         // Include both _id and name fields in the select
         const products = await Product.find({ isVisible: true })
             .select('_id name');
         
-        const categories = await Category.find({ isVisible: true })
+        const categories = await mongoose.model('Category').find({ isVisible: true })
             .select('_id name');
 
         console.log('Products:', products); // Debug log
@@ -36,14 +52,28 @@ exports.getOffers = async (req, res) => {
 // Get single offer for editing
 exports.getOffer = async (req, res) => {
     try {
-        const offer = await Offer.findById(req.params.id)
-            .populate('applicableTo');
+        // First, find the offer without populating
+        const offer = await Offer.findById(req.params.id);
         
         if (!offer) {
             return res.status(404).json({ 
                 success: false, 
                 message: 'Offer not found' 
             });
+        }
+
+        // Manually populate the applicableTo field based on type
+        if (offer.type === 'product') {
+            const product = await Product.findById(offer.applicableTo);
+            offer.applicableTo = product;
+        } else if (offer.type === 'category' || offer.type === 'Category') {
+            try {
+                const category = await mongoose.model('Category').findById(offer.applicableTo);
+                offer.applicableTo = category;
+            } catch (err) {
+                console.error('Error populating category:', err);
+                // Continue without populating this field
+            }
         }
 
         res.json(offer);

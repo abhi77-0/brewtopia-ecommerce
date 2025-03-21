@@ -1,7 +1,7 @@
 const Order = require('../../models/Order');
 const Cart = require('../../models/shopingCart');
 const User = require('../../models/userModel');
-const Product = require('../../models/product');
+const Product = require('../../models/Product');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
@@ -15,8 +15,12 @@ const orderController = {
             
             const { addressId, paymentMethod } = req.body;
             
-            // Find the cart for the user
-            const cart = await Cart.findOne({ user: req.user._id }).populate('items.product');
+            // Find the cart for the user with proper population
+            const cart = await Cart.findOne({ user: req.user._id })
+                .populate({
+                    path: 'items.product',
+                    model: 'Product'  // Explicitly specify the model with correct case
+                });
             
             if (!cart || cart.items.length === 0) {
                 return res.status(400).json({
@@ -36,6 +40,7 @@ const orderController = {
                     message: 'Shipping address not found'
                 });
             }
+            
             
             // Calculate order totals
             const subtotal = cart.items.reduce((sum, item) => {

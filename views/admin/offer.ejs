@@ -358,10 +358,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Debug: Log the available products and categories
-        console.log('Products:', <%- JSON.stringify(products) %>);
-        console.log('Categories:', <%- JSON.stringify(categories) %>);
-
         // Store data globally
         const products = <%- JSON.stringify(products) %>;
         const categories = <%- JSON.stringify(categories) %>;
@@ -408,26 +404,57 @@
                 const offerId = formData.get('offerId');
                 const url = offerId ? `/admin/offers/edit/${offerId}` : '/admin/offers/add';
                 
+                // Convert form data to a proper JSON object
+                const formDataObj = {};
+                formData.forEach((value, key) => {
+                    formDataObj[key] = value;
+                });
+                
+                // Log the data being sent (for debugging)
+                console.log('Sending data:', formDataObj);
+                
                 const response = await fetch(url, {
                     method: offerId ? 'PUT' : 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(Object.fromEntries(formData))
+                    body: JSON.stringify(formDataObj)
                 });
-
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    // If not JSON, get the text and throw an error with it
+                    const text = await response.text();
+                    throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
+                }
+                
                 const data = await response.json();
                 
                 if (!response.ok) {
                     throw new Error(data.message || 'Failed to save offer');
                 }
 
-                // Close modal and reload page
-                const modal = bootstrap.Modal.getInstance(document.getElementById('offerModal'));
-                modal.hide();
-                window.location.reload();
+                // Show success message
+                Swal.fire({
+                    title: 'Success!',
+                    text: offerId ? 'Offer updated successfully' : 'Offer created successfully',
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    // Close modal and reload page
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('offerModal'));
+                    modal.hide();
+                    window.location.reload();
+                });
             } catch (error) {
-                alert(error.message);
+                console.error('Error saving offer:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.message,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
             }
         });
 

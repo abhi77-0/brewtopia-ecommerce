@@ -1,13 +1,15 @@
 const Wishlist = require('../../models/Wishlist');
-const Product = require('../../models/product');
+const Product = require('../../models/Product');
 
 exports.getWishlist = async (req, res) => {
     try {
         let wishlist = await Wishlist.findOne({ user: req.user._id })
             .populate({
                 path: 'products',
+                model: 'Product', // Explicitly specify the model name
                 populate: {
-                    path: 'category'
+                    path: 'category',
+                    model: 'Category' // Explicitly specify the model name
                 }
             });
 

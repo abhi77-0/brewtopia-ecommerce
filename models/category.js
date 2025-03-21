@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Import Product model to ensure it's loaded first
-require('./product');
+require('./Product');
 
 const categorySchema = new mongoose.Schema({
     name: {
@@ -31,4 +31,4 @@ categorySchema.virtual('productCount', {
 });
 
 // Export the model, checking if it already exists first
-module.exports = mongoose.models.category || mongoose.model('category', categorySchema);
+module.exports = mongoose.models.Category || mongoose.model('Category', categorySchema);
