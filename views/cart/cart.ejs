@@ -114,7 +114,18 @@
                                     </div>
                                     <div class="col-6 col-md-1">
                                         <div class="item-total">
-                                            <span class="d-md-none">Total: </span>₹<%= item.total %>
+                                            <% if (item.product && item.product.variants && item.product.variants[item.variant]) { %>
+                                                <% const variantPrice = parseFloat(item.product.variants[item.variant].price); %>
+                                                <% const offerInfo = calculateBestOffer(item.product); %>
+                                                <% const discountedPrice = offerInfo.bestOffer ? 
+                                                    variantPrice * (1 - offerInfo.discountPercentage / 100) : 
+                                                    variantPrice; %>
+                                                <% const totalPrice = (discountedPrice * item.quantity).toFixed(2); %>
+                                                
+                                                <span class="d-md-none">Total: </span>₹<%= totalPrice %>
+                                            <% } else { %>
+                                                <span class="d-md-none">Total: </span>₹<%= item.total %>
+                                            <% } %>
                                         </div>
                                     </div>
                                     <div class="col-6 col-md-1">
@@ -138,10 +149,43 @@
                         <span>Subtotal (<%= itemCount %> items)</span>
                         <span>₹<%= subtotal %></span>
                     </div>
-                    <div class="summary-item d-flex justify-content-between text-success">
-                        <span>Discount (10%)</span>
-                        <span>-₹<%= discount %></span>
-                    </div>
+                    
+                    <% 
+                    // Calculate total offer discount
+                    let totalOfferDiscount = 0;
+                    let hasOfferDiscount = false;
+                    
+                    if (cart && cart.items) {
+                        cart.items.forEach(item => {
+                            if (item.product && item.product.variants && item.product.variants[item.variant]) {
+                                const variantPrice = parseFloat(item.product.variants[item.variant].price);
+                                const offerInfo = calculateBestOffer(item.product);
+                                
+                                if (offerInfo.bestOffer) {
+                                    const regularTotal = variantPrice * item.quantity;
+                                    const discountedTotal = regularTotal * (1 - offerInfo.discountPercentage / 100);
+                                    totalOfferDiscount += (regularTotal - discountedTotal);
+                                    hasOfferDiscount = true;
+                                }
+                            }
+                        });
+                    }
+                    
+                    totalOfferDiscount = Math.round(totalOfferDiscount);
+                    %>
+                    
+                    <% if (hasOfferDiscount) { %>
+                        <div class="summary-item d-flex justify-content-between text-success">
+                            <span>Offer Discount</span>
+                            <span>-₹<%= totalOfferDiscount %></span>
+                        </div>
+                    <% } else { %>
+                        <div class="summary-item d-flex justify-content-between text-success">
+                            <span>Discount (10%)</span>
+                            <span>-₹<%= discount %></span>
+                        </div>
+                    <% } %>
+                    
                     <div class="summary-item d-flex justify-content-between">
                         <span>Shipping</span>
                         <span>₹<%= shipping %></span>
@@ -152,7 +196,10 @@
                     </div>
                     <div class="summary-total d-flex justify-content-between">
                         <span>Total</span>
-                        <span>₹<%= total + Math.round(subtotal * 0.18) %></span>
+                        <% const finalTotal = hasOfferDiscount ? 
+                            (subtotal - totalOfferDiscount + shipping + Math.round(subtotal * 0.18)) : 
+                            (total + Math.round(subtotal * 0.18)); %>
+                        <span>₹<%= finalTotal %></span>
                     </div>
                     <button onclick="window.location.href='/cart/checkout'" 
                             class="btn btn-primary btn-block checkout-btn" 

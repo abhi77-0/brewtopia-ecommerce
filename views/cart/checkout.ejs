@@ -166,15 +166,61 @@
                     <span>Shipping</span>
                     <span id="shipping">₹<%= shipping %></span>
                 </div>
-                
+
+                <% 
+                // Calculate total offer discount
+                let totalOfferDiscount = 0;
+                let hasOfferDiscount = false;
+
+                if (cart && cart.items && typeof calculateBestOffer === 'function') {
+                    cart.items.forEach(item => {
+                        if (item.product && item.product.variants && item.product.variants[item.variant]) {
+                            const variantPrice = parseFloat(item.product.variants[item.variant].price);
+                            const offerInfo = calculateBestOffer(item.product);
+                            
+                            if (offerInfo.bestOffer) {
+                                const regularTotal = variantPrice * item.quantity;
+                                const discountedTotal = regularTotal * (1 - offerInfo.discountPercentage / 100);
+                                totalOfferDiscount += (regularTotal - discountedTotal);
+                                hasOfferDiscount = true;
+                            }
+                        }
+                    });
+                }
+
+                totalOfferDiscount = Math.round(totalOfferDiscount);
+                %>
+
+                <% if (hasOfferDiscount) { %>
+                    <div class="summary-item d-flex justify-content-between text-success">
+                        <span>Offer Discount</span>
+                        <span id="offerDiscount">-₹<%= totalOfferDiscount %></span>
+                    </div>
+                <% } %>
+
                 <div class="summary-item d-flex justify-content-between">
                     <span>GST (18%)</span>
                     <span id="gst">₹<%= gst %></span>
                 </div>
                 
+                <!-- We'll insert the coupon discount row here dynamically when a coupon is applied -->
+                <div id="couponDiscountContainer"></div>
+                
                 <div class="summary-total d-flex justify-content-between">
                     <span>Total</span>
-                    <span id="total">₹<%= total %></span>
+                    <% 
+                    // Calculate final total with offer discounts and coupon
+                    let finalTotal = subtotal + shipping + gst;
+                    
+                    // If there are offer discounts, adjust the total
+                    if (typeof totalOfferDiscount !== 'undefined' && totalOfferDiscount > 0) {
+                        finalTotal = finalTotal - totalOfferDiscount;
+                    }
+                    
+                    // Ensure the total is never negative
+                    finalTotal = Math.max(0, Math.round(finalTotal));
+                    %>
+                    <span id="total">₹<%= finalTotal %></span>
                 </div>
 
                 <!-- Coupon Section -->
@@ -1075,105 +1121,94 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-async function applyCoupon(couponCode) {
-    try {
-        const response = await fetch('/checkout/apply-coupon', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ couponCode })
-        });
-
-        const data = await response.json();
-
+function applyCoupon(couponCode) {
+    fetch('/checkout/apply-coupon', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ couponCode })
+    })
+    .then(response => response.json())
+    .then(data => {
         if (data.success) {
-            // Close the modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('couponsModal'));
-            modal.hide();
+            // Create and show coupon discount row
+            const couponContainer = document.getElementById('couponDiscountContainer');
+            couponContainer.innerHTML = `
+                <div id="couponDiscountRow" class="summary-item d-flex justify-content-between text-success">
+                    <span>Coupon Discount</span>
+                    <span id="couponDiscount">-₹${data.data.discount}</span>
+                </div>
+            `;
             
-            // Show applied coupon section
-            const appliedCouponSection = document.getElementById('appliedCouponSection');
-            const appliedCouponMessage = document.getElementById('appliedCouponMessage');
-            appliedCouponSection.style.display = 'block';
-            appliedCouponMessage.textContent = `Coupon ${couponCode} applied successfully!`;
+            // Get current values
+            const subtotal = <%= subtotal %>;
+            const shipping = <%= shipping %>;
+            const gst = <%= gst %>;
+            const offerDiscount = <%= typeof totalOfferDiscount !== 'undefined' ? totalOfferDiscount : 0 %>;
+            const couponDiscount = data.data.discount;
             
-            // Update price summary
-            if (data.data) {
-                document.getElementById('subtotal').textContent = `₹${data.data.subtotal}`;
-                document.getElementById('shipping').textContent = `₹${data.data.shipping}`;
-                
-                // Add discount row if it doesn't exist
-                let discountRow = document.querySelector('.summary-item.discount');
-                if (!discountRow && data.data.discount > 0) {
-                    discountRow = document.createElement('div');
-                    discountRow.className = 'summary-item discount d-flex justify-content-between';
-                    discountRow.innerHTML = `
-                        <span>Discount</span>
-                        <span id="discount">-₹${data.data.discount}</span>
-                    `;
-                    document.getElementById('shipping').closest('.summary-item').after(discountRow);
-                } else if (discountRow) {
-                    document.getElementById('discount').textContent = `-₹${data.data.discount}`;
-                }
-                
-                document.getElementById('total').textContent = `₹${data.data.total}`;
-            }
+            // Calculate new total
+            const newTotal = subtotal - offerDiscount + shipping + gst - couponDiscount;
+            const finalTotal = Math.max(0, Math.round(newTotal));
+            
+            // Update total
+            document.getElementById('total').textContent = `₹${finalTotal}`;
+            
+            // Show applied coupon message
+            document.getElementById('appliedCouponSection').style.display = 'block';
+            document.getElementById('appliedCouponMessage').textContent = 
+                `${couponCode.toUpperCase()} applied: ₹${data.data.discount} off`;
+            
+            // Hide coupon modal
+            const couponModal = bootstrap.Modal.getInstance(document.getElementById('couponsModal'));
+            if (couponModal) couponModal.hide();
         } else {
-            throw new Error(data.message);
+            alert(data.message);
         }
-    } catch (error) {
+    })
+    .catch(error => {
         console.error('Error applying coupon:', error);
-        Swal.fire({
-            title: 'Error',
-            text: error.message || 'Failed to apply coupon',
-            icon: 'error',
-            confirmButtonColor: '#FF9800'
-        });
-    }
+        alert('Failed to apply coupon');
+    });
 }
 
-// Add the removeCoupon function
-async function removeCoupon() {
-    try {
-        const response = await fetch('/checkout/remove-coupon', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            // Hide applied coupon section
-            document.getElementById('appliedCouponSection').style.display = 'none';
-            
-            // Update price summary
-            if (data.data) {
-                document.getElementById('subtotal').textContent = `₹${data.data.subtotal}`;
-                document.getElementById('shipping').textContent = `₹${data.data.shipping}`;
-                
-                // Remove discount row if it exists
-                const discountRow = document.querySelector('.summary-item.discount');
-                if (discountRow) {
-                    discountRow.remove();
-                }
-                
-                document.getElementById('total').textContent = `₹${data.data.total}`;
-            }
-        } else {
-            throw new Error(data.message);
+function removeCoupon() {
+    fetch('/checkout/remove-coupon', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
         }
-    } catch (error) {
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove coupon discount row
+            document.getElementById('couponDiscountContainer').innerHTML = '';
+            
+            // Get current values
+            const subtotal = <%= subtotal %>;
+            const shipping = <%= shipping %>;
+            const gst = <%= gst %>;
+            const offerDiscount = <%= typeof totalOfferDiscount !== 'undefined' ? totalOfferDiscount : 0 %>;
+            
+            // Calculate new total without coupon
+            const newTotal = subtotal - offerDiscount + shipping + gst;
+            const finalTotal = Math.max(0, Math.round(newTotal));
+            
+            // Update total
+            document.getElementById('total').textContent = `₹${finalTotal}`;
+            
+            // Hide applied coupon message
+            document.getElementById('appliedCouponSection').style.display = 'none';
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
         console.error('Error removing coupon:', error);
-        Swal.fire({
-            title: 'Error',
-            text: error.message || 'Failed to remove coupon',
-            icon: 'error',
-            confirmButtonColor: '#FF9800'
-        });
-    }
+        alert('Failed to remove coupon');
+    });
 }
 
 // Add event listener for modal show event
