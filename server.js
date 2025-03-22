@@ -105,6 +105,7 @@ app.use('/products', productRoutes);
 app.use('/checkout', checkoutRoutes);
 app.use('/', wishlistRoutes);
 app.use('/wallet', walletRoutes);
+app.use('/admin/sales-report', adminRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

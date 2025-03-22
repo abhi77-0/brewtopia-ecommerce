@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Report Results - Brewtopia Admin</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Navbar Styles */
+        .navbar {
+            background-color: #FF9800;
+            padding: 1rem 0;
+        }
+
+        .navbar-brand {
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .navbar-brand:hover {
+            color: #ffc107;
+        }
+
+        /* Sidebar Styles */
+        .admin-container {
+            display: flex;
+            min-height: calc(100vh - 76px);
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #2c3e50;
+            padding-top: 2rem;
+            color: white;
+        }
+
+        .sidebar-link {
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            display: block;
+            transition: all 0.3s;
+        }
+
+        .sidebar-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffc107;
+        }
+
+        .sidebar-link.active {
+            background-color: #ffc107;
+            color: #1a1a1a;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            background-color: #f8f9fa;
+            overflow-x: auto;
+        }
+
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid rgba(0,0,0,0.125);
+            padding: 1rem 1.25rem;
+        }
+
+        .card-title {
+            margin-bottom: 0;
+            font-size: 1.25rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .small-box {
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            color: white;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+
+        .small-box:hover {
+            transform: translateY(-5px);
+        }
+
+        .small-box .inner h3 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .small-box .icon {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 3rem;
+            opacity: 0.3;
+        }
+
+        .bg-info {
+            background-color: #17a2b8;
+        }
+
+        .bg-success {
+            background-color: #28a745;
+        }
+
+        .bg-warning {
+            background-color: #ffc107;
+            color: #212529;
+        }
+
+        .bg-danger {
+            background-color: #dc3545;
+        }
+
+        .info-box {
+            display: flex;
+            min-height: 80px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+        }
+
+        .info-box-icon {
+            width: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            border-radius: 10px 0 0 10px;
+        }
+
+        .info-box-content {
+            padding: 1rem;
+            flex: 1;
+        }
+
+        .info-box-text {
+            display: block;
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .info-box-number {
+            display: block;
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .table {
+            background-color: white;
+        }
+
+        .badge {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+        }
+
+        .btn-danger, .btn-success {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/admin/dashboard">Brewtopia Admin</a>
+            <div class="d-flex">
+                <a href="/admin/logout" class="btn btn-outline-light">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="/admin/dashboard" class="sidebar-link">
+                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+            </a>
+            <a href="/admin/products" class="sidebar-link">
+                <i class="fas fa-beer me-2"></i> Products
+            </a>
+            <a href="/admin/categories" class="sidebar-link">
+                <i class="fas fa-list me-2"></i> Categories
+            </a>
+            <a href="/admin/orders" class="sidebar-link">
+                <i class="fas fa-shopping-cart me-2"></i> Orders
+            </a>
+            <a href="/admin/users" class="sidebar-link">
+                <i class="fas fa-users me-2"></i> Users
+            </a>
+            <a href="/admin/offers" class="sidebar-link">
+                <i class="fas fa-percent me-2"></i> Offers
+            </a>
+            <a href="/admin/coupons" class="sidebar-link">
+                <i class="fas fa-ticket-alt me-2"></i> Coupons
+            </a>
+            <a href="/admin/sales-report" class="sidebar-link active">
+                <i class="fas fa-chart-line me-2"></i> Sales Report
+            </a>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="mb-0">Sales Report Results</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="/admin/sales-report">Sales Report</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Results</li>
+                        </ol>
+                    </nav>
+                </div>
+
+                <!-- Report Header -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="card-title">
+                            <% if (period === 'daily') { %>
+                                Daily Sales Report - <%= startDate %>
+                            <% } else if (period === 'weekly') { %>
+                                Weekly Sales Report - <%= startDate %> to <%= endDate %>
+                            <% } else if (period === 'monthly') { %>
+                                Monthly Sales Report - <%= startDate %> to <%= endDate %>
+                            <% } else if (period === 'yearly') { %>
+                                Yearly Sales Report - <%= startDate %> to <%= endDate %>
+                            <% } else { %>
+                                Custom Sales Report - <%= startDate %> to <%= endDate %>
+                            <% } %>
+                        </h3>
+                        <div class="btn-group">
+                            <a href="/admin/sales-report/download/pdf?startDate=<%= rawStartDate %>&endDate=<%= rawEndDate %>&period=<%= period %>" class="btn btn-sm btn-danger">
+                                <i class="fas fa-file-pdf me-1"></i> Download PDF
+                            </a>
+                            <a href="/admin/sales-report/download/excel?startDate=<%= rawStartDate %>&endDate=<%= rawEndDate %>&period=<%= period %>" class="btn btn-sm btn-success">
+                                <i class="fas fa-file-excel me-1"></i> Download Excel
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-info">
+                                    <div class="inner">
+                                        <h3><%= totalOrders %></h3>
+                                        <p>Total Orders</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="fas fa-shopping-cart"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-success">
+                                    <div class="inner">
+                                        <h3>₹<%= totalSales.toFixed(2) %></h3>
+                                        <p>Total Sales</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="fas fa-rupee-sign"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-warning">
+                                    <div class="inner">
+                                        <h3>₹<%= (totalOfferDiscount + totalCouponDiscount).toFixed(2) %></h3>
+                                        <p>Total Discounts</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="fas fa-tags"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-lg-3 col-6">
+                                <div class="small-box bg-danger">
+                                    <div class="inner">
+                                        <h3>₹<%= totalGST.toFixed(2) %></h3>
+                                        <p>Total GST</p>
+                                    </div>
+                                    <div class="icon">
+                                        <i class="fas fa-percent"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="info-box">
+                                    <span class="info-box-icon bg-info"><i class="fas fa-gift"></i></span>
+                                    <div class="info-box-content">
+                                        <span class="info-box-text">Offer Discounts</span>
+                                        <span class="info-box-number">₹<%= totalOfferDiscount.toFixed(2) %></span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="info-box">
+                                    <span class="info-box-icon bg-warning"><i class="fas fa-ticket-alt"></i></span>
+                                    <div class="info-box-content">
+                                        <span class="info-box-text">Coupon Discounts</span>
+                                        <span class="info-box-number">₹<%= totalCouponDiscount.toFixed(2) %></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Orders Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Order Details</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Date</th>
+                                        <th>Customer</th>
+                                        <th>Status</th>
+                                        <th>Payment</th>
+                                        <th>Subtotal</th>
+                                        <th>Offer Discount</th>
+                                        <th>Coupon Discount</th>
+                                        <th>GST</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% if (orders.length > 0) { %>
+                                        <% orders.forEach(order => { %>
+                                            <tr>
+                                                <td>
+                                                    <a href="/admin/orders/<%= order._id %>" target="_blank">
+                                                        <%= order._id.toString().slice(-8).toUpperCase() %>
+                                                    </a>
+                                                </td>
+                                                <td><%= new Date(order.createdAt).toLocaleDateString() %></td>
+                                                <td><%= order.user ? order.user.name : 'N/A' %></td>
+                                                <td>
+                                                    <span class="badge 
+                                                        <%= order.status === 'Delivered' ? 'bg-success' : 
+                                                           order.status === 'Shipped' ? 'bg-info' : 
+                                                           order.status === 'Processing' ? 'bg-primary' : 
+                                                           order.status === 'Cancelled' ? 'bg-danger' : 
+                                                           order.status === 'Returned' ? 'bg-warning' : 'bg-secondary' %>">
+                                                        <%= order.status %>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <%= order.paymentMethod %> 
+                                                    <span class="badge <%= order.paymentStatus === 'Completed' ? 'bg-success' : 'bg-warning' %>">
+                                                        <%= order.paymentStatus %>
+                                                    </span>
+                                                </td>
+                                                <td>₹<%= order.subtotal ? order.subtotal.toFixed(2) : '0.00' %></td>
+                                                <td>₹<%= order.offerDiscount ? order.offerDiscount.toFixed(2) : '0.00' %></td>
+                                                <td>₹<%= order.couponDiscount ? order.couponDiscount.toFixed(2) : '0.00' %></td>
+                                                <td>₹<%= order.gst ? order.gst.toFixed(2) : '0.00' %></td>
+                                                <td>₹<%= order.total ? order.total.toFixed(2) : '0.00' %></td>
+                                            </tr>
+                                        <% }); %>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="10" class="text-center">No orders found for this period</td>
+                                        </tr>
+                                    <% } %>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="bg-light">
+                                        <th colspan="5" class="text-end">Totals:</th>
+                                        <th>₹<%= orders.reduce((sum, order) => sum + (order.subtotal || 0), 0).toFixed(2) %></th>
+                                        <th>₹<%= totalOfferDiscount.toFixed(2) %></th>
+                                        <th>₹<%= totalCouponDiscount.toFixed(2) %></th>
+                                        <th>₹<%= totalGST.toFixed(2) %></th>
+                                        <th>₹<%= totalSales.toFixed(2) %></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

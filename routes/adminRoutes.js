@@ -9,6 +9,7 @@ const productController = require('../controllers/user/productController');
 const orderController = require('../controllers/admin/orderController');
 const couponController = require('../controllers/admin/couponController');
 const offerController = require('../controllers/admin/offerController');
+const salesReportController = require('../controllers/admin/salesReportController');
 
 // Import middleware and configurations
 const { isAdmin } = require('../middlewares/adminAuth');
@@ -82,5 +83,18 @@ router.get('/offers/:id', isAdmin, offerController.getOffer);
 router.post('/offers/add', isAdmin, offerController.postAddOffer);
 router.put('/offers/edit/:id', isAdmin, offerController.postEditOffer);
 router.delete('/offers/delete/:id', isAdmin, offerController.deleteOffer);
+
+
+// Sales report page
+router.get('/', isAdmin, salesReportController.getSalesReportPage);
+
+// Generate sales report
+router.post('/generate', isAdmin, salesReportController.generateSalesReport);
+
+// Download reports
+router.get('/download/pdf', isAdmin, salesReportController.downloadPDF);
+router.get('/download/excel', isAdmin, salesReportController.downloadExcel);
+
+module.exports = router;
 
 module.exports = router;
