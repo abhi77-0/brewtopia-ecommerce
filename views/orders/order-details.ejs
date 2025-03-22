@@ -176,46 +176,47 @@
                         </div>
                         <hr>
                         
-                        <% 
-                        // Calculate subtotal from items if not available
-                        let subtotal = order.subtotal;
-                        if (!subtotal || isNaN(subtotal)) {
-                            subtotal = 0;
-                            order.items.forEach(item => {
-                                subtotal += (item.price * item.quantity);
-                            });
-                        }
-                        
-                        const discountAmount = Math.round(subtotal * 0.1);
-                        const shippingAmount = 40;
-                        const gstAmount = Math.round(subtotal * 0.18);
-                        const totalAmount = Math.round(subtotal - discountAmount + shippingAmount + gstAmount);
-                        %>
-                        
-                        <!-- Detailed price breakdown - exactly like cart.ejs -->
-                        <div class="summary-item d-flex justify-content-between">
+                        <!-- Detailed price breakdown -->
+                        <div class="summary-item d-flex justify-content-between mb-2">
                             <span>Subtotal (<%= order.items.length %> items)</span>
-                            <span>₹<%= subtotal %></span>
+                            <span>₹<%= order.subtotal.toFixed(2) %></span>
                         </div>
                         
-                        <div class="summary-item d-flex justify-content-between text-success">
-                            <span>Discount (10%)</span>
-                            <span>-₹<%= discountAmount %></span>
-                        </div>
-                        
-                        <div class="summary-item d-flex justify-content-between">
+                        <% if (order.shippingFee > 0) { %>
+                        <div class="summary-item d-flex justify-content-between mb-2">
                             <span>Shipping</span>
-                            <span>₹<%= shippingAmount %></span>
+                            <span>₹<%= order.shippingFee.toFixed(2) %></span>
                         </div>
+                        <% } %>
                         
-                        <div class="summary-item d-flex justify-content-between">
-                            <span>GST (18%)</span>
-                            <span>₹<%= gstAmount %></span>
+                        <% if (order.offerDiscount > 0) { %>
+                        <div class="summary-item d-flex justify-content-between mb-2 text-success">
+                            <span>Offer Discount</span>
+                            <span>-₹<%= order.offerDiscount.toFixed(2) %></span>
                         </div>
+                        <% } %>
+                        
+                        <% if (order.gst > 0) { %>
+                        <div class="summary-item d-flex justify-content-between mb-2">
+                            <span>GST (18%)</span>
+                            <span>₹<%= order.gst.toFixed(2) %></span>
+                        </div>
+                        <% } %>
+                        
+                        <% if (order.couponDiscount > 0) { %>
+                        <div class="summary-item d-flex justify-content-between mb-2 text-success">
+                            <span>Coupon Discount
+                            <% if (order.coupon && order.coupon.code) { %>
+                                (<%= order.coupon.code.toUpperCase() %>)
+                            <% } %>
+                            </span>
+                            <span>-₹<%= order.couponDiscount.toFixed(2) %></span>
+                        </div>
+                        <% } %>
                         
                         <div class="summary-total d-flex justify-content-between">
                             <span>Total</span>
-                            <span>₹<%= totalAmount %></span>
+                            <span>₹<%= order.total.toFixed(2) %></span>
                         </div>
                         
                         <!-- Download Invoice Button -->

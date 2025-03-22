@@ -15,11 +15,15 @@ const orderController = {
             
             const { addressId, paymentMethod } = req.body;
             
-            // Find the cart for the user with proper population
+            // Find the cart for the user with populated product details
             const cart = await Cart.findOne({ user: req.user._id })
                 .populate({
                     path: 'items.product',
-                    model: 'Product'  // Explicitly specify the model with correct case
+                    model: 'Product',
+                    populate: [
+                        { path: 'offer' },
+                        { path: 'categoryOffer' }
+                    ]
                 });
             
             if (!cart || cart.items.length === 0) {
@@ -28,8 +32,6 @@ const orderController = {
                     message: 'Cart is empty'
                 });
             }
-            
-            console.log('Cart found, creating order...');
             
             // Get the shipping address
             const address = await Address.findById(addressId);
@@ -41,86 +43,83 @@ const orderController = {
                 });
             }
             
-            
-            // Calculate order totals
-            const subtotal = cart.items.reduce((sum, item) => {
-                // Check if item.product and item.product.variants exist
-                if (!item.product || !item.product.variants || !item.product.variants[item.variant]) {
-                    console.log('Warning: Invalid product or variant:', item);
-                    return sum; // Skip this item
-                }
-                
-                const price = parseFloat(item.product.variants[item.variant].price) || 0;
-                const quantity = parseInt(item.quantity) || 0;
-                
-                console.log(`Product: ${item.product.name}, Variant: ${item.variant}, Price: ${price}, Quantity: ${quantity}`);
-                
-                return sum + (price * quantity);
-            }, 0);
-
-            console.log('Calculated subtotal:', subtotal);
-
-            // Set shipping fee based on your business logic
-            const shippingFee = subtotal >= 1000 ? 0 : 40; // Free shipping for orders above 1000
-            console.log('Shipping fee:', shippingFee);
-            
-            // Get coupon details from session if applied
-            let discount = 0;
-            let couponCode = null;
-            let couponId = null;
-            let couponDiscount = 0;
-            
-            if (req.session.coupon) {
-                discount = parseFloat(req.session.coupon.discount) || 0;
-                couponCode = req.session.coupon.code;
-                couponId = req.session.coupon.couponId;
-                couponDiscount = parseFloat(req.session.coupon.discount) || 0;
-            }
-            
-            console.log('Discount:', discount);
-            
-            // Calculate total with validation
-            const total = parseFloat(subtotal) + parseFloat(shippingFee) - parseFloat(discount);
-            console.log('Final total:', total);
-            
-            // Validate total before proceeding
-            if (isNaN(total) || total < 0) {
-                console.error('Invalid total calculated:', total);
-                return res.status(400).json({
-                    success: false,
-                    message: 'Could not calculate order total. Please try again.'
-                });
-            }
-            
-            // Create order items array
+            // Calculate subtotal and prepare order items
+            let subtotal = 0;
             const orderItems = cart.items.map(item => {
+                const price = item.product.variants[item.variant].price;
+                subtotal += price * item.quantity;
+                
                 return {
                     product: item.product._id,
                     variant: item.variant,
-                    price: item.product.variants[item.variant].price,
+                    price: price,
                     quantity: item.quantity
                 };
             });
-
+            
+            // Calculate shipping fee
+            const shippingFee = subtotal >= 1000 ? 0 : 40;
+            
+            // Calculate GST (18%)
+            const gst = Math.round(subtotal * 0.18);
+            
+            // Calculate offer discount
+            let offerDiscount = 0;
+            for (const item of cart.items) {
+                // Get the best offer (product or category)
+                let discountPercentage = 0;
+                
+                if (item.product.offer && item.product.offer.discountPercentage) {
+                    discountPercentage = Math.max(discountPercentage, item.product.offer.discountPercentage);
+                }
+                
+                if (item.product.categoryOffer && item.product.categoryOffer.discountPercentage) {
+                    discountPercentage = Math.max(discountPercentage, item.product.categoryOffer.discountPercentage);
+                }
+                
+                if (discountPercentage > 0) {
+                    const itemPrice = item.product.variants[item.variant].price;
+                    const itemTotal = itemPrice * item.quantity;
+                    offerDiscount += itemTotal * (discountPercentage / 100);
+                }
+            }
+            offerDiscount = Math.round(offerDiscount);
+            
+            // Get coupon discount from session if exists
+            let couponDiscount = 0;
+            let couponCode = null;
+            let couponId = null;
+            
+            if (req.session.coupon) {
+                couponDiscount = req.session.coupon.discountAmount || 0;
+                couponCode = req.session.coupon.code;
+                couponId = req.session.coupon.couponId;
+            }
+            
+            // Calculate total
+            const total = subtotal + shippingFee + gst - offerDiscount - couponDiscount;
+            
             // Calculate expected delivery date (e.g., 7 days from now)
             const expectedDeliveryDate = new Date();
             expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 7);
             
-            // Create new order with all required fields
+            // Create new order
             const orderData = {
                 user: req.user._id,
                 items: orderItems,
                 address: addressId,
-                total: total,
+                total: Math.max(0, Math.round(total)),
                 status: 'Pending',
                 paymentMethod: paymentMethod,
                 paymentStatus: 'Pending',
                 expectedDeliveryDate: expectedDeliveryDate,
                 subtotal: subtotal,
-                shippingFee: shippingFee, // Make sure this is set
-                discount: discount
+                shippingFee: shippingFee,
+                offerDiscount: offerDiscount,
+                couponDiscount: couponDiscount,
+                gst: gst
             };
-
+            
             // Add coupon data if exists
             if (couponId) {
                 orderData.coupon = {
@@ -129,24 +128,11 @@ const orderController = {
                     couponId: couponId
                 };
             }
-
-            // Create and save the order
-            const order = new Order(orderData);
-            await order.save();
             
-            // Update product stock
-            const stockUpdates = [];
-            for (const item of cart.items) {
-                const product = await Product.findById(item.product._id);
-                if (product && product.variants[item.variant]) {
-                    product.variants[item.variant].stock -= item.quantity;
-                    stockUpdates.push(product.save());
-                }
-            }
+            console.log('Creating order with data:', orderData);
+            const order = await Order.create(orderData);
             
-            await Promise.all(stockUpdates);
-            
-            // Clear the cart
+            // Clear cart after successful order
             await Cart.findOneAndUpdate(
                 { user: req.user._id },
                 { $set: { items: [] } }
@@ -157,62 +143,17 @@ const orderController = {
                 delete req.session.coupon;
             }
             
-            // Handle wallet payment if selected
-            if (paymentMethod === 'wallet') {
-                // Find user's wallet
-                const wallet = await Wallet.findOne({ userId: req.user._id });
-                
-                if (!wallet) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Wallet not found'
-                    });
-                }
-                
-                // Check if wallet has sufficient balance
-                if (wallet.balance < total) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Insufficient wallet balance'
-                    });
-                }
-                
-                // Calculate new balance
-                const newBalance = wallet.balance - total;
-                
-                // Create transaction record with all required fields
-                wallet.transactions.push({
-                    type: 'debit',
-                    amount: total,
-                    description: `Payment for order #${order._id.toString().slice(-6).toUpperCase()}`,
-                    orderId: order._id,
-                    date: new Date(),
-                    balance: newBalance,
-                    userId: req.user._id
-                });
-                
-                // Update wallet balance
-                wallet.balance = newBalance;
-                
-                // Save wallet changes
-                await wallet.save();
-                
-                // Update order payment status to 'Completed' (valid enum value from Order model)
-                order.paymentStatus = 'Completed';
-                await order.save();
-            }
-            
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 message: 'Order placed successfully',
                 orderId: order._id
             });
+            
         } catch (error) {
             console.error('Error in placeOrder:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
-                message: 'Failed to place order',
-                error: error.message
+                message: 'An error occurred while placing your order: ' + error.message
             });
         }
     },
@@ -535,66 +476,11 @@ const orderController = {
     },
     getOrderDetails: async (req, res) => {
         try {
-            const orderId = req.params.id;
-            
-            const order = await Order.findOne({ 
-                _id: orderId,
-                user: req.user._id
-            })
-            .populate({
-                path: 'items.product',
-                select: 'name images brand variants price'
-            })
-            .populate('address');
-
-            if (!order) {
-                req.flash('error', 'Order not found');
-                return res.redirect('/orders');
-            }
-
-            // Define the status stages
-            const statusStages = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
-
-            // Format order date
-            const orderDate = new Date(order.createdAt).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-
-            // Calculate expected delivery date
-            const expectedDate = new Date(order.createdAt);
-            expectedDate.setDate(expectedDate.getDate() + 5);
-            const formattedExpectedDate = expectedDate.toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-
-            res.render('orders/order-details', {
-                title: 'Order Details',
-                order: order,
-                statusStages: statusStages,
-                expectedDate: formattedExpectedDate,
-                orderDate: orderDate  // Pass the formatted order date
-            });
-
-        } catch (error) {
-            console.error('Error fetching order details:', error);
-            req.flash('error', 'Error fetching order details');
-            res.redirect('/orders');
-        }
-    },
-    generateInvoice: async (req, res) => {
-        try {
             const orderId = req.params.orderId;
             // Get user ID - handle both normal and Google auth users
             const userId = req.session.user?._id || req.session.user?.id;
             
             if (!userId) {
-                console.error('User ID not found in session:', req.session.user);
                 req.flash('error', 'Authentication error. Please log in again.');
                 return res.redirect('/users/login');
             }
@@ -613,34 +499,89 @@ const orderController = {
                 return res.redirect('/orders');
             }
             
-            // Calculate all values to ensure they're valid
-            let subtotal = order.subtotal;
-            if (!subtotal || isNaN(subtotal)) {
-                subtotal = 0;
-                order.items.forEach(item => {
-                    subtotal += (item.price * item.quantity);
-                });
+            // Define the status stages for the progress tracker
+            const statusStages = ['Pending', 'Processing', 'Shipped', 'Delivered'];
+            
+            // Format order date
+            const orderDate = new Date(order.createdAt).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // Calculate expected delivery date
+            const expectedDate = new Date(order.expectedDeliveryDate || order.createdAt);
+            if (!order.expectedDeliveryDate) {
+                expectedDate.setDate(expectedDate.getDate() + 5);
+            }
+            const formattedExpectedDate = expectedDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // Ensure all monetary values are numbers
+            const orderData = {
+                ...order.toObject(),
+                subtotal: parseFloat(order.subtotal) || 0,
+                shippingFee: parseFloat(order.shippingFee) || 0,
+                offerDiscount: parseFloat(order.offerDiscount) || 0,
+                couponDiscount: parseFloat(order.couponDiscount) || 0,
+                gst: parseFloat(order.gst) || 0,
+                total: parseFloat(order.total) || 0
+            };
+
+            res.render('orders/order-details', {
+                title: 'Order Details',
+                order: orderData,
+                statusStages: statusStages,
+                expectedDate: formattedExpectedDate,
+                orderDate: orderDate
+            });
+
+        } catch (error) {
+            console.error('Error fetching order details:', error);
+            req.flash('error', 'Error fetching order details');
+            res.redirect('/orders');
+        }
+    },
+    generateInvoice: async (req, res) => {
+        try {
+            const orderId = req.params.orderId;
+            const userId = req.user?._id || req.session.user?._id || req.session.user?.id;
+            
+            console.log('Generating invoice for order:', orderId);
+            
+            // Find the order and make sure it belongs to the current user
+            const order = await Order.findOne({ 
+                _id: orderId, 
+                user: userId 
+            }).populate({
+                path: 'items.product',
+                select: 'name brand'
+            }).populate('address').populate('user');
+            
+            if (!order) {
+                console.error('Order not found:', orderId);
+                req.flash('error', 'Order not found');
+                return res.redirect('/orders');
             }
             
-            const discountAmount = Math.round(subtotal * 0.1);
-            const shippingAmount = 40;
-            const gstAmount = Math.round(subtotal * 0.18);
-            const totalAmount = Math.round(subtotal - discountAmount + shippingAmount + gstAmount);
+            // Create a new PDF document
+            const doc = new PDFDocument({ margin: 50 });
             
-            // Create a PDF document
-            const doc = new PDFDocument({margin: 50});
-            
-            // Set response headers for PDF download
+            // Set response headers for file download
             res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename=invoice-${order._id.toString().slice(-8).toUpperCase()}.pdf`);
+            res.setHeader('Content-Disposition', `attachment; filename=invoice-${orderId}.pdf`);
             
             // Pipe the PDF to the response
             doc.pipe(res);
             
             // Add company logo and header
-            // doc.image('public/images/logo.png', 50, 45, {width: 100});
-            doc.fontSize(20).text('BREWTOPIA', 50, 50);
-            doc.fontSize(10).text('Premium Craft Beer', 50, 75);
+            doc.fontSize(20).text('Brewtopia', { align: 'center' });
+            doc.fontSize(10).text('Premium Coffee & Accessories', { align: 'center' });
             doc.moveDown();
             
             // Add invoice title and order number
@@ -697,19 +638,19 @@ const orderController = {
             
             // Order summary with fixed values
             doc.fontSize(10).text('Subtotal:', 350, y);
-            doc.text(`₹${subtotal}`, 450, y);
+            doc.text(`₹${order.subtotal}`, 450, y);
             y += 15;
             
             doc.fontSize(10).text('Discount:', 350, y);
-            doc.text(`-₹${discountAmount}`, 450, y);
+            doc.text(`-₹${order.offerDiscount}`, 450, y);
             y += 15;
             
             doc.fontSize(10).text('Shipping:', 350, y);
-            doc.text(`₹${shippingAmount}`, 450, y);
+            doc.text(`₹${order.shippingFee}`, 450, y);
             y += 15;
             
             doc.fontSize(10).text('GST (18%):', 350, y);
-            doc.text(`₹${gstAmount}`, 450, y);
+            doc.text(`₹${order.gst}`, 450, y);
             y += 15;
             
             // Draw a line
@@ -718,19 +659,19 @@ const orderController = {
             
             // Total
             doc.fontSize(12).text('Total:', 350, y, {font: 'Helvetica-Bold'});
-            doc.fontSize(12).text(`₹${totalAmount}`, 450, y, {font: 'Helvetica-Bold'});
+            doc.fontSize(12).text(`₹${order.total}`, 450, y, {font: 'Helvetica-Bold'});
             
             // Add footer
             doc.fontSize(10).text('Thank you for shopping with Brewtopia!', 50, 700, {align: 'center'});
             doc.fontSize(8).text('This is a computer-generated invoice and does not require a signature.', 50, 720, {align: 'center'});
             
-            // Finalize the PDF
+            // Finalize the PDF and send it
             doc.end();
             
         } catch (error) {
             console.error('Error generating invoice:', error);
-            req.flash('error', 'Error generating invoice');
-            res.redirect('/orders');
+            req.flash('error', 'Error generating invoice: ' + error.message);
+            return res.redirect('/orders');
         }
     },
 

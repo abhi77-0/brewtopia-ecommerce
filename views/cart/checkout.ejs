@@ -856,6 +856,20 @@ function placeOrder(addressId, paymentMethod) {
         }
     });
 
+    // Get offer discount if it exists
+    let offerDiscount = 0;
+    const offerDiscountElement = document.getElementById('offerDiscount');
+    if (offerDiscountElement) {
+        offerDiscount = parseFloat(offerDiscountElement.textContent.replace('-₹', '').trim()) || 0;
+    }
+    
+    // Get coupon discount if it exists
+    let couponDiscount = 0;
+    const couponDiscountElement = document.getElementById('couponDiscount');
+    if (couponDiscountElement) {
+        couponDiscount = parseFloat(couponDiscountElement.textContent.replace('-₹', '').trim()) || 0;
+    }
+
     // Make API call to place order
     fetch('/orders/place-order', {
         method: 'POST',
@@ -877,28 +891,29 @@ function placeOrder(addressId, paymentMethod) {
                 text: 'Thank you for your purchase',
                 icon: 'success',
                 showCancelButton: true,
-                confirmButtonColor: '#FF9800',
-                cancelButtonColor: '#4CAF50',
-                confirmButtonText: 'View Orders',
+                confirmButtonText: 'View Order',
                 cancelButtonText: 'Continue Shopping'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Go to orders page
-                    window.location.href = '/orders';
+                    window.location.href = `/orders/details/${data.orderId}`;
                 } else {
-                    // Go to products page
-                    window.location.href = '/shop/products';
+                    window.location.href = '/';
                 }
             });
         } else {
-            throw new Error(data.message || 'Failed to place order');
+            Swal.fire({
+                title: 'Error',
+                text: data.message || 'Failed to place order',
+                icon: 'error',
+                confirmButtonColor: '#FF9800'
+            });
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('Error placing order:', error);
         Swal.fire({
             title: 'Error',
-            text: error.message || 'Something went wrong while placing your order',
+            text: 'An unexpected error occurred',
             icon: 'error',
             confirmButtonColor: '#FF9800'
         });

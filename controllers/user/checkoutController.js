@@ -369,12 +369,17 @@ exports.verifyPayment = async (req, res) => {
             });
         }
         
-        // Get cart details
+        // Get cart details with populated product details including offers
         const cart = await Cart.findOne({ user: req.user._id })
             .populate({
                 path: 'items.product',
-                model: 'Product'
+                model: 'Product',
+                populate: [
+                    { path: 'offer' },
+                    { path: 'categoryOffer' }
+                ]
             });
+            
         if (!cart) {
             return res.status(404).json({
                 success: false,
@@ -391,46 +396,98 @@ exports.verifyPayment = async (req, res) => {
             });
         }
         
-        // Calculate order totals
+        // Calculate subtotal and prepare order items
         let subtotal = 0;
-        cart.items.forEach(item => {
-            if (item.product && item.product.variants && item.variant) {
-                const variantPrice = item.product.variants[item.variant]?.price || 0;
-                subtotal += variantPrice * item.quantity;
-            }
+        const orderItems = cart.items.map(item => {
+            const price = item.product.variants[item.variant].price;
+            subtotal += price * item.quantity;
+            
+            return {
+                product: item.product._id,
+                variant: item.variant,
+                price: price,
+                quantity: item.quantity
+            };
         });
         
-        const shipping = 40; // Your standard shipping fee
-        const discountRate = 0.10; // 10% discount
-        const gstRate = 0.18; // 18% GST
+        // Calculate shipping fee
+        const shippingFee = subtotal >= 1000 ? 0 : 40;
         
-        const discount = subtotal * discountRate;
-        const gst = Math.round(subtotal * gstRate);
-        const total = subtotal + shipping - discount + gst;
+        // Calculate GST (18%)
+        const gst = Math.round(subtotal * 0.18);
         
-        // Create order items
-        const orderItems = cart.items.map(item => ({
-            product: item.product._id,
-            variant: item.variant,
-            quantity: item.quantity,
-            price: item.product.variants[item.variant].price
-        }));
+        // Calculate offer discount
+        let offerDiscount = 0;
+        for (const item of cart.items) {
+            // Get the best offer (product or category)
+            let discountPercentage = 0;
+            
+            if (item.product.offer && item.product.offer.isActive !== false && 
+                new Date() >= new Date(item.product.offer.startDate) && 
+                new Date() <= new Date(item.product.offer.endDate)) {
+                discountPercentage = Math.max(discountPercentage, item.product.offer.discountPercentage);
+            }
+            
+            if (item.product.categoryOffer && item.product.categoryOffer.isActive !== false && 
+                new Date() >= new Date(item.product.categoryOffer.startDate) && 
+                new Date() <= new Date(item.product.categoryOffer.endDate)) {
+                discountPercentage = Math.max(discountPercentage, item.product.categoryOffer.discountPercentage);
+            }
+            
+            if (discountPercentage > 0) {
+                const itemPrice = item.product.variants[item.variant].price;
+                const itemTotal = itemPrice * item.quantity;
+                offerDiscount += itemTotal * (discountPercentage / 100);
+            }
+        }
+        offerDiscount = Math.round(offerDiscount);
         
-        // Create the order
+        // Get coupon discount from session if exists
+        let couponDiscount = 0;
+        let couponCode = null;
+        let couponId = null;
+        
+        if (req.session.coupon) {
+            couponDiscount = req.session.coupon.discountAmount || 0;
+            couponCode = req.session.coupon.code;
+            couponId = req.session.coupon.couponId;
+        }
+        
+        // Calculate total
+        const total = subtotal + shippingFee + gst - offerDiscount - couponDiscount;
+        
+        // Calculate expected delivery date (e.g., 7 days from now)
+        const expectedDeliveryDate = new Date();
+        expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 7);
+        
+        // Create the order with all discount information
         const order = new Order({
             user: req.user._id,
             items: orderItems,
-            address: addressId,  // Changed from shippingAddress to address
+            address: addressId,
             paymentMethod: 'razorpay',
             paymentId: razorpay_payment_id,
-            orderId: razorpay_order_id,
+            razorpayOrderId: razorpay_order_id,
+            razorpayPaymentId: razorpay_payment_id,
             status: 'Processing',
+            paymentStatus: 'Completed',
+            expectedDeliveryDate: expectedDeliveryDate,
             subtotal: subtotal,
-            shippingFee: shipping,
-            discount: discount,
-            tax: gst,
-            total: total
+            shippingFee: shippingFee,
+            offerDiscount: offerDiscount,
+            couponDiscount: couponDiscount,
+            gst: gst,
+            total: Math.round(total)
         });
+        
+        // Add coupon data if exists
+        if (couponId) {
+            order.coupon = {
+                code: couponCode,
+                discount: couponDiscount,
+                couponId: couponId
+            };
+        }
         
         await order.save();
         
@@ -439,6 +496,11 @@ exports.verifyPayment = async (req, res) => {
             { user: req.user._id },
             { $set: { items: [] } }
         );
+        
+        // Clear coupon from session
+        if (req.session.coupon) {
+            delete req.session.coupon;
+        }
         
         res.status(200).json({
             success: true,
