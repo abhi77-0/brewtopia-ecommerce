@@ -924,12 +924,14 @@ async function initiateRazorpayPayment() {
             }
         });
 
-        // Log the request payload
+        const totalElement = document.getElementById('total');
+        const totalText = totalElement.textContent;
+        const finalTotal = parseInt(totalText.replace(/[^0-9]/g, '')) || 0;
+
         const payload = {
-            amount: <%= total %>,
+            amount: finalTotal,
             addressId: selectedAddress.value
         };
-        console.log('Sending payment request with payload:', payload);
 
         const response = await fetch('/checkout/razorpay/create-order', {
             method: 'POST',
@@ -941,9 +943,6 @@ async function initiateRazorpayPayment() {
             credentials: 'same-origin'
         });
 
-        // Log the response status and headers
-        console.log('Response status:', response.status);
-        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
         // Handle non-OK responses
         if (!response.ok) {
