@@ -2,6 +2,49 @@ const Cart = require('../../models/shopingCart');
 const product = require('../../models/Product');
 const User = require('../../models/userModel');
 
+// Add this function at the top of your file
+const calculateBestOffer = (product) => {
+    try {
+        let bestOffer = null;
+        let discountPercentage = 0;
+
+        const now = new Date();
+
+        // Check product offer
+        if (product.offer && 
+            product.offer.isActive !== false && 
+            now >= new Date(product.offer.startDate) && 
+            now <= new Date(product.offer.endDate)) {
+            bestOffer = product.offer;
+            discountPercentage = product.offer.discountPercentage;
+        }
+
+        // Check category offer
+        if (product.categoryOffer && 
+            product.categoryOffer.isActive !== false && 
+            now >= new Date(product.categoryOffer.startDate) && 
+            now <= new Date(product.categoryOffer.endDate)) {
+            
+            // Use category offer if it's better than product offer
+            if (!bestOffer || product.categoryOffer.discountPercentage > discountPercentage) {
+                bestOffer = product.categoryOffer;
+                discountPercentage = product.categoryOffer.discountPercentage;
+            }
+        }
+
+        return {
+            bestOffer,
+            discountPercentage: parseFloat(discountPercentage) || 0
+        };
+    } catch (error) {
+        console.error('Error calculating best offer:', error);
+        return {
+            bestOffer: null,
+            discountPercentage: 0
+        };
+    }
+};
+
 exports.getCart = async (req, res) => {
     try {
         let subtotal = 0;
@@ -17,7 +60,11 @@ exports.getCart = async (req, res) => {
             .populate({
                 path: 'items.product',
                 model: 'Product',
-                select: 'name description images variants brand'
+                select: 'name description images variants brand offer categoryOffer',
+                populate: [
+                    { path: 'offer' },
+                    { path: 'categoryOffer' }
+                ]
             });
 
         // Filter out any items where product is null (might have been deleted)
@@ -65,6 +112,7 @@ exports.getCart = async (req, res) => {
             discount: Math.round(discount),
             gst,
             total: Math.round(total),
+            calculateBestOffer, // Pass the function to the template
             hideSearch: true // Add this flag to hide search bar
         });
     } catch (error) {

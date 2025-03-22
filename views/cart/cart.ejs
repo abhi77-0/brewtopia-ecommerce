@@ -64,12 +64,25 @@
                                     </div>
                                     <div class="col-6 col-md-2">
                                         <div class="item-price">
-                                            <span class="d-md-none">Price: </span>₹<%= 
-                                                (item.product && 
-                                                 item.product.variants && 
-                                                 item.product.variants[item.variant] && 
-                                                 item.product.variants[item.variant].price) || 0 
-                                            %>
+                                            <% if (item.product && item.product.variants && item.product.variants[item.variant]) { %>
+                                                <% const variantPrice = parseFloat(item.product.variants[item.variant].price); %>
+                                                <% const offerInfo = calculateBestOffer(item.product); %>
+                                                <% const discountedPrice = offerInfo.bestOffer ? 
+                                                    variantPrice * (1 - offerInfo.discountPercentage / 100) : 
+                                                    variantPrice; %>
+                                                
+                                                <% if (offerInfo.bestOffer) { %>
+                                                    <div class="price-container">
+                                                        <span class="original-price">₹<%= variantPrice.toFixed(2) %></span>
+                                                        <span class="final-price">₹<%= discountedPrice.toFixed(2) %></span>
+                                                        <span class="discount-badge"><%= offerInfo.discountPercentage %>% OFF</span>
+                                                    </div>
+                                                <% } else { %>
+                                                    <span class="final-price">₹<%= variantPrice.toFixed(2) %></span>
+                                                <% } %>
+                                            <% } else { %>
+                                                <span class="final-price">Price not available</span>
+                                            <% } %>
                                         </div>
                                     </div>
                                     <div class="col-6 col-md-2">
@@ -510,6 +523,34 @@ async function removeFromCart(productId, variant) {
         width: 80px;
         height: 80px;
     }
+}
+
+.price-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.original-price {
+    text-decoration: line-through;
+    color: #999;
+    font-size: 14px;
+}
+
+.final-price {
+    font-weight: 600;
+    color: #333;
+    font-size: 16px;
+}
+
+.discount-badge {
+    display: inline-block;
+    background: #4CAF50;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
 }
 </style>
 
