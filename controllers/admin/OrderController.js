@@ -84,37 +84,74 @@ const OrderController = {
 
     updateOrderStatus: async (req, res) => {
         try {
-            const orderId = req.params.id;
+            // Check both params and body for the order ID
+            const orderId = req.params.id || req.body.id;
             const { status } = req.body;
-
-            // Ensure the status is one of the allowed values
-            if (!['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].includes(status)) {
+            
+            console.log('Request params:', req.params);
+            console.log('Request body:', req.body);
+            console.log(`Attempting to update order ${orderId} to status: ${status}`);
+            
+            if (!orderId) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Invalid status value'
+                    message: 'Order ID is required'
                 });
             }
-
-            const order = await Order.findByIdAndUpdate(orderId, { status }, { new: true });
-
+            
+            // Validate status
+            const validStatuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Returned'];
+            if (!validStatuses.includes(status)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid status'
+                });
+            }
+            
+            // Find the order with more detailed error handling
+            if (!orderId.match(/^[0-9a-fA-F]{24}$/)) {
+                console.error(`Invalid order ID format: ${orderId}`);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid order ID format'
+                });
+            }
+            
+            const order = await Order.findById(orderId);
+            
             if (!order) {
+                console.error(`Order not found with ID: ${orderId}`);
                 return res.status(404).json({
                     success: false,
                     message: 'Order not found'
                 });
             }
-
-            res.json({
+            
+            console.log(`Found order: ${order._id}, current status: ${order.status}, payment method: ${order.paymentMethod}`);
+            
+            // Update order status
+            order.status = status;
+            
+            // If order is delivered and payment method is COD, update payment status to Completed
+            if (status === 'Delivered' && order.paymentMethod === 'cod') {
+                order.paymentStatus = 'Completed';
+                console.log(`Order ${orderId} marked as Delivered - updating COD payment status to Completed`);
+            }
+            
+            // Save the updated order
+            await order.save();
+            console.log(`Order ${orderId} successfully updated to status: ${status}`);
+            
+            return res.json({
                 success: true,
-                message: 'Order status updated successfully',
-                order
+                message: 'Order status updated successfully'
             });
-
+            
         } catch (error) {
             console.error('Error updating order status:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
-                message: 'Error updating order status: ' + error.message
+                message: 'Server error: ' + error.message
             });
         }
     },
@@ -164,6 +201,7 @@ const OrderController = {
                     const wallet = await Wallet.findOne({ userId });
                     
                     if (!wallet) {
+                        
                         console.error('Wallet not found for user:', userId);
                     } else {
                         // Calculate new balance
