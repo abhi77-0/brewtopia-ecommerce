@@ -8,9 +8,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <!-- Add this to your existing style section -->
+    <!-- Custom Styles -->
     <style>
-        /* Navbar Styles */
+        /* Navbar and Sidebar Styles (unchanged) */
         .navbar {
             background-color: #FF9800;
             padding: 1rem 0;
@@ -26,10 +26,9 @@
             color: #ffc107;
         }
 
-        /* Sidebar Styles */
         .admin-container {
             display: flex;
-            min-height: 100vh; /* Use full viewport height */
+            min-height: 100vh;
         }
 
         .sidebar {
@@ -37,10 +36,10 @@
             background-color: #2c3e50;
             padding-top: 2rem;
             color: white;
-            height: 100vh; /* Full height */
+            height: 100vh;
             position: sticky;
             top: 0;
-            overflow-y: auto; /* Allow scrolling */
+            overflow-y: auto;
         }
 
         .sidebar-link {
@@ -61,299 +60,581 @@
             color: #1a1a1a;
         }
 
-        /* Main Content Styles */
         .main-content {
             flex: 1;
             padding: 2rem;
             background-color: #f8f9fa;
-            min-height: 100vh; /* Ensure main content matches sidebar height */
-            overflow-y: auto; /* Allow scrolling */
+            min-height: 100vh;
+            overflow-y: auto;
         }
 
-        /* Table Styles */
-        .table {
-            margin-top: 1rem;
-            background-color: #fff;
-            border-radius: 8px;
+        /* Modern Order Card Styles */
+        .orders-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        .order-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .table th, .table td {
+        .order-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .order-header {
+            background-color: #f8f9fa;
+            padding: 1.25rem;
+            border-bottom: 1px solid #eaeaea;
+        }
+
+        .order-id {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .order-date {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .order-customer {
+            font-weight: 500;
+            color: #343a40;
+        }
+
+        .order-total {
+            font-weight: 600;
+            color: #FF9800;
+            font-size: 1.1rem;
+        }
+
+        .order-status-select {
+            border: 2px solid #FF9800;
+            border-radius: 8px;
+            padding: 0.4rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .order-status-select:focus {
+            box-shadow: 0 0 0 0.25rem rgba(255, 152, 0, 0.25);
+            border-color: #FF9800;
+        }
+
+        .payment-badge {
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .payment-badge i {
+            font-size: 1rem;
+        }
+
+        .payment-completed {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .payment-pending {
+            background-color: #fff3cd;
+            color: #664d03;
+        }
+
+        .payment-failed {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+
+        .payment-refunded {
+            background-color: #cff4fc;
+            color: #055160;
+        }
+
+        .order-products {
+            padding: 1.25rem;
+        }
+
+        .product-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 0.75rem;
+        }
+
+        .product-row {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .product-row:hover {
+            background-color: #f1f3f5;
+        }
+
+        .product-row td {
+            padding: 1rem;
             vertical-align: middle;
         }
 
-        .table th {
-            background-color: #FF9800;
-            color: white;
+        .product-row td:first-child {
+            border-top-left-radius: 8px;
+            border-bottom-left-radius: 8px;
         }
 
-        .table-striped tbody tr:nth-of-type(odd) {
-            background-color: #f2f2f2;
+        .product-row td:last-child {
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
         }
 
-        .pagination {
-            margin-top: 1rem;
+        .product-name {
+            font-weight: 500;
+            color: #343a40;
         }
 
-        /* Add these new styles */
-        .badge {
-            font-size: 12px;
-            padding: 6px 10px;
-            border-radius: 6px;
-        }
-
-        .btn-group-sm > .btn {
-            padding: 0.25rem 0.5rem;
-        }
-
-        .btn-group-sm > .btn i {
-            font-size: 12px;
-        }
-
-        .table td {
-            vertical-align: middle;
-        }
-
-        .table td small {
-            font-size: 11px;
-        }
-
-        .btn-success {
-            background-color: #28a745;
-            border-color: #28a745;
-        }
-
-        .btn-danger {
-            background-color: #dc3545;
-            border-color: #dc3545;
-        }
-
-        .btn-info {
-            background-color: #17a2b8;
-            border-color: #17a2b8;
-            color: white;
-        }
-
-        .btn:hover {
-            opacity: 0.9;
-        }
-
-        .form-select-sm:disabled {
+        .product-variant {
+            display: inline-block;
             background-color: #e9ecef;
-            cursor: not-allowed;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #495057;
         }
 
-        .return-info {
+        .product-price {
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .product-quantity {
+            background-color: #e9ecef;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+
+        .product-subtotal {
+            font-weight: 600;
+            color: #FF9800;
+        }
+
+        .return-badge {
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.85rem;
+        }
+
+        .return-pending {
+            background-color: #fff3cd;
+            color: #664d03;
+        }
+
+        .return-accepted {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .return-rejected {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+
+        .return-none {
+            background-color: #e9ecef;
+            color: #6c757d;
+        }
+
+        .return-reason {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .return-action-btn {
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .return-action-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .order-footer {
+            background-color: #f8f9fa;
+            padding: 1.25rem;
+            border-top: 1px solid #eaeaea;
             display: flex;
+            justify-content: space-between;
             align-items: center;
         }
 
-        .return-info .badge {
-            margin-right: 0.5rem;
+        .address-info {
+            font-size: 0.9rem;
+            color: #6c757d;
         }
 
-        .return-info small {
-            margin-right: 1rem;
+        .delivery-info {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-weight: 500;
         }
 
-        /* Update button styles to ensure they're clickable */
-        .btn-group-sm > .btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-            line-height: 1.5;
-            border-radius: 0.2rem;
-            position: relative;
-            z-index: 1;
+        /* Pagination Styles */
+        .pagination {
+            margin-top: 2rem;
         }
 
-        .btn-success, .btn-danger, .btn-info {
-            cursor: pointer;
+        .page-link {
+            color: #FF9800;
+            border-color: #dee2e6;
         }
 
-        .return-info {
-            margin-bottom: 0.5rem;
+        .page-item.active .page-link {
+            background-color: #FF9800;
+            border-color: #FF9800;
         }
 
-        .badge {
-            font-size: 0.875rem;
-            padding: 0.4em 0.8em;
+        .page-link:hover {
+            color: #e67e00;
+            background-color: #e9ecef;
+        }
+
+        /* Search Form Styles */
+        .search-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .search-form .form-control {
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+        }
+
+        .search-form .btn-primary {
+            background-color: #FF9800;
+            border-color: #FF9800;
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            font-weight: 500;
+        }
+
+        .search-form .btn-primary:hover {
+            background-color: #e67e00;
+            border-color: #e67e00;
         }
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/admin/dashboard">Brewtopia Admin</a>
-            <div class="d-flex">
-                <a href="/admin/logout" class="btn btn-outline-light">
-                    <i class="fas fa-sign-out-alt"></i> Logout
+    <div class="admin-container">
+        <!-- Sidebar (unchanged) -->
+        <div class="sidebar">
+            <div class="sidebar">
+                <a href="/admin/dashboard" class="sidebar-link active">
+                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                </a>
+                <a href="/admin/products" class="sidebar-link">
+                    <i class="fas fa-beer me-2"></i> Products
+                </a>
+                <a href="/admin/categories" class="sidebar-link">
+                    <i class="fas fa-list me-2"></i> Categories
+                </a>
+                <a href="/admin/orders" class="sidebar-link">
+                    <i class="fas fa-shopping-cart me-2"></i> Orders
+                </a>
+                <a href="/admin/users" class="sidebar-link">
+                    <i class="fas fa-users me-2"></i> Users
+                </a>
+                <a href="/admin/offers" class="sidebar-link">
+                    <i class="fas fa-percent me-2"></i>Offers
+                </a>
+                <a href="/admin/coupons" class="sidebar-link">
+                    <i class="fas fa-ticket-alt me-2"></i> Coupons
+                </a>
+                <a href="/admin/sales-report" class="sidebar-link">
+                    <i class="fas fa-chart-line me-2"></i> Sales Report
                 </a>
             </div>
         </div>
-    </nav>
 
-    <div class="admin-container">
-     <!-- Sidebar -->
-     <div class="sidebar">
-        <a href="/admin/dashboard" class="sidebar-link active">
-            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-        </a>
-        <a href="/admin/products" class="sidebar-link">
-            <i class="fas fa-beer me-2"></i> Products
-        </a>
-        <a href="/admin/categories" class="sidebar-link">
-            <i class="fas fa-list me-2"></i> Categories
-        </a>
-        <a href="/admin/orders" class="sidebar-link">
-            <i class="fas fa-shopping-cart me-2"></i> Orders
-        </a>
-        <a href="/admin/users" class="sidebar-link">
-            <i class="fas fa-users me-2"></i> Users
-        </a>
-        <a href="/admin/offers" class="sidebar-link">
-            <i class="fas fa-percent me-2"></i>Offers
-        </a>
-        <a href="/admin/coupons" class="sidebar-link">
-            <i class="fas fa-ticket-alt me-2"></i> Coupons
-        </a>
-        <a href="/admin/sales-report" class="sidebar-link">
-            <i class="fas fa-chart-line me-2"></i> Sales Report
-        </a>
-    </div>
-
-        <!-- Main Content -->
-        <!-- Add this right before the table, inside main-content div -->
         <div class="main-content">
+            <h2 class="mb-4">Order Management</h2>
+
             <!-- Search Form -->
-            <!-- Replace the existing search form with this simplified version -->
-            <div class="card mb-4">
-                <div class="card-body">
-                    <form action="/admin/orders" method="GET" class="row g-3">
-                        <div class="col-md-5">
-                            <input type="text" 
-                                   class="form-control" 
-                                   name="orderId" 
-                                   placeholder="Search by Order ID"
-                                   value="<%= searchQuery?.orderId || '' %>">
+            <div class="search-card">
+                <div class="row">
+                    <form class="search-form row g-3" action="/admin/orders" method="GET">
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" name="orderId" placeholder="Order ID">
                         </div>
-                        <div class="col-md-5">
-                            <input type="text" 
-                                   class="form-control" 
-                                   name="customerName" 
-                                   placeholder="Search by Customer Name"
-                                   value="<%= searchQuery?.customerName || '' %>">
+                        <div class="col-md-3">
+                            <input type="text" class="form-control" name="customer" placeholder="Customer Name">
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" name="status">
+                                <option value="">All Statuses</option>
+                                <% statusStages.forEach(status => { %>
+                                    <option value="<%= status %>"><%= status %></option>
+                                <% }) %>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select" name="paymentStatus">
+                                <option value="">All Payments</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Failed">Failed</option>
+                                <option value="Refunded">Refunded</option>
+                            </select>
                         </div>
                         <div class="col-md-2">
                             <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-search"></i> Search
+                                <i class="fas fa-search me-2"></i>Search
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
         
-        <% if (orders && orders.length > 0) { %>
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Order ID</th>
-                        <th>Date</th>
-                        <th>Customer</th>
-                        <th>Total</th>
-                        <th>Status</th>
-                        <th>Return Status</th>
-                    </tr>
-                </thead>
-                <tbody>
+            <% if (orders && orders.length > 0) { %>
+                <div class="orders-container">
                     <% orders.forEach(order => { %>
-                        <tr>
-                            <td>#<%= order._id %></td>
-                            <td><%= new Date(order.createdAt).toLocaleDateString() %></td>
-                            <td><%= order.user.name %></td>
-                            <td>₹<%= order.total.toFixed(2) %></td>
-                            <td>
-                                <select class="form-select form-select-sm status-select" 
-                                        data-order-id="<%= order._id %>">
-                                    <% statusStages.forEach(status => { %>
-                                        <option value="<%= status %>" 
-                                                <%= order.status === status ? 'selected' : '' %>>
-                                            <%= status %>
-                                        </option>
-                                    <% }) %>
-                                </select>
-                            </td>
-                            <td>
-                                <% if (order.returnRequest) { %>
-                                    <% if (order.returnStatus === 'pending') { %>
-                                        <div class="d-flex align-items-center">
-                                            <span class="badge bg-warning text-dark me-2">Pending</span>
-                                            <button class="btn btn-success btn-sm me-1 return-btn" 
-                                                    data-order-id="<%= order._id %>" 
-                                                    data-action="accept">
-                                                Accept
-                                            </button>
-                                            <button class="btn btn-danger btn-sm return-btn" 
-                                                    data-order-id="<%= order._id %>" 
-                                                    data-action="reject">
-                                                Reject
-                                            </button>
+                        <div class="order-card">
+                            <!-- Order Header -->
+                            <div class="order-header">
+                                <div class="row align-items-center">
+                                    <div class="col-md-3">
+                                        <div class="order-id">#<%= order._id.toString().slice(-8).toUpperCase() %></div>
+                                        <div class="order-date">
+                                            <i class="far fa-calendar-alt me-1"></i>
+                                            <%= new Date(order.createdAt).toLocaleDateString('en-US', {
+                                                day: 'numeric',
+                                                month: 'short',
+                                                year: 'numeric'
+                                            }) %>
                                         </div>
-                                    <% } else if (order.returnStatus === 'accepted') { %>
-                                        <span class="badge bg-success">Accepted</span>
-                                    <% } else if (order.returnStatus === 'rejected') { %>
-                                        <span class="badge bg-danger">Rejected</span>
-                                    <% } %>
-                                <% } else { %>
-                                    <span class="badge bg-secondary">No Request</span>
-                                <% } %>
-                            </td>
-                        </tr>
-                    <% }); %>
-                </tbody>
-            </table>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="order-customer">
+                                            <i class="far fa-user me-1"></i>
+                                            <%= order.user.name %>
+                                        </div>
+                                        <div class="order-total">
+                                            <i class="fas fa-rupee-sign me-1"></i>
+                                            <%= order.total.toFixed(2) %>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <select class="form-select order-status-select" 
+                                                data-order-id="<%= order._id %>">
+                                            <% statusStages.forEach(status => { %>
+                                                <option value="<%= status %>" 
+                                                        <%= order.status === status ? 'selected' : '' %>>
+                                                    <%= status %>
+                                                </option>
+                                            <% }) %>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 text-end">
+                                        <div class="payment-badge 
+                                            <%= order.paymentStatus === 'Completed' ? 'payment-completed' : 
+                                               order.paymentStatus === 'Pending' ? 'payment-pending' : 
+                                               order.paymentStatus === 'Failed' ? 'payment-failed' : 'payment-refunded' %>">
+                                            <i class="fas 
+                                                <%= order.paymentMethod === 'cod' ? 'fa-money-bill-wave' : 
+                                                   order.paymentMethod === 'razorpay' ? 'fa-credit-card' : 
+                                                   order.paymentMethod === 'wallet' ? 'fa-wallet' : 'fa-money-check' %>">
+                                            </i>
+                                            <%= order.paymentMethod.toUpperCase() %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-            <!-- Simple Pagination -->
-            <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    <% if (hasPrevPage) { %>
-                        <li class="page-item">
-                            <a class="page-link" href="/admin/orders?page=<%= prevPage %>">Previous</a>
-                        </li>
-                    <% } %>
-                    <% for(let i = 1; i <= totalPages; i++) { %>
-                        <li class="page-item <%= currentPage === i ? 'active' : '' %>">
-                            <a class="page-link" href="/admin/orders?page=<%= i %>"><%= i %></a>
-                        </li>
-                    <% } %>
-                    <% if (hasNextPage) { %>
-                        <li class="page-item">
-                            <a class="page-link" href="/admin/orders?page=<%= nextPage %>">Next</a>
-                        </li>
-                    <% } %>
-                </ul>
-            </nav>
-        <% } else { %>
-            <div class="alert alert-info">No orders found.</div>
-        <% } %>
+                            <!-- Order Products -->
+                            <div class="order-products">
+                                <table class="product-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Quantity</th>
+                                            <th>Subtotal</th>
+                                            <th>Return Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% order.items.forEach((item, index) => { %>
+                                            <tr class="product-row">
+                                                <td>
+                                                    <div class="product-name">
+                                                        <% if (item.product && item.product.name) { %>
+                                                            <%= item.product.name %>
+                                                        <% } else { %>
+                                                            Product ID: <%= item.product %>
+                                                        <% } %>
+                                                    </div>
+                                                    <span class="product-variant"><%= item.variant %></span>
+                                                </td>
+                                                <td><span class="product-quantity"><%= item.quantity %></span></td>
+                                                <td class="product-subtotal">₹<%= order.total.toFixed(2) %></td>
+                                                <td>
+                                                    <% if (item.returnStatus === 'pending') { %>
+                                                        <div class="return-badge return-pending">
+                                                            <i class="fas fa-hourglass-half me-1"></i> Return Pending
+                                                        </div>
+                                                        <% if (item.returnReason) { %>
+                                                            <div class="return-reason">
+                                                                <i class="fas fa-quote-left me-1"></i>
+                                                                <%= item.returnReason %>
+                                                            </div>
+                                                        <% } %>
+                                                    <% } else if (item.returnStatus === 'accepted') { %>
+                                                        <div class="return-badge return-accepted">
+                                                            <i class="fas fa-check-circle me-1"></i> Return Accepted
+                                                        </div>
+                                                        <% if (item.returnReason) { %>
+                                                            <div class="return-reason">
+                                                                <i class="fas fa-quote-left me-1"></i>
+                                                                <%= item.returnReason %>
+                                                            </div>
+                                                        <% } %>
+                                                    <% } else if (item.returnStatus === 'rejected') { %>
+                                                        <div class="return-badge return-rejected">
+                                                            <i class="fas fa-times-circle me-1"></i> Return Rejected
+                                                        </div>
+                                                        <% if (item.returnReason) { %>
+                                                            <div class="return-reason">
+                                                                <i class="fas fa-quote-left me-1"></i>
+                                                                <%= item.returnReason %>
+                                                            </div>
+                                                        <% } %>
+                                                    <% } else { %>
+                                                        <div class="return-badge return-none">
+                                                            <i class="fas fa-ban me-1"></i> No Return
+                                                        </div>
+                                                    <% } %>
+                                                </td>
+                                                <td>
+                                                    <% if (item.returnStatus === 'pending') { %>
+                                                        <div class="d-flex gap-2">
+                                                            <button class="btn btn-success return-action-btn item-return-btn" 
+                                                                    data-order-id="<%= order._id %>" 
+                                                                    data-item-index="<%= index %>"
+                                                                    data-action="accepted">
+                                                                <i class="fas fa-check me-1"></i> Accept
+                                                            </button>
+                                                            <button class="btn btn-danger return-action-btn item-return-btn" 
+                                                                    data-order-id="<%= order._id %>" 
+                                                                    data-item-index="<%= index %>"
+                                                                    data-action="rejected">
+                                                                <i class="fas fa-times me-1"></i> Reject
+                                                            </button>
+                                                        </div>
+                                                    <% } else if (item.returnStatus === 'accepted' || item.returnStatus === 'rejected') { %>
+                                                        <span class="text-muted">
+                                                            <i class="fas fa-clock me-1"></i>
+                                                            <%= new Date(item.returnProcessedDate || order.updatedAt).toLocaleDateString('en-US', {
+                                                                day: 'numeric',
+                                                                month: 'short'
+                                                            }) %>
+                                                        </span>
+                                                    <% } else { %>
+                                                        <span class="text-muted">No action needed</span>
+                                                    <% } %>
+                                                </td>
+                                            </tr>
+                                        <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Order Footer -->
+                            <div class="order-footer">
+                                <div class="address-info">
+                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    <strong>Shipping:</strong> 
+                                    <%= order.address ? `${order.address.street}, ${order.address.city}, ${order.address.state} - ${order.address.pincode}` : 'Address not available' %>
+                                </div>
+                                <div class="delivery-info">
+                                    <i class="fas fa-truck me-1"></i>
+                                    <strong>Expected:</strong> 
+                                    <%= order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString('en-US', {
+                                        day: 'numeric',
+                                        month: 'short'
+                                    }) : 'Not specified' %>
+                                </div>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+
+                <!-- Pagination -->
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <% if (hasPrevPage) { %>
+                            <li class="page-item">
+                                <a class="page-link" href="/admin/orders?page=<%= prevPage %>">
+                                    <i class="fas fa-chevron-left me-1"></i> Previous
+                                </a>
+                            </li>
+                        <% } %>
+                        <% for(let i = 1; i <= totalPages; i++) { %>
+                            <li class="page-item <%= currentPage === i ? 'active' : '' %>">
+                                <a class="page-link" href="/admin/orders?page=<%= i %>"><%= i %></a>
+                            </li>
+                        <% } %>
+                        <% if (hasNextPage) { %>
+                            <li class="page-item">
+                                <a class="page-link" href="/admin/orders?page=<%= nextPage %>">
+                                    Next <i class="fas fa-chevron-right ms-1"></i>
+                                </a>
+                            </li>
+                        <% } %>
+                    </ul>
+                </nav>
+            <% } else { %>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No orders found matching your criteria.
+                </div>
+            <% } %>
         </div>
     </div>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Handle return buttons
-        const returnButtons = document.querySelectorAll('.return-btn');
-        returnButtons.forEach(button => {
+        // Handle item-level return buttons
+        const itemReturnButtons = document.querySelectorAll('.item-return-btn');
+        itemReturnButtons.forEach(button => {
             button.addEventListener('click', function() {
                 const orderId = this.dataset.orderId;
+                const itemIndex = this.dataset.itemIndex;
                 const action = this.dataset.action;
-                handleReturn(orderId, action);
+                handleItemReturn(orderId, itemIndex, action);
             });
         });
 
         // Handle status changes
-        const statusSelects = document.querySelectorAll('.status-select');
+        const statusSelects = document.querySelectorAll('.order-status-select');
         statusSelects.forEach(select => {
             select.addEventListener('change', function() {
                 const orderId = this.dataset.orderId;
@@ -363,17 +644,21 @@
         });
     });
 
-    function handleReturn(orderId, action) {
-        if (confirm(`Are you sure you want to ${action} this return request?`)) {
-            fetch(`/admin/orders/${orderId}/return`, {
+    function handleItemReturn(orderId, itemIndex, action) {
+        if (confirm(`Are you sure you want to ${action === 'accepted' ? 'accept' : 'reject'} this return request?`)) {
+            fetch(`/admin/orders/${orderId}/items/${itemIndex}/return`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ status: action })
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
             .then(data => {
+                console.log('Return response:', data);
                 if (data.success) {
                     alert('Return request updated successfully');
                     location.reload();
@@ -400,6 +685,10 @@
         .then(data => {
             if (data.success) {
                 alert('Order status updated successfully');
+                // Reload the page if the status is changed to Delivered (to update payment status for COD)
+                if (status === 'Delivered') {
+                    location.reload();
+                }
             } else {
                 alert(data.message || 'Error updating order status');
             }

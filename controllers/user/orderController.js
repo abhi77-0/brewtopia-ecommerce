@@ -483,54 +483,84 @@ const orderController = {
     },
     returnOrder: async (req, res) => {
         try {
-            const orderId = req.params.id;
+            const { id: orderId, productId } = req.params;
             const { returnReason } = req.body;
-
-            // Find the order and update its status
-            const order = await Order.findById(orderId);
+            
+            console.log(`Processing return request - Order ID: ${orderId}, Product ID: ${productId}`);
+            
+            // Get user ID from session
+            const userId = req.user?._id || req.session.user?._id || req.session.user?.id;
+            
+            if (!returnReason) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Return reason is required'
+                });
+            }
+            
+            // Find the order
+            const order = await Order.findOne({ 
+                _id: orderId, 
+                user: userId 
+            });
+            
             if (!order) {
+                console.error(`Order not found or doesn't belong to user ${userId}`);
                 return res.status(404).json({
                     success: false,
                     message: 'Order not found'
                 });
             }
-
-            // Check if order is eligible for return (e.g., within 7 days of delivery)
+            
+            console.log(`Order found: ${order._id}, status: ${order.status}`);
+            
             if (order.status !== 'Delivered') {
                 return res.status(400).json({
                     success: false,
                     message: 'Only delivered orders can be returned'
                 });
             }
-
-            const deliveryDate = new Date(order.deliveredAt);
-            const currentDate = new Date();
-            const daysSinceDelivery = Math.floor((currentDate - deliveryDate) / (1000 * 60 * 60 * 24));
-
-            if (daysSinceDelivery > 7) {
-                return res.status(400).json({
+            
+            // Find the specific item in the order
+            const itemIndex = order.items.findIndex(item => 
+                item.product.toString() === productId
+            );
+            
+            console.log(`Item index: ${itemIndex}, Items count: ${order.items.length}`);
+            
+            if (itemIndex === -1) {
+                return res.status(404).json({
                     success: false,
-                    message: 'Return period has expired (7 days from delivery)'
+                    message: 'Product not found in this order'
                 });
             }
-
-            // Update order with return request details
-            order.returnRequest = true;
-            order.returnStatus = 'pending';
-            order.returnReason = returnReason;
-            order.returnRequestDate = new Date();
-            order.status = 'Return Requested';
             
+            // Check if return is already requested for this item
+            if (order.items[itemIndex].returnStatus) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Return already requested for this product'
+                });
+            }
+            
+            // Update the item with return information
+            order.items[itemIndex].returnStatus = 'pending';
+            order.items[itemIndex].returnReason = returnReason;
+            order.items[itemIndex].returnRequestDate = new Date();
+            
+            console.log(`Updating item at index ${itemIndex} with return status 'pending'`);
+            
+            // Save the updated order
             await order.save();
-
-            res.json({
+            
+            return res.json({
                 success: true,
                 message: 'Return request submitted successfully'
             });
-
+            
         } catch (error) {
             console.error('Error processing return request:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 message: 'Error processing return request: ' + error.message
             });

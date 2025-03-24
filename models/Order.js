@@ -23,6 +23,20 @@ const orderSchema = new mongoose.Schema({
         price: {
             type: Number,
             required: true
+        },
+        returnStatus: {
+            type: String,
+            enum: ['pending', 'accepted', 'rejected', null],
+            default: null
+        },
+        returnReason: {
+            type: String
+        },
+        returnRequestDate: {
+            type: Date
+        },
+        returnProcessedDate: {
+            type: Date
         }
     }],
     address: {

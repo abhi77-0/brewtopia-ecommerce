@@ -25,10 +25,11 @@ router.get('/check-cart', isAuthenticated, async (req, res) => {
 router.get('/:id/details', isAuthenticated, orderController.getOrderDetails);
 // Cancel order route
 router.delete('/:id/cancel', isAuthenticated, orderController.cancelOrder);
-router.post('/:id/return', isAuthenticated, orderController.returnOrder);
+// router.post('/:id/return', isAuthenticated, orderController.returnOrder);
 router.get('/invoice/:orderId', isAuthenticated, orderController.generateInvoice);
 
 // Add the new route for deleting a product from an order
 router.delete('/:orderId/products/:productId', isAuthenticated, orderController.deleteProductFromOrder);
+router.post('/:id/products/:productId/return', isAuthenticated, orderController.returnOrder);
 
 module.exports = router;

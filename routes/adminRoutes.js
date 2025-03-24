@@ -50,6 +50,8 @@ router.patch('/categories/:id/toggle-visibility', isAdmin, categoryController.to
 router.get('/orders', isAdmin, orderController.getAllOrders);
 router.put('/orders/:id/status', isAdmin, orderController.updateOrderStatus);
 
+// Add this route for item-level returns
+router.put('/orders/:orderId/items/:itemIndex/return', isAdmin, orderController.handleReturn);
 
 // Add debugging middleware
 router.use('/orders/:orderId/return', (req, res, next) => {

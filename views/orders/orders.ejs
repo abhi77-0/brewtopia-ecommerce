@@ -176,30 +176,6 @@
                                                 }) %>
                                             </span>
                                         </div>
-                                        
-                                        <!-- Return Request Section -->
-                                        <% if (!order.returnRequest) { %>
-                                            <button onclick="initiateReturn('<%= order._id %>')" 
-                                                    class="btn btn-outline-warning btn-sm mt-2">
-                                                <i class="fas fa-undo me-2"></i>Return Order
-                                            </button>
-                                        <% } else { %>
-                                            <div class="return-status mt-2">
-                                                <% if (order.returnStatus === 'pending') { %>
-                                                    <span class="badge bg-warning text-dark">
-                                                        <i class="fas fa-hourglass-half me-1"></i>Return Requested
-                                                    </span>
-                                                <% } else if (order.returnStatus === 'accepted') { %>
-                                                    <span class="badge bg-success">
-                                                        <i class="fas fa-check me-1"></i>Return Accepted
-                                                    </span>
-                                                <% } else if (order.returnStatus === 'rejected') { %>
-                                                    <span class="badge bg-danger">
-                                                        <i class="fas fa-times me-1"></i>Return Rejected
-                                                    </span>
-                                                <% } %>
-                                            </div>
-                                        <% } %>
                                     <% } else { %>
                                         <div class="expected-delivery">
                                             <i class="fas fa-truck me-2"></i>
@@ -1014,18 +990,29 @@ function deleteOrderProduct(orderId, productId) {
     });
 }
 
-function initiateReturn(orderId) {
-    // Show the return modal
-    const returnModal = new bootstrap.Modal(document.getElementById('returnModal'));
-    returnModal.show();
+function initiateReturn(orderId, productId) {
+    console.log(`Initiating return for order ${orderId}, product ${productId}`);
     
-    // Store the order ID for submission
-    window.currentReturnOrderId = orderId;
+    // Store the IDs for submission
+    const returnModal = document.getElementById('returnModal');
+    returnModal.dataset.orderId = orderId;
+    returnModal.dataset.productId = productId;
+    
+    // Show the modal
+    const bsModal = new bootstrap.Modal(returnModal);
+    bsModal.show();
 }
 
 function submitReturn() {
-    const orderId = window.currentReturnOrderId;
+    // Get the modal element
+    const returnModal = document.getElementById('returnModal');
+    
+    // Get the order ID and product ID from the modal's data attributes
+    const orderId = returnModal.dataset.orderId;
+    const productId = returnModal.dataset.productId;
     const returnReason = document.getElementById('returnReason').value;
+    
+    console.log(`Submitting return for order ${orderId}, product ${productId}, reason: ${returnReason}`);
     
     if (!returnReason.trim()) {
         Swal.fire({
@@ -1038,8 +1025,8 @@ function submitReturn() {
     }
     
     // Hide the modal
-    const returnModal = bootstrap.Modal.getInstance(document.getElementById('returnModal'));
-    returnModal.hide();
+    const bsModal = bootstrap.Modal.getInstance(returnModal);
+    bsModal.hide();
     
     // Show loading state
     Swal.fire({
@@ -1051,7 +1038,8 @@ function submitReturn() {
         }
     });
     
-    fetch(`/orders/${orderId}/return`, {
+    // Use the correct URL format
+    fetch(`/orders/${orderId}/products/${productId}/return`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -1059,8 +1047,12 @@ function submitReturn() {
         body: JSON.stringify({ returnReason }),
         credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
     .then(data => {
+        console.log('Return response:', data);
         if (data.success) {
             Swal.fire({
                 title: 'Return Requested!',

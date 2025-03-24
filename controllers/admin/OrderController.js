@@ -157,25 +157,14 @@ const OrderController = {
     },
 
     handleReturn: async (req, res) => {
-        console.log('handleReturn controller method called:', {
-            params: req.params,
-            body: req.body,
-            user: req.user
-        });
-
         try {
-            const { orderId } = req.params;
+            const { orderId, itemIndex } = req.params;
             const { status } = req.body;
 
-            console.log('Processing return request:', { orderId, status });
+            console.log('Processing return request:', { orderId, itemIndex, status });
 
             const order = await Order.findById(orderId).populate('user');
-            console.log('Found order:', order ? 'yes' : 'no', {
-                orderId: order?._id,
-                currentStatus: order?.status,
-                returnStatus: order?.returnStatus
-            });
-
+            
             if (!order) {
                 console.log('Order not found:', orderId);
                 return res.status(404).json({
@@ -184,34 +173,59 @@ const OrderController = {
                 });
             }
 
-            // Update return status based on admin action
-            order.returnStatus = status === 'accept' ? 'accepted' : 'rejected';
-            order.status = status === 'accept' ? 'Return Accepted' : 'Delivered';
+            // Check if this is an item-level return or order-level return
+            if (itemIndex !== undefined) {
+                // Item-level return
+                if (itemIndex < 0 || itemIndex >= order.items.length) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Invalid item index'
+                    });
+                }
 
-            console.log('Updating order with:', {
-                returnStatus: order.returnStatus,
-                status: order.status
-            });
+                const item = order.items[itemIndex];
+                
+                // Check if item has a pending return
+                if (item.returnStatus !== 'pending') {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Item does not have a pending return request'
+                    });
+                }
 
-            // Process refund if return is accepted and payment was completed
-            if (status === 'accept' && order.paymentStatus === 'Completed') {
-                try {
-                    // Find user's wallet
-                    const userId = order.user._id || order.user;
-                    const wallet = await Wallet.findOne({ userId });
-                    
-                    if (!wallet) {
+                // Update item return status
+                item.returnStatus = status === 'accepted' ? 'accepted' : 'rejected';
+                item.returnProcessedDate = new Date();
+                
+                console.log(`Updated item return status to: ${item.returnStatus}`);
+                
+                // Process refund if return is accepted
+                if (status === 'accepted' && order.paymentStatus === 'Completed') {
+                    try {
+                        // Find user's wallet
+                        const userId = order.user._id;
+                        let wallet = await Wallet.findOne({ userId });
                         
-                        console.error('Wallet not found for user:', userId);
-                    } else {
+                        if (!wallet) {
+                            // Create wallet if it doesn't exist
+                            wallet = new Wallet({
+                                userId,
+                                balance: 0,
+                                transactions: []
+                            });
+                        }
+                        
+                        // Calculate refund amount (price * quantity)
+                        const refundAmount = item.price * item.quantity;
+                        
                         // Calculate new balance
-                        const newBalance = wallet.balance + order.total;
+                        const newBalance = wallet.balance + refundAmount;
                         
                         // Add refund transaction to wallet
                         wallet.transactions.push({
                             type: 'credit',
-                            amount: order.total,
-                            description: `Refund for returned order #${order._id.toString().slice(-6).toUpperCase()}`,
+                            amount: refundAmount,
+                            description: `Refund for returned item in order #${order._id.toString().slice(-6).toUpperCase()}`,
                             orderId: order._id,
                             date: new Date(),
                             balance: newBalance,
@@ -223,25 +237,83 @@ const OrderController = {
                         
                         // Save wallet changes
                         await wallet.save();
+                        console.log(`Refund processed: ${refundAmount} added to wallet for user ${userId}`);
                         
-                        // Update order payment status to reflect refund
-                        order.paymentStatus = 'Refunded';
-                        
-                        console.log(`Refund processed: ${order.total} added to wallet for user ${userId}`);
+                        // Restore stock for the returned product
+                        try {
+                            const productItem = await Product.findById(item.product);
+                            if (productItem && productItem.variants[item.variant]) {
+                                productItem.variants[item.variant].stock += item.quantity;
+                                await productItem.save();
+                                console.log(`Stock restored for product ${item.product}, variant ${item.variant}, quantity ${item.quantity}`);
+                            }
+                        } catch (stockError) {
+                            console.error('Error restoring stock:', stockError);
+                        }
+                    } catch (refundError) {
+                        console.error('Error processing refund:', refundError);
+                        // Continue with order update even if refund fails
                     }
-                } catch (refundError) {
-                    console.error('Error processing refund:', refundError);
-                    // Continue with order update even if refund fails
-                    // We can implement a retry mechanism or manual intervention later
+                }
+            } else {
+                // Order-level return (original functionality)
+                order.returnStatus = status === 'accept' ? 'accepted' : 'rejected';
+                order.status = status === 'accept' ? 'Return Accepted' : 'Delivered';
+
+                console.log('Updating order with:', {
+                    returnStatus: order.returnStatus,
+                    status: order.status
+                });
+
+                // Process refund if return is accepted and payment was completed
+                if (status === 'accept' && order.paymentStatus === 'Completed') {
+                    try {
+                        // Find user's wallet
+                        const userId = order.user._id;
+                        let wallet = await Wallet.findOne({ userId });
+                        
+                        if (!wallet) {
+                            console.error('Wallet not found for user:', userId);
+                        } else {
+                            // Calculate new balance
+                            const newBalance = wallet.balance + order.total;
+                            
+                            // Add refund transaction to wallet
+                            wallet.transactions.push({
+                                type: 'credit',
+                                amount: order.total,
+                                description: `Refund for returned order #${order._id.toString().slice(-6).toUpperCase()}`,
+                                orderId: order._id,
+                                date: new Date(),
+                                balance: newBalance,
+                                userId
+                            });
+                            
+                            // Update wallet balance
+                            wallet.balance = newBalance;
+                            
+                            // Save wallet changes
+                            await wallet.save();
+                            
+                            // Update order payment status to reflect refund
+                            order.paymentStatus = 'Refunded';
+                            
+                            console.log(`Refund processed: ${order.total} added to wallet for user ${userId}`);
+                        }
+                    } catch (refundError) {
+                        console.error('Error processing refund:', refundError);
+                        // Continue with order update even if refund fails
+                        // We can implement a retry mechanism or manual intervention later
+                    }
                 }
             }
 
+            // Save the updated order
             await order.save();
-            console.log('Order updated successfully');
-
-            res.json({
+            
+            return res.json({
                 success: true,
-                message: `Return request ${status}ed successfully${status === 'accept' ? ' and refund processed' : ''}`
+                message: `Return request ${status === 'accepted' || status === 'accept' ? 'accepted' : 'rejected'} successfully`
             });
 
         } catch (error) {
@@ -252,6 +324,123 @@ const OrderController = {
             res.status(500).json({
                 success: false,
                 message: 'Error handling return request: ' + error.message
+            });
+        }
+    },
+
+    processItemReturn: async (req, res) => {
+        try {
+            const { orderId, itemIndex } = req.params;
+            const { status } = req.body;
+            
+            console.log(`Processing item return - Order ID: ${orderId}, Item Index: ${itemIndex}, Status: ${status}`);
+            
+            // Find the order
+            const order = await Order.findById(orderId)
+                .populate('user')
+                .populate('items.product');
+            
+            if (!order) {
+                console.error(`Order not found: ${orderId}`);
+                return res.status(404).json({
+                    success: false,
+                    message: 'Order not found'
+                });
+            }
+            
+            // Check if item index is valid
+            if (itemIndex < 0 || itemIndex >= order.items.length) {
+                console.error(`Invalid item index: ${itemIndex}`);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid item index'
+                });
+            }
+            
+            // Get the item
+            const item = order.items[itemIndex];
+            
+            // Check if item has a pending return
+            if (item.returnStatus !== 'pending') {
+                console.error(`Item does not have a pending return: ${itemIndex}`);
+                return res.status(400).json({
+                    success: false,
+                    message: 'Item does not have a pending return'
+                });
+            }
+            
+            // Update item return status
+            item.returnStatus = status === 'accepted' ? 'accepted' : 'rejected';
+            item.returnProcessedDate = new Date();
+            
+            console.log(`Updated item return status to: ${item.returnStatus}`);
+            
+            // Process refund if return is accepted
+            if (status === 'accepted') {
+                try {
+                    // Find user's wallet
+                    const userId = order.user._id;
+                    let wallet = await Wallet.findOne({ userId });
+                    
+                    if (!wallet) {
+                        // Create wallet if it doesn't exist
+                        wallet = new Wallet({
+                            userId,
+                            balance: 0,
+                            transactions: []
+                        });
+                    }
+                    
+                    // Calculate refund amount (price * quantity)
+                    const refundAmount = item.price * item.quantity;
+                    
+                    // Calculate new balance
+                    const newBalance = wallet.balance + refundAmount;
+                    
+                    // Add refund transaction to wallet
+                    wallet.transactions.push({
+                        type: 'credit',
+                        amount: refundAmount,
+                        description: `Refund for returned item in order #${order._id.toString().slice(-6).toUpperCase()}`,
+                        orderId: order._id,
+                        date: new Date(),
+                        balance: newBalance,
+                        userId
+                    });
+                    
+                    // Update wallet balance
+                    wallet.balance = newBalance;
+                    
+                    // Save wallet changes
+                    await wallet.save();
+                    console.log(`Refund processed: ${refundAmount} added to wallet for user ${userId}`);
+                    
+                    // Restore stock for the returned product
+                    const product = await product.findById(item.product);
+                    if (product && product.variants[item.variant]) {
+                        product.variants[item.variant].stock += item.quantity;
+                        await product.save();
+                        console.log(`Stock restored for product ${item.product}, variant ${item.variant}, quantity ${item.quantity}`);
+                    }
+                } catch (refundError) {
+                    console.error('Error processing refund:', refundError);
+                    // Continue with order update even if refund fails
+                }
+            }
+            
+            // Save the updated order
+            await order.save();
+            
+            return res.json({
+                success: true,
+                message: `Return ${status === 'accepted' ? 'accepted' : 'rejected'} successfully`
+            });
+            
+        } catch (error) {
+            console.error('Error processing item return:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Error processing item return: ' + error.message
             });
         }
     }
