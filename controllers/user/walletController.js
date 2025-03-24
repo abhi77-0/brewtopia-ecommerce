@@ -79,15 +79,17 @@ exports.processCancelRefund = async (orderId, userId) => {
             await User.findByIdAndUpdate(userId, { wallet: wallet._id });
         }
 
-        const newBalance = wallet.balance + order.totalAmount;
+        const refundAmount = order.total;
+        const newBalance = wallet.balance + refundAmount;
         wallet.balance = newBalance;
 
         wallet.transactions.push({
             userId,
-            amount: order.totalAmount,
+            amount: refundAmount,
             type: 'credit',
-            description: `Refund for cancelled order #${order._id}`,
+            description: `Refund for cancelled order #${order._id.toString().slice(-6).toUpperCase()}`,
             orderId: order._id,
+            date: new Date(),
             balance: newBalance
         });
 
@@ -113,15 +115,17 @@ exports.processReturnRefund = async (orderId, userId) => {
             await User.findByIdAndUpdate(userId, { wallet: wallet._id });
         }
 
-        const newBalance = wallet.balance + order.totalAmount;
+        const refundAmount = order.total;
+        const newBalance = wallet.balance + refundAmount;
         wallet.balance = newBalance;
 
         wallet.transactions.push({
             userId,
-            amount: order.totalAmount,
+            amount: refundAmount,
             type: 'credit',
-            description: `Refund for returned order #${order._id}`,
+            description: `Refund for returned order #${order._id.toString().slice(-6).toUpperCase()}`,
             orderId: order._id,
+            date: new Date(),
             balance: newBalance
         });
 

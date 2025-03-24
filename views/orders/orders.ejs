@@ -127,14 +127,35 @@
                                             <span class="price fw-bold">₹<%= (item.price * item.quantity).toFixed(2) %></span>
                                         </div>
                                     </div>
-                                    <% if ((order.status === 'Pending' || order.status === 'Processing') && order.items.length > 1) { %>
-                                        <div class="item-actions ms-2">
+                                    <div class="item-actions ms-2">
+                                        <% if ((order.status === 'Pending' || order.status === 'Processing') && order.items.length > 1) { %>
                                             <button class="btn btn-outline-danger btn-sm delete-product-btn" 
                                                     onclick="deleteOrderProduct('<%= order._id %>', '<%= item.product._id %>')">
                                                 <i class="fas fa-trash"></i>
                                             </button>
-                                        </div>
-                                    <% } %>
+                                        <% } %>
+                                        
+                                        <% if (order.status === 'Delivered') { %>
+                                            <% if (item.returnStatus === 'pending') { %>
+                                                <span class="badge bg-warning text-dark ms-2">
+                                                    <i class="fas fa-hourglass-half me-1"></i>Return Pending
+                                                </span>
+                                            <% } else if (item.returnStatus === 'accepted') { %>
+                                                <span class="badge bg-success ms-2">
+                                                    <i class="fas fa-check me-1"></i>Return Accepted
+                                                </span>
+                                            <% } else if (item.returnStatus === 'rejected') { %>
+                                                <span class="badge bg-danger ms-2">
+                                                    <i class="fas fa-times me-1"></i>Return Rejected
+                                                </span>
+                                            <% } else { %>
+                                                <button class="btn btn-outline-warning btn-sm ms-2" 
+                                                        onclick="initiateReturn('<%= order._id %>', '<%= item.product._id %>', '<%= item._id %>')">
+                                                    <i class="fas fa-undo me-1"></i>Return
+                                                </button>
+                                            <% } %>
+                                        <% } %>
+                                    </div>
                                 </div>
                             </div>
                         <% }); %>

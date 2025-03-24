@@ -100,14 +100,14 @@
                                         </td>
                                     </tr>
                                 <% } else { %>
-                                    <% wallet.transactions.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(transaction => { %>
+                                    <% wallet.transactions.sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt)).forEach(transaction => { %>
                                         <tr class="transaction-row" data-type="<%= transaction.type %>">
                                             <td>
                                                 <div class="transaction-date">
-                                                    <%= new Date(transaction.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) %>
+                                                    <%= new Date(transaction.date || transaction.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) %>
                                                 </div>
                                                 <div class="transaction-time text-muted">
-                                                    <%= new Date(transaction.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) %>
+                                                    <%= new Date(transaction.date || transaction.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) %>
                                                 </div>
                                             </td>
                                             <td>
@@ -121,7 +121,7 @@
                                                 <% } %>
                                             </td>
                                             <td class="<%= transaction.type === 'credit' ? 'text-success' : 'text-danger' %>">
-                                                <%= transaction.type === 'credit' ? '+' : '-' %>₹<%= transaction.amount.toFixed(2) %>
+                                                <%= transaction.type === 'credit' ? '+' : '-' %>₹<%= parseFloat(transaction.amount).toFixed(2) %>
                                             </td>
                                             <td>
                                                 <span class="badge rounded-pill <%= transaction.type === 'credit' ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' %>">

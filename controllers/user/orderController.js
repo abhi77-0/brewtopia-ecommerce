@@ -98,6 +98,7 @@ const orderController = {
             
             // Calculate total
             const total = subtotal + shippingFee + gst - offerDiscount - couponDiscount;
+            const finalTotal = Math.max(0, Math.round(total));
             
             // Calculate expected delivery date (e.g., 7 days from now)
             const expectedDeliveryDate = new Date();
@@ -108,7 +109,7 @@ const orderController = {
                 user: req.user._id,
                 items: orderItems,
                 address: addressId,
-                total: Math.max(0, Math.round(total)),
+                total: finalTotal,
                 status: 'Pending',
                 paymentMethod: paymentMethod,
                 paymentStatus: 'Pending',
@@ -131,6 +132,53 @@ const orderController = {
             
             console.log('Creating order with data:', orderData);
             const order = await Order.create(orderData);
+            
+            // Process wallet payment if selected
+            if (paymentMethod === 'wallet') {
+                // Find user's wallet
+                let wallet = await Wallet.findOne({ userId: req.user._id });
+                
+                if (!wallet) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Wallet not found'
+                    });
+                }
+                
+                // Check if wallet has sufficient balance
+                if (wallet.balance < finalTotal) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Insufficient wallet balance'
+                    });
+                }
+                
+                // Calculate new balance
+                const newBalance = wallet.balance - finalTotal;
+                
+                // Add transaction
+                wallet.transactions.push({
+                    userId: req.user._id,
+                    amount: finalTotal,
+                    type: 'debit',
+                    description: `Payment for order #${order._id.toString().slice(-6).toUpperCase()}`,
+                    orderId: order._id,
+                    date: new Date(),
+                    balance: newBalance
+                });
+                
+                // Update wallet balance
+                wallet.balance = newBalance;
+                
+                // Save wallet changes
+                await wallet.save();
+                
+                // Update order payment status
+                order.paymentStatus = 'Completed';
+                await order.save();
+                
+                console.log(`Wallet payment processed: ${finalTotal} deducted from wallet for user ${req.user._id}`);
+            }
             
             // Clear cart after successful order
             await Cart.findOneAndUpdate(
@@ -341,37 +389,51 @@ const orderController = {
             }
 
             // Process refund if payment was already made
-            if (order.paymentStatus === 'Completed' && 
-                (order.paymentMethod === 'razorpay' || order.paymentMethod === 'wallet')) {
-                
+            if (order.paymentStatus === 'Completed') {
                 // Find user's wallet
-                const wallet = await Wallet.findOne({ userId });
+                let wallet = await Wallet.findOne({ userId });
                 
                 if (!wallet) {
-                    console.error('Wallet not found for user:', userId);
-                    // Continue with cancellation even if wallet is not found
-                } else {
-                    // Calculate new balance
-                    const newBalance = wallet.balance + order.total;
-                    
-                    // Add refund transaction to wallet
-                    wallet.transactions.push({
-                        type: 'credit',
-                        amount: order.total,
-                        description: `Refund for cancelled order #${order._id.toString().slice(-6).toUpperCase()}`,
-                        orderId: order._id,
-                        date: new Date(),
-                        balance: newBalance,
-                        userId
+                    console.log('Creating new wallet for user:', userId);
+                    wallet = await Wallet.create({
+                        userId,
+                        balance: 0,
+                        transactions: []
                     });
                     
-                    // Update wallet balance
-                    wallet.balance = newBalance;
-                    
-                    // Save wallet changes
-                    await wallet.save();
-                    console.log(`Refund processed: ${order.total} added to wallet for user ${userId}`);
+                    // Update user with wallet reference
+                    await User.findByIdAndUpdate(userId, { wallet: wallet._id });
                 }
+                
+                // Calculate refund amount (total excluding coupon discount)
+                let refundAmount = order.total;
+                
+                // If payment method was razorpay or wallet, add back the coupon discount to the refund amount
+                if (order.paymentMethod === 'razorpay' || order.paymentMethod === 'wallet') {
+                    refundAmount = order.subtotal + order.shippingFee + order.gst - order.offerDiscount-order.couponDiscount;
+                    console.log(`${order.paymentMethod} payment refund: ${refundAmount} (excluding coupon discount of ${order.couponDiscount})`);
+                }
+                
+                // Calculate new balance
+                const newBalance = wallet.balance + refundAmount;
+                
+                // Add refund transaction to wallet
+                wallet.transactions.push({
+                    type: 'credit',
+                    amount: refundAmount,
+                    description: `Refund for cancelled order #${order._id.toString().slice(-6).toUpperCase()}`,
+                    orderId: order._id,
+                    date: new Date(),
+                    balance: newBalance,
+                    userId
+                });
+                
+                // Update wallet balance
+                wallet.balance = newBalance;
+                
+                // Save wallet changes
+                await wallet.save();
+                console.log(`Refund processed: ${refundAmount} added to wallet for user ${userId}`);
             }
 
             // Update the order status instead of deleting it

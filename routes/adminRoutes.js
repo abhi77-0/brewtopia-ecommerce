@@ -6,7 +6,7 @@ const router = express.Router();
 const adminController = require('../controllers/admin/adminController');
 const categoryController = require('../controllers/admin/categoryController');
 const productController = require('../controllers/user/productController');
-const orderController = require('../controllers/admin/orderController');
+const orderController = require('../controllers/admin/OrderController');
 const couponController = require('../controllers/admin/couponController');
 const offerController = require('../controllers/admin/offerController');
 const salesReportController = require('../controllers/admin/salesReportController');
@@ -49,6 +49,7 @@ router.patch('/categories/:id/toggle-visibility', isAdmin, categoryController.to
 // Order Management Routes
 router.get('/orders', isAdmin, orderController.getAllOrders);
 router.put('/orders/:id/status', isAdmin, orderController.updateOrderStatus);
+
 
 // Add debugging middleware
 router.use('/orders/:orderId/return', (req, res, next) => {
