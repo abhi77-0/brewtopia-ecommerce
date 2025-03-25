@@ -157,82 +157,81 @@
             </div>
 
             <!-- Order Summary -->
-            <div class="col-lg-4">
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Order Summary</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="summary-item d-flex justify-content-between mb-2">
-                            <span>Order Date</span>
-                            <span><%= orderDate %></span>
-                        </div>
-                        <div class="summary-item d-flex justify-content-between mb-2">
-                            <span>Payment Method</span>
-                            <span class="text-capitalize"><%= order.paymentMethod %></span>
-                        </div>
-                        <div class="summary-item d-flex justify-content-between mb-2">
-                            <span>Payment Status</span>
-                            <span class="badge <%= 
-                                order.paymentStatus === 'Completed' ? 'bg-success' :
-                                order.paymentStatus === 'Failed' ? 'bg-danger' :
-                                'bg-warning'
-                            %>">
-                                <%= order.status === 'Delivered' ? 'Completed' : order.paymentStatus %>
-                            </span>
-                        </div>
-                        <hr>
-                        
-                        <!-- Detailed price breakdown -->
-                        <div class="summary-item d-flex justify-content-between mb-2">
-                            <span>Subtotal (<%= order.items.length %> items)</span>
-                            <span>₹<%= order.subtotal.toFixed(2) %></span>
-                        </div>
-                        
-                        <% if (order.shippingFee > 0) { %>
-                        <div class="summary-item d-flex justify-content-between mb-2">
-                            <span>Shipping</span>
-                            <span>₹<%= order.shippingFee.toFixed(2) %></span>
-                        </div>
-                        <% } %>
-                        
-                        <% if (order.offerDiscount > 0) { %>
-                        <div class="summary-item d-flex justify-content-between mb-2 text-success">
-                            <span>Offer Discount</span>
-                            <span>-₹<%= order.offerDiscount.toFixed(2) %></span>
-                        </div>
-                        <% } %>
-                        
-                        <% if (order.gst > 0) { %>
-                        <div class="summary-item d-flex justify-content-between mb-2">
-                            <span>GST (18%)</span>
-                            <span>₹<%= order.gst.toFixed(2) %></span>
-                        </div>
-                        <% } %>
-                        
-                        <% if (order.couponDiscount > 0) { %>
-                        <div class="summary-item d-flex justify-content-between mb-2 text-success">
-                            <span>Coupon Discount
-                            <% if (order.coupon && order.coupon.code) { %>
-                                (<%= order.coupon.code.toUpperCase() %>)
-                            <% } %>
-                            </span>
-                            <span>-₹<%= order.couponDiscount.toFixed(2) %></span>
-                        </div>
-                        <% } %>
-                        
-                        <div class="summary-total d-flex justify-content-between">
-                            <span>Total</span>
-                            <span>₹<%= order.total.toFixed(2) %></span>
-                        </div>
-                        
-                        <!-- Download Invoice Button -->
-                        <a href="/orders/invoice/<%= order._id %>" class="btn btn-primary w-100 mt-3" target="_blank">
-                            <i class="fas fa-file-pdf me-2"></i>Download Invoice
-                        </a>
-                    </div>
-                </div>
-
+<div class="col-lg-4">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Order Summary</h5>
+        </div>
+        <div class="card-body">
+            <div class="summary-item d-flex justify-content-between mb-2">
+                <span>Order Date</span>
+                <span><%= orderDate %></span>
+            </div>
+            <div class="summary-item d-flex justify-content-between mb-2">
+                <span>Payment Method</span>
+                <span class="text-capitalize"><%= order.paymentMethod %></span>
+            </div>
+            <div class="summary-item d-flex justify-content-between mb-2">
+                <span>Payment Status</span>
+                <span class="badge <%= 
+                    order.paymentStatus === 'Completed' ? 'bg-success' :
+                    order.paymentStatus === 'Failed' ? 'bg-danger' :
+                    'bg-warning'
+                %>">
+                    <%= order.status === 'Delivered' ? 'Completed' : order.paymentStatus %>
+                </span>
+            </div>
+            <hr>
+            
+            <div class="summary-item d-flex justify-content-between mb-2">
+                <span>Subtotal (<%= order.items.reduce((total, item) => total + item.quantity, 0) %> items)</span>
+                <span>₹<%= order.subtotal.toFixed(2) %></span>
+            </div>
+            
+            <% if (order.shippingFee > 0) { %>
+            <div class="summary-item d-flex justify-content-between mb-2">
+                <span>Shipping</span>
+                <span>₹<%= order.shippingFee.toFixed(2) %></span>
+            </div>
+            <% } %>
+            
+            <% if (order.offerDiscount > 0) { %>
+            <div class="summary-item d-flex justify-content-between mb-2 text-success">
+                <span>Offer Discount</span>
+                <span>-₹<%= order.offerDiscount.toFixed(2) %></span>
+            </div>
+            <% } %>
+            
+            <% if (order.gst > 0) { %>
+            <div class="summary-item d-flex justify-content-between mb-2">
+                <span>GST (18%)</span>
+                <span>₹<%= order.gst.toFixed(2) %></span>
+            </div>
+            <% } %>
+            
+            <% if (order.couponDiscount > 0) { %>
+            <div class="summary-item d-flex justify-content-between mb-2 text-success">
+                <span>Coupon Discount
+                <% if (order.coupon && order.coupon.code) { %>
+                    (<%= order.coupon.code.toUpperCase() %>)
+                <% } %>
+                </span>
+                <span>-₹<%= order.couponDiscount.toFixed(2) %></span>
+            </div>
+            <% } %>
+            
+            <div class="summary-total d-flex justify-content-between">
+                <span>Total</span>
+                <span>₹<%= order.total.toFixed(2) %></span>
+            </div>
+            
+            <!-- Download Invoice Button -->
+            <a href="/orders/invoice/<%= order._id %>" class="btn btn-primary w-100 mt-3" target="_blank">
+                <i class="fas fa-file-pdf me-2"></i>Download Invoice
+            </a>
+        </div>
+    </div>
+</div>
                 <!-- Delivery Address -->
                 <div class="card">
                     <div class="card-header">

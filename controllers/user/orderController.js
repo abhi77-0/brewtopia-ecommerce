@@ -813,141 +813,190 @@ const orderController = {
             return res.redirect('/orders');
         }
     },
-
-// delete single product from order
-
-deleteProductFromOrder: async (req, res) => {
-    try {
-        const { orderId, productId } = req.params;
-        const userId = req.session.user?._id || req.session.user?.id;
-        
-        // Find the order and verify it belongs to the user
-        const order = await Order.findOne({ _id: orderId, user: userId });
-        
-        if (!order) {
-            return res.status(404).json({ success: false, message: 'Order not found' });
-        }
-        
-        // Check if order status allows modification
-        if (order.status !== 'Pending' && order.status !== 'Processing') {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot modify orders that are not in Pending or Processing status' 
-            });
-        }
-        
-        // Check if order has more than one product
-        if (order.items.length <= 1) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot remove the last product from an order. Please cancel the entire order instead.' 
-            });
-        }
-        
-        // Find the product in the order
-        const itemIndex = order.items.findIndex(item => 
-            item.product.toString() === productId
-        );
-        
-        if (itemIndex === -1) {
-            return res.status(404).json({ success: false, message: 'Product not found in this order' });
-        }
-        
-        // Get the item before removing it
-        const removedItem = order.items[itemIndex];
-        
-        // Calculate the actual amount to refund (final price after all discounts)
-        const itemFinalPrice = removedItem.finalPrice * removedItem.quantity;
-        
-        // Update inventory - add the quantity back to stock
+    deleteProductFromOrder: async (req, res) => {
         try {
-            const product = await Product.findById(productId);
-            if (product && product.variants[removedItem.variant]) {
-                console.log(`Restoring stock for product ${productId}, variant ${removedItem.variant}, quantity ${removedItem.quantity}`);
-                product.variants[removedItem.variant].stock += removedItem.quantity;
-                await product.save();
-                console.log(`Stock restored. New stock: ${product.variants[removedItem.variant].stock}`);
+            console.log('Request parameters:', req.params);
+            console.log('Request body:', req.body);
+            
+            const orderId = req.params.orderId || req.params.id;
+            const itemId = req.params.itemId || req.params.productId || req.body.itemId;
+            
+            console.log(`Attempting to delete item ${itemId} from order ${orderId}`);
+            
+            const userId = req.user?._id || req.session.user?._id || req.session.user?.id;
+            
+            // Find the order and ensure it belongs to the user
+            const order = await Order.findOne({ _id: orderId, user: userId })
+                .populate('items.product');
+            
+            if (!order) {
+                console.log('Order not found');
+                return res.status(404).json({ success: false, message: 'Order not found' });
             }
-        } catch (error) {
-            console.error(`Error restoring stock for product ${productId}:`, error);
-            // Continue with order update even if stock update fails
-        }
-        
-        // Process refund if payment was already made
-        if (order.paymentStatus === 'Completed') {
+            
+            console.log('Order items:', order.items.map(item => ({
+                id: item._id ? item._id.toString() : 'no-id',
+                productId: item.product && item.product._id ? item.product._id.toString() : 'no-product-id',
+                variant: item.variant
+            })));
+            
+            if (order.status !== 'Pending' && order.status !== 'Processing') {
+                console.log(`Cannot modify order with status: ${order.status}`);
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `Cannot modify order that is in ${order.status} status` 
+                });
+            }
+            
+            if (order.items.length <= 1) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Cannot remove the last product from an order. Please cancel the entire order instead.' 
+                });
+            }
+            
+            // Find the product in the order - try multiple ways to match
+            let itemIndex = -1;
+            
+            // Try to find by item._id
+            itemIndex = order.items.findIndex(item => 
+                item._id && item._id.toString() === itemId
+            );
+            
+            // If not found, try to find by product._id
+            if (itemIndex === -1) {
+                itemIndex = order.items.findIndex(item => 
+                    item.product && item.product._id && item.product._id.toString() === itemId
+                );
+            }
+            
+            if (itemIndex === -1) {
+                console.error(`Item not found in order. ItemId: ${itemId}, OrderId: ${orderId}`);
+                return res.status(404).json({ success: false, message: 'Product not found in this order' });
+            }
+            
+            console.log(`Found item at index ${itemIndex}`);
+            
+            // Get the item before removing it
+            const removedItem = order.items[itemIndex];
+            
+            // Calculate the actual amount to refund
+            const itemFinalPrice = removedItem.finalPrice * removedItem.quantity;
+            
+            // Update inventory - add the quantity back to stock
             try {
-                // Find user's wallet
-                let wallet = await Wallet.findOne({ userId });
-                
-                if (!wallet) {
-                    console.log('Creating new wallet for user:', userId);
-                    wallet = await Wallet.create({
-                        userId,
-                        balance: 0,
-                        transactions: []
+                const product = await Product.findById(removedItem.product._id);
+                if (product && product.variants[removedItem.variant]) {
+                    console.log(`Restoring stock for product ${removedItem.product._id}, variant ${removedItem.variant}, quantity ${removedItem.quantity}`);
+                    product.variants[removedItem.variant].stock += removedItem.quantity;
+                    await product.save();
+                }
+            } catch (error) {
+                console.error(`Error restoring stock:`, error);
+                // Continue with order update even if stock update fails
+            }
+            
+            // Process refund if payment was already made
+            if (order.paymentStatus === 'Completed') {
+                try {
+                    // Find user's wallet
+                    let wallet = await Wallet.findOne({ userId });
+                    
+                    if (!wallet) {
+                        wallet = await Wallet.create({
+                            userId,
+                            balance: 0,
+                            transactions: []
+                        });
+                        await User.findByIdAndUpdate(userId, { wallet: wallet._id });
+                    }
+                    
+                    // Add refund transaction to wallet
+                    const newBalance = wallet.balance + itemFinalPrice;
+                    wallet.transactions.push({
+                        type: 'credit',
+                        amount: itemFinalPrice,
+                        description: `Refund for removed item from order #${order._id.toString().slice(-6).toUpperCase()}`,
+                        orderId: order._id,
+                        date: new Date(),
+                        balance: newBalance,
+                        userId
                     });
                     
-                    // Update user with wallet reference
-                    await User.findByIdAndUpdate(userId, { wallet: wallet._id });
+                    wallet.balance = newBalance;
+                    await wallet.save();
+                } catch (refundError) {
+                    console.error('Error processing refund:', refundError);
                 }
-                
-                // Calculate new balance
-                const newBalance = wallet.balance + itemFinalPrice;
-                
-                // Add refund transaction to wallet
-                wallet.transactions.push({
-                    type: 'credit',
-                    amount: itemFinalPrice,
-                    description: `Refund for removed item from order #${order._id.toString().slice(-6).toUpperCase()}`,
-                    orderId: order._id,
-                    date: new Date(),
-                    balance: newBalance,
-                    userId
-                });
-                
-                // Update wallet balance
-                wallet.balance = newBalance;
-                
-                // Save wallet changes
-                await wallet.save();
-                console.log(`Refund processed: ${itemFinalPrice} added to wallet for user ${userId}`);
-            } catch (refundError) {
-                console.error('Error processing refund:', refundError);
-                // Continue with order update even if refund fails
             }
+            
+            // Remove the product from the order
+            order.items.splice(itemIndex, 1);
+            
+            // Recalculate order totals
+            let subtotal = 0;
+            let offerDiscount = 0;
+            
+            order.items.forEach(item => {
+                if (item && item.price && item.quantity) {
+                    subtotal += (item.price * item.quantity);
+                    offerDiscount += (item.offerDiscount || 0);
+                }
+            });
+            
+            // Recalculate coupon discount
+            let couponDiscount = 0;
+            if (order.couponDiscount > 0) {
+                // If only one item remains, apply full coupon discount
+                if (order.items.length === 1) {
+                    couponDiscount = order.couponDiscount;
+                } else {
+                    // Proportional distribution for multiple items
+                    const proportion = subtotal / order.subtotal;
+                    couponDiscount = Math.round(order.couponDiscount * proportion);
+                }
+            }
+            
+            // Calculate shipping fee
+            const shippingFee = subtotal >= 1000 ? 0 : 40;
+            
+            // Calculate GST (18% of subtotal)
+            const gst = Math.round(subtotal * 0.18);
+            
+            // Calculate total
+            const total = subtotal + shippingFee + gst - offerDiscount - couponDiscount;
+            
+            // Update order with new values
+            order.subtotal = subtotal;
+            order.offerDiscount = offerDiscount;
+            order.couponDiscount = couponDiscount;
+            order.shippingFee = shippingFee;
+            order.gst = gst;
+            order.total = total;
+            
+            console.log('Updated order totals:', {
+                subtotal,
+                offerDiscount,
+                couponDiscount,
+                shippingFee,
+                gst,
+                total
+            });
+            
+            // Save the updated order
+            await order.save();
+            
+            return res.json({ 
+                success: true, 
+                message: 'Product removed successfully and refund processed',
+                newTotal: total
+            });
+            
+        } catch (error) {
+            console.error('Error removing product from order:', error);
+            return res.status(500).json({ success: false, message: 'Server error' });
         }
-        
-        // Remove the product from the order
-        order.items.splice(itemIndex, 1);
-        
-        // Recalculate order total
-        const newTotal = order.items.reduce((total, item) => total + (item.finalPrice * item.quantity), 0);
-        
-        // Update order totals
-        order.total = newTotal;
-        
-        // Recalculate order discounts
-        const newOfferDiscount = order.items.reduce((total, item) => total + item.offerDiscount, 0);
-        const newCouponDiscount = order.items.reduce((total, item) => total + item.couponDiscount, 0);
-        
-        order.offerDiscount = newOfferDiscount;
-        order.couponDiscount = newCouponDiscount;
-        
-        // Save the updated order
-        await order.save();
-        
-        return res.json({ 
-            success: true, 
-            message: 'Product removed successfully and refund processed',
-            newTotal: order.total
-        });
-        
-    } catch (error) {
-        console.error('Error removing product from order:', error);
-        return res.status(500).json({ success: false, message: 'Server error' });
-    }
-},
-
+    },
 }
 
 module.exports = orderController;
