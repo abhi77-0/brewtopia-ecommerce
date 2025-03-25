@@ -129,7 +129,14 @@
                                     <div class="item-details flex-grow-1">
                                         <div class="d-flex justify-content-between">
                                             <h6 class="item-name mb-1"><%= item.product.name %></h6>
-                                            <span class="item-price">₹<%= item.price * item.quantity %></span>
+                                            <% if (item.offerDiscount > 0) { %>
+                                                <div class="text-end">
+                                                    <span class="text-decoration-line-through text-muted">₹<%= (item.price * item.quantity).toFixed(2) %></span>
+                                                    <span class="item-price">₹<%= ((item.price * item.quantity) - item.offerDiscount).toFixed(2) %></span>
+                                                </div>
+                                            <% } else { %>
+                                                <span class="item-price">₹<%= (item.price * item.quantity).toFixed(2) %></span>
+                                            <% } %>
                                         </div>
                                         <p class="item-meta mb-1">
                                             Size: <%= item.variant %>

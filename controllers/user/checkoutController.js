@@ -489,6 +489,86 @@ exports.verifyPayment = async (req, res) => {
             };
         }
         
+        // Calculate and set proper discount values for each item
+        if (order && order.items && Array.isArray(order.items)) {
+            // Get cart to access product details with offers
+            const cart = await Cart.findOne({ user: req.user._id })
+                .populate({
+                    path: 'items.product',
+                    model: 'Product',
+                    populate: [
+                        { path: 'offer' },
+                        { path: 'categoryOffer' }
+                    ]
+                });
+            
+            if (cart && cart.items) {
+                // Calculate total cart value for coupon distribution
+                const cartTotal = cart.items.reduce((sum, item) => {
+                    const price = item.product.variants[item.variant].price;
+                    return sum + (price * item.quantity);
+                }, 0);
+                
+                // Get coupon discount from session if exists
+                let totalCouponDiscount = 0;
+                if (req.session.coupon) {
+                    totalCouponDiscount = req.session.coupon.discountAmount || 0;
+                }
+                
+                // Map cart items to order items by product ID and variant
+                for (let i = 0; i < order.items.length; i++) {
+                    const orderItem = order.items[i];
+                    const cartItem = cart.items.find(item => 
+                        item.product._id.toString() === orderItem.product.toString() && 
+                        item.variant === orderItem.variant
+                    );
+                    
+                    if (cartItem) {
+                        // Calculate offer discount
+                        let discountPercentage = 0;
+                        
+                        if (cartItem.product.offer && cartItem.product.offer.isActive !== false && 
+                            new Date() >= new Date(cartItem.product.offer.startDate) && 
+                            new Date() <= new Date(cartItem.product.offer.endDate)) {
+                            discountPercentage = Math.max(discountPercentage, cartItem.product.offer.discountPercentage);
+                        }
+                        
+                        if (cartItem.product.categoryOffer && cartItem.product.categoryOffer.isActive !== false && 
+                            new Date() >= new Date(cartItem.product.categoryOffer.startDate) && 
+                            new Date() <= new Date(cartItem.product.categoryOffer.endDate)) {
+                            discountPercentage = Math.max(discountPercentage, cartItem.product.categoryOffer.discountPercentage);
+                        }
+                        
+                        if (discountPercentage > 0) {
+                            const itemPrice = orderItem.price;
+                            const itemTotal = itemPrice * orderItem.quantity;
+                            orderItem.offerDiscount = Math.round(itemTotal * (discountPercentage / 100));
+                        }
+                        
+                        // Calculate coupon discount (proportional distribution)
+                        if (totalCouponDiscount > 0) {
+                            const itemPrice = orderItem.price;
+                            const itemTotal = itemPrice * orderItem.quantity;
+                            const proportion = itemTotal / cartTotal;
+                            orderItem.couponDiscount = Math.round(totalCouponDiscount * proportion);
+                        }
+                        
+                        // Set originalPrice and finalPrice
+                        orderItem.originalPrice = orderItem.price;
+                        const totalDiscount = (orderItem.offerDiscount || 0) + (orderItem.couponDiscount || 0);
+                        const perUnitDiscount = orderItem.quantity > 0 ? totalDiscount / orderItem.quantity : 0;
+                        orderItem.finalPrice = Math.max(0, orderItem.price - perUnitDiscount);
+                    }
+                }
+            } else {
+                // Fallback if cart not found - set required fields with default values
+                for (let i = 0; i < order.items.length; i++) {
+                    order.items[i].originalPrice = order.items[i].price;
+                    order.items[i].finalPrice = order.items[i].price;
+                }
+            }
+        }
+        
         await order.save();
         
         // Clear the cart

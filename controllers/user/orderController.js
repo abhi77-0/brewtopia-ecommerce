@@ -43,32 +43,22 @@ const orderController = {
                 });
             }
             
-            // Calculate subtotal and prepare order items
+            // Calculate subtotal and prepare order items with detailed discount information
             let subtotal = 0;
-            const orderItems = cart.items.map(item => {
-                const price = item.product.variants[item.variant].price;
-                subtotal += price * item.quantity;
-                
-                return {
-                    product: item.product._id,
-                    variant: item.variant,
-                    price: price,
-                    quantity: item.quantity
-                };
-            });
+            let totalOfferDiscount = 0;
+            const orderItems = [];
             
-            // Calculate shipping fee
-            const shippingFee = subtotal >= 1000 ? 0 : 40;
-            
-            // Calculate GST (18%)
-            const gst = Math.round(subtotal * 0.18);
-            
-            // Calculate offer discount
-            let offerDiscount = 0;
+            // Process each cart item
             for (const item of cart.items) {
-                // Get the best offer (product or category)
-                let discountPercentage = 0;
+                const originalPrice = item.product.variants[item.variant].price;
+                const itemSubtotal = originalPrice * item.quantity;
+                subtotal += itemSubtotal;
                 
+                // Calculate offer discount for this item
+                let discountPercentage = 0;
+                let itemOfferDiscount = 0;
+                
+                // Get the best offer (product or category)
                 if (item.product.offer && item.product.offer.discountPercentage) {
                     discountPercentage = Math.max(discountPercentage, item.product.offer.discountPercentage);
                 }
@@ -78,26 +68,83 @@ const orderController = {
                 }
                 
                 if (discountPercentage > 0) {
-                    const itemPrice = item.product.variants[item.variant].price;
-                    const itemTotal = itemPrice * item.quantity;
-                    offerDiscount += itemTotal * (discountPercentage / 100);
+                    itemOfferDiscount = itemSubtotal * (discountPercentage / 100);
+                    totalOfferDiscount += itemOfferDiscount;
                 }
+                
+                // Calculate per-unit offer discount
+                const perUnitOfferDiscount = item.quantity > 0 ? itemOfferDiscount / item.quantity : 0;
+                
+                // Calculate final price after offer discount (per unit)
+                const finalPriceAfterOffer = originalPrice - perUnitOfferDiscount;
+                
+                // Store item with discount info (coupon discount will be added later)
+                orderItems.push({
+                    product: item.product._id,
+                    variant: item.variant,
+                    quantity: item.quantity,
+                    price: originalPrice,
+                    originalPrice: originalPrice,
+                    offerDiscount: Math.round(itemOfferDiscount),
+                    couponDiscount: 0, // Will be calculated after
+                    finalPrice: finalPriceAfterOffer // Per unit price after offer discount
+                });
             }
-            offerDiscount = Math.round(offerDiscount);
+            
+            // Round the total offer discount
+            totalOfferDiscount = Math.round(totalOfferDiscount);
+            
+            // Calculate shipping fee
+            const shippingFee = subtotal >= 1000 ? 0 : 40;
+            
+            // Calculate GST (18%)
+            const gst = Math.round(subtotal * 0.18);
             
             // Get coupon discount from session if exists
-            let couponDiscount = 0;
+            let totalCouponDiscount = 0;
             let couponCode = null;
             let couponId = null;
             
             if (req.session.coupon) {
-                couponDiscount = req.session.coupon.discountAmount || 0;
+                totalCouponDiscount = req.session.coupon.discountAmount || 0;
                 couponCode = req.session.coupon.code;
                 couponId = req.session.coupon.couponId;
+                
+                // Distribute coupon discount proportionally to each item
+                if (totalCouponDiscount > 0) {
+                    for (const item of orderItems) {
+                        const itemTotal = item.price * item.quantity;
+                        const proportion = itemTotal / subtotal;
+                        const itemCouponDiscount = Math.round(totalCouponDiscount * proportion);
+                        
+                        item.couponDiscount = itemCouponDiscount;
+                        
+                        // Calculate per-unit coupon discount
+                        const perUnitCouponDiscount = item.quantity > 0 ? itemCouponDiscount / item.quantity : 0;
+                        
+                        // Update final price to include coupon discount
+                        item.finalPrice = item.finalPrice - perUnitCouponDiscount;
+                    }
+                }
+            }
+            
+            // Ensure all finalPrice values are valid numbers
+            for (const item of orderItems) {
+                // Make sure finalPrice is a valid number and not less than 0
+                item.finalPrice = Math.max(0, Number(item.finalPrice) || 0);
+                
+                // Ensure originalPrice is a valid number
+                item.originalPrice = Number(item.originalPrice) || 0;
+                
+                // Round to 2 decimal places
+                item.finalPrice = Math.round(item.finalPrice * 100) / 100;
+                item.originalPrice = Math.round(item.originalPrice * 100) / 100;
+                
+                console.log(`Item: ${item.product}, originalPrice: ${item.originalPrice}, finalPrice: ${item.finalPrice}`);
             }
             
             // Calculate total
-            const total = subtotal + shippingFee + gst - offerDiscount - couponDiscount;
+            const total = subtotal + shippingFee + gst - totalOfferDiscount - totalCouponDiscount;
             const finalTotal = Math.max(0, Math.round(total));
             
             // Calculate expected delivery date (e.g., 7 days from now)
@@ -112,12 +159,12 @@ const orderController = {
                 total: finalTotal,
                 status: 'Pending',
                 paymentMethod: paymentMethod,
-                paymentStatus: 'Pending',
+                paymentStatus: paymentMethod === 'cod' ? 'Pending' : 'Completed',
                 expectedDeliveryDate: expectedDeliveryDate,
                 subtotal: subtotal,
                 shippingFee: shippingFee,
-                offerDiscount: offerDiscount,
-                couponDiscount: couponDiscount,
+                offerDiscount: totalOfferDiscount,
+                couponDiscount: totalCouponDiscount,
                 gst: gst
             };
             
@@ -125,12 +172,12 @@ const orderController = {
             if (couponId) {
                 orderData.coupon = {
                     code: couponCode,
-                    discount: couponDiscount,
+                    discount: totalCouponDiscount,
                     couponId: couponId
                 };
             }
             
-            console.log('Creating order with data:', orderData);
+            console.log('Creating order with data:', JSON.stringify(orderData, null, 2));
             const order = await Order.create(orderData);
             
             // Process wallet payment if selected
@@ -809,6 +856,9 @@ deleteProductFromOrder: async (req, res) => {
         // Get the item before removing it
         const removedItem = order.items[itemIndex];
         
+        // Calculate the actual amount to refund (final price after all discounts)
+        const itemFinalPrice = removedItem.finalPrice * removedItem.quantity;
+        
         // Update inventory - add the quantity back to stock
         try {
             const product = await Product.findById(productId);
@@ -823,18 +873,72 @@ deleteProductFromOrder: async (req, res) => {
             // Continue with order update even if stock update fails
         }
         
+        // Process refund if payment was already made
+        if (order.paymentStatus === 'Completed') {
+            try {
+                // Find user's wallet
+                let wallet = await Wallet.findOne({ userId });
+                
+                if (!wallet) {
+                    console.log('Creating new wallet for user:', userId);
+                    wallet = await Wallet.create({
+                        userId,
+                        balance: 0,
+                        transactions: []
+                    });
+                    
+                    // Update user with wallet reference
+                    await User.findByIdAndUpdate(userId, { wallet: wallet._id });
+                }
+                
+                // Calculate new balance
+                const newBalance = wallet.balance + itemFinalPrice;
+                
+                // Add refund transaction to wallet
+                wallet.transactions.push({
+                    type: 'credit',
+                    amount: itemFinalPrice,
+                    description: `Refund for removed item from order #${order._id.toString().slice(-6).toUpperCase()}`,
+                    orderId: order._id,
+                    date: new Date(),
+                    balance: newBalance,
+                    userId
+                });
+                
+                // Update wallet balance
+                wallet.balance = newBalance;
+                
+                // Save wallet changes
+                await wallet.save();
+                console.log(`Refund processed: ${itemFinalPrice} added to wallet for user ${userId}`);
+            } catch (refundError) {
+                console.error('Error processing refund:', refundError);
+                // Continue with order update even if refund fails
+            }
+        }
+        
         // Remove the product from the order
         order.items.splice(itemIndex, 1);
         
         // Recalculate order total
-        order.total = order.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+        const newTotal = order.items.reduce((total, item) => total + (item.finalPrice * item.quantity), 0);
+        
+        // Update order totals
+        order.total = newTotal;
+        
+        // Recalculate order discounts
+        const newOfferDiscount = order.items.reduce((total, item) => total + item.offerDiscount, 0);
+        const newCouponDiscount = order.items.reduce((total, item) => total + item.couponDiscount, 0);
+        
+        order.offerDiscount = newOfferDiscount;
+        order.couponDiscount = newCouponDiscount;
         
         // Save the updated order
         await order.save();
         
         return res.json({ 
             success: true, 
-            message: 'Product removed successfully',
+            message: 'Product removed successfully and refund processed',
             newTotal: order.total
         });
         
