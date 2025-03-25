@@ -6,6 +6,10 @@ module.exports = {
         console.log('User:', req.user);
         
         if (req.session.user || req.user) {
+            // Set user in both req.user and req.session.user to ensure consistency
+            req.user = req.user || req.session.user;
+            req.session.user = req.session.user || req.user;
+            
             // Ensure user data is available in locals for views
             res.locals.user = req.session.user || req.user;
             res.locals.isAuthenticated = true;

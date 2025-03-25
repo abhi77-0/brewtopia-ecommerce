@@ -15,8 +15,19 @@ const orderController = {
             
             const { addressId, paymentMethod } = req.body;
             
+            // Get user ID from either req.user or req.session.user
+            const userId = req.user?._id || req.session.user?._id || req.session.user?.id;
+            
+            if (!userId) {
+                console.log('User not authenticated:', { user: req.user, session: req.session });
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+            }
+            
             // Find the cart for the user with populated product details
-            const cart = await Cart.findOne({ user: req.user._id })
+            const cart = await Cart.findOne({ user: userId })
                 .populate({
                     path: 'items.product',
                     model: 'Product',
@@ -153,7 +164,7 @@ const orderController = {
             
             // Create new order
             const orderData = {
-                user: req.user._id,
+                user: userId,
                 items: orderItems,
                 address: addressId,
                 total: finalTotal,
@@ -209,7 +220,7 @@ const orderController = {
             // Process wallet payment if selected
             if (paymentMethod === 'wallet') {
                 // Find user's wallet
-                let wallet = await Wallet.findOne({ userId: req.user._id });
+                let wallet = await Wallet.findOne({ userId });
                 
                 if (!wallet) {
                     return res.status(400).json({
@@ -231,7 +242,7 @@ const orderController = {
                 
                 // Add transaction
                 wallet.transactions.push({
-                    userId: req.user._id,
+                    userId,
                     amount: finalTotal,
                     type: 'debit',
                     description: `Payment for order #${order._id.toString().slice(-6).toUpperCase()}`,
@@ -250,11 +261,11 @@ const orderController = {
                 order.paymentStatus = 'Completed';
                 await order.save();
                 
-                console.log(`Wallet payment processed: ${finalTotal} deducted from wallet for user ${req.user._id}`);
+                console.log(`Wallet payment processed: ${finalTotal} deducted from wallet for user ${userId}`);
             }
             
             // Clear cart after successful order
-            await Cart.findOneAndDelete({ user: req.user._id });
+            await Cart.findOneAndDelete({ user: userId });
             
             // Clear coupon from session
             if (req.session.coupon) {
@@ -1018,6 +1029,53 @@ const orderController = {
         } catch (error) {
             console.error('Error removing product from order:', error);
             return res.status(500).json({ success: false, message: 'Server error' });
+        }
+    },
+    processReturnRefund: async (orderId, userId) => {
+        try {
+            const order = await Order.findById(orderId);
+            if (!order) {
+                console.error('Order not found for refund processing');
+                return false;
+            }
+
+            // Find or create wallet
+            let wallet = await Wallet.findOne({ userId });
+            if (!wallet) {
+                wallet = await Wallet.create({
+                    userId,
+                    balance: 0,
+                    transactions: []
+                });
+                await User.findByIdAndUpdate(userId, { wallet: wallet._id });
+            }
+
+            let refundAmount;
+                refundAmount = order.subtotal + order.gst + order.shippingFee - order.offerDiscount;
+
+            // Ensure refund amount is not negative
+            refundAmount = Math.max(0, Math.round(refundAmount));
+
+            // Add refund transaction to wallet
+            const newBalance = wallet.balance + refundAmount;
+            wallet.transactions.push({
+                userId,
+                amount: refundAmount,
+                type: 'credit',
+                description: `Refund for returned order #${order._id.toString().slice(-6).toUpperCase()}`,
+                orderId: order._id,
+                date: new Date(),
+                balance: newBalance
+            });
+
+            wallet.balance = newBalance;
+            await wallet.save();
+
+            console.log(`Return refund processed: Amount ${refundAmount} added to wallet for user ${userId}`);
+            return true;
+        } catch (error) {
+            console.error('Error processing return refund:', error);
+            return false;
         }
     },
 }

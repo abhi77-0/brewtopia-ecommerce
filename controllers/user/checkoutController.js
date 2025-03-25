@@ -356,6 +356,16 @@ exports.verifyPayment = async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, addressId } = req.body;
         
+        // Get user ID from session
+        const userId = req.session.user?._id || req.session.user?.id;
+        
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not authenticated'
+            });
+        }
+        
         // Verify the payment signature
         const generated_signature = crypto
             .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
@@ -370,7 +380,7 @@ exports.verifyPayment = async (req, res) => {
         }
         
         // Get cart details with populated product details including offers
-        const cart = await Cart.findOne({ user: req.user._id })
+        const cart = await Cart.findOne({ user: userId })
             .populate({
                 path: 'items.product',
                 model: 'Product',
@@ -462,7 +472,7 @@ exports.verifyPayment = async (req, res) => {
         
         // Create the order with all discount information
         const order = new Order({
-            user: req.user._id,
+            user: userId,
             items: orderItems,
             address: addressId,
             paymentMethod: 'razorpay',
@@ -492,7 +502,7 @@ exports.verifyPayment = async (req, res) => {
         // Calculate and set proper discount values for each item
         if (order && order.items && Array.isArray(order.items)) {
             // Get cart to access product details with offers
-            const cart = await Cart.findOne({ user: req.user._id })
+            const cart = await Cart.findOne({ user: userId })
                 .populate({
                     path: 'items.product',
                     model: 'Product',
@@ -573,7 +583,7 @@ exports.verifyPayment = async (req, res) => {
         
         // Clear the cart
         await Cart.findOneAndUpdate(
-            { user: req.user._id },
+            { user: userId },
             { $set: { items: [] } }
         );
         
@@ -717,8 +727,7 @@ exports.applyCoupon = async (req, res) => {
         if (subtotal < coupon.minimumPurchase) {
             return res.status(400).json({
                 success: false,
-                message: `Minimum purchase of ₹${coupon.minimumPurchase} required`
-            });
+                message: `Minimum purchase of ₹${coupon.minimumPurchase} required`            });
         }
 
         // Calculate discount

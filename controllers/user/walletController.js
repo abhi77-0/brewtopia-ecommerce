@@ -13,23 +13,31 @@ const razorpay = new Razorpay({
 // Export individual functions instead of an object
 exports.getWalletPage = async (req, res) => {
     try {
+        // Get user ID from either req.user or req.session.user
+        const userId = req.user?._id || req.session.user?._id || req.session.user?.id;
+        
+        if (!userId) {
+            console.log('User not authenticated:', { user: req.user, session: req.session });
+            return res.redirect('/users/login');
+        }
+
         // Find or create wallet
-        let wallet = await Wallet.findOne({ userId: req.user._id });
+        let wallet = await Wallet.findOne({ userId });
         if (!wallet) {
             wallet = await Wallet.create({
-                userId: req.user._id,
+                userId,
                 balance: 0,
                 transactions: []
             });
             
             // Update user with wallet reference
-            await User.findByIdAndUpdate(req.user._id, { wallet: wallet._id });
+            await User.findByIdAndUpdate(userId, { wallet: wallet._id });
         }
 
         res.render('users/wallet', {
             title: 'My Wallet',
             wallet: wallet,
-            user: req.user
+            user: req.session.user || req.user
         });
     } catch (error) {
         console.error('Error fetching wallet:', error);
@@ -40,7 +48,25 @@ exports.getWalletPage = async (req, res) => {
 exports.addMoney = async (req, res) => {
     try {
         const { amount } = req.body;
-        const user = await User.findById(req.user._id);
+        const userId = req.user?._id || req.session.user?._id || req.session.user?.id;
+        
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not authenticated'
+            });
+        }
+
+        const user = await User.findById(userId);
+        if (!user.wallet) {
+            let wallet = await Wallet.create({
+                userId,
+                balance: 0,
+                transactions: []
+            });
+            user.wallet = wallet._id;
+            await user.save();
+        }
 
         user.wallet.balance += Number(amount);
         user.wallet.transactions.push({
@@ -140,9 +166,17 @@ exports.processReturnRefund = async (orderId, userId) => {
 exports.useWalletBalance = async (req, res) => {
     try {
         const { amount } = req.body;
-        const user = await User.findById(req.user._id);
+        const userId = req.user?._id || req.session.user?._id || req.session.user?.id;
+        
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not authenticated'
+            });
+        }
 
-        if (user.wallet.balance < amount) {
+        const user = await User.findById(userId);
+        if (!user.wallet || user.wallet.balance < amount) {
             return res.status(400).json({
                 success: false,
                 message: 'Insufficient wallet balance'
@@ -176,6 +210,14 @@ exports.useWalletBalance = async (req, res) => {
 exports.createWalletOrder = async (req, res) => {
     try {
         const { amount } = req.body;
+        const userId = req.user?._id || req.session.user?._id || req.session.user?.id;
+        
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not authenticated'
+            });
+        }
         
         const options = {
             amount: amount * 100,
@@ -203,6 +245,14 @@ exports.createWalletOrder = async (req, res) => {
 exports.verifyWalletPayment = async (req, res) => {
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } = req.body;
+        const userId = req.user?._id || req.session.user?._id || req.session.user?.id;
+        
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not authenticated'
+            });
+        }
 
         // Verify payment signature
         const sign = razorpay_order_id + "|" + razorpay_payment_id;
@@ -213,14 +263,14 @@ exports.verifyWalletPayment = async (req, res) => {
 
         if (razorpay_signature === expectedSign) {
             // Find or create wallet
-            let wallet = await Wallet.findOne({ userId: req.user._id });
+            let wallet = await Wallet.findOne({ userId });
             if (!wallet) {
                 wallet = await Wallet.create({
-                    userId: req.user._id,
+                    userId,
                     balance: 0,
                     transactions: []
                 });
-                await User.findByIdAndUpdate(req.user._id, { wallet: wallet._id });
+                await User.findByIdAndUpdate(userId, { wallet: wallet._id });
             }
 
             // Update wallet balance
@@ -229,7 +279,7 @@ exports.verifyWalletPayment = async (req, res) => {
             
             // Add transaction
             wallet.transactions.push({
-                userId: req.user._id,
+                userId,
                 amount: Number(amount),
                 type: 'credit',
                 description: `Added money via Razorpay`,
