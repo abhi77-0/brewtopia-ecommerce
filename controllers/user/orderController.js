@@ -180,6 +180,32 @@ const orderController = {
             console.log('Creating order with data:', JSON.stringify(orderData, null, 2));
             const order = await Order.create(orderData);
             
+            // Update product stock quantities
+            try {
+                for (const item of orderItems) {
+                    const product = await Product.findById(item.product);
+                    if (product && product.variants && product.variants[item.variant]) {
+                        // Reduce the stock quantity
+                        const currentStock = product.variants[item.variant].stock || 0;
+                        const newStock = Math.max(0, currentStock - item.quantity);
+                        
+                        console.log(`Reducing stock for product ${item.product}, variant ${item.variant}: ${currentStock} -> ${newStock}`);
+                        
+                        // Update the stock
+                        product.variants[item.variant].stock = newStock;
+                        
+                        // Save the product
+                        await product.save();
+                    } else {
+                        console.warn(`Product or variant not found: Product ID ${item.product}, Variant ${item.variant}`);
+                    }
+                }
+            } catch (stockError) {
+                console.error('Error updating product stock:', stockError);
+                // Continue with order processing even if stock update fails
+                // We may want to add this to a queue for retry or manual intervention
+            }
+            
             // Process wallet payment if selected
             if (paymentMethod === 'wallet') {
                 // Find user's wallet
@@ -228,10 +254,7 @@ const orderController = {
             }
             
             // Clear cart after successful order
-            await Cart.findOneAndUpdate(
-                { user: req.user._id },
-                { $set: { items: [] } }
-            );
+            await Cart.findOneAndDelete({ user: req.user._id });
             
             // Clear coupon from session
             if (req.session.coupon) {
@@ -245,7 +268,7 @@ const orderController = {
             });
             
         } catch (error) {
-            console.error('Error in placeOrder:', error);
+            console.error('Error placing order:', error);
             return res.status(500).json({
                 success: false,
                 message: 'An error occurred while placing your order: ' + error.message

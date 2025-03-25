@@ -203,7 +203,7 @@
                     <span id="gst">₹<%= gst %></span>
                 </div>
                 
-                <!-- We'll insert the coupon discount row here dynamically when a coupon is applied -->
+                
                 <div id="couponDiscountContainer"></div>
                 
                 <div class="summary-total d-flex justify-content-between">
@@ -895,9 +895,9 @@ function placeOrder(addressId, paymentMethod) {
                 cancelButtonText: 'Continue Shopping'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = `/orders/details/${data.orderId}`;
+                    window.location.href = `/orders`;
                 } else {
-                    window.location.href = '/';
+                    window.location.href = '/shop/products';
                 }
             });
         } else {

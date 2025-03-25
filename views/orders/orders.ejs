@@ -45,13 +45,25 @@
             <div class="order-card" data-aos="fade-up">
                 <div class="status-timeline mb-4">
                     <% 
-                    var statuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Return Requested', 'Return Accepted'];
+                    var statuses = ['Pending', 'Processing', 'Shipped', 'Delivered'];
                     
                     if (order.status === 'Cancelled') {
                         // Special handling for cancelled orders
                     %>
                         <div class="alert alert-danger" role="alert">
-                            Order Cancelled
+                            <i class="fas fa-times-circle me-2"></i> Order Cancelled
+                        </div>
+                    <% } else if (order.status === 'Returned') { %>
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-undo-alt me-2"></i> Order Returned
+                        </div>
+                    <% } else if (order.status === 'Return Requested' || order.status === 'ReturnRequested') { %>
+                        <div class="alert alert-warning" role="alert">
+                            <i class="fas fa-hourglass-half me-2"></i> Return Requested
+                        </div>
+                    <% } else if (order.status === 'Return Accepted' || order.status === 'ReturnAccepted') { %>
+                        <div class="alert alert-success" role="alert">
+                            <i class="fas fa-check-circle me-2"></i> Return Accepted
                         </div>
                     <% } else { %>
                         <% var currentIndex = statuses.indexOf(order.status); %>
@@ -1080,15 +1092,6 @@ function submitReturn() {
         });
     });
 }
-</script>
-
-// Add AOS initialization if you're using it
-document.addEventListener('DOMContentLoaded', function() {
-    AOS.init({
-        duration: 800,
-        offset: 50
-    });
-});
 </script>
 
 <%- include('../partials/footer') %>

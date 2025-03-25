@@ -16,31 +16,47 @@
         </div>
 
         <!-- Order Progress -->
-        <!-- <div class="order-progress card mb-4">
+        <div class="card mb-4">
             <div class="card-body">
-                <div class="progress-tracker">
-                    <% statusStages.forEach((stage, index) => { %>
-                        <div class="progress-step <%= order.status === stage ? 'active' : 
-                            statusStages.indexOf(order.status) > index ? 'completed' : '' %>">
-                            <div class="step-icon">
-                                <% if (statusStages.indexOf(order.status) > index) { %>
-                                    <i class="fas fa-check"></i>
-                                <% } else { %>
-                                    <i class="fas <%= 
-                                        stage === 'Pending' ? 'fa-clock' :
-                                        stage === 'Processing' ? 'fa-cog' :
-                                        stage === 'Shipped' ? 'fa-truck' :
-                                        'fa-box-check'
-                                    %>"></i>
-                                <% } %>
-                            </div>
-                            <span class="step-label"><%= stage %></span>
+                <div class="status-timeline mb-4">
+                    <% 
+                    var statuses = ['Pending', 'Processing', 'Shipped', 'Delivered'];
+                    
+                    if (order.status === 'Cancelled') {
+                        // Special handling for cancelled orders
+                    %>
+                        <div class="alert alert-danger" role="alert">
+                            <i class="fas fa-times-circle me-2"></i> Order Cancelled
                         </div>
-                        <% if (index < statusStages.length - 1) { %>
-                            <div class="progress-line"></div>
-                        <% } %>
-                    <% }) %>
-                </div> -->
+                    <% } else if (order.status === 'Returned') { %>
+                        <div class="alert alert-info" role="alert">
+                            <i class="fas fa-undo-alt me-2"></i> Order Returned
+                        </div>
+                    <% } else if (order.status === 'Return Requested' || order.status === 'ReturnRequested') { %>
+                        <div class="alert alert-warning" role="alert">
+                            <i class="fas fa-hourglass-half me-2"></i> Return Requested
+                        </div>
+                    <% } else if (order.status === 'Return Accepted' || order.status === 'ReturnAccepted') { %>
+                        <div class="alert alert-success" role="alert">
+                            <i class="fas fa-check-circle me-2"></i> Return Accepted
+                        </div>
+                    <% } else { %>
+                        <% var currentIndex = statuses.indexOf(order.status); %>
+                        <div class="timeline-track">
+                            <% statuses.forEach(function(status, index) { %>
+                                <div class="timeline-point <%= index <= currentIndex ? 'active' : '' %>">
+                                    <div class="point"></div>
+                                    <span class="status-text"><%= status %></span>
+                                </div>
+                                <% if (index < statuses.length - 1) { %>
+                                    <div class="timeline-line <%= index < currentIndex ? 'active' : '' %>"></div>
+                                <% } %>
+                            <% }); %>
+                        </div>
+                    <% } %>
+                </div>
+
+                <!-- Keep the existing delivery info section -->
                 <div class="delivery-info text-center mt-3">
                     <% if (order.status !== 'Delivered' && order.status !== 'Cancelled') { %>
                         <div class="delivery-icon">
@@ -384,6 +400,98 @@
     .item-image {
         width: 60px;
         height: 60px;
+    }
+}
+
+.badge.bg-warning {
+    background-color: #FFA000;
+    color: white;
+}
+
+.text-danger {
+    color: #D32F2F !important;
+}
+
+/* Timeline styles */
+.timeline-track {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 10px;
+}
+
+.timeline-point {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.point {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #e0e0e0;
+    margin-bottom: 8px;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #e0e0e0;
+}
+
+.timeline-point.active .point {
+    background-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.status-text {
+    font-size: 0.8rem;
+    color: #757575;
+    text-align: center;
+    width: 80px;
+    margin-top: 5px;
+}
+
+.timeline-point.active .status-text {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.timeline-line {
+    flex-grow: 1;
+    height: 3px;
+    background-color: #e0e0e0;
+    position: relative;
+    z-index: 1;
+}
+
+.timeline-line.active {
+    background-color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    .timeline-track {
+        flex-direction: column;
+        align-items: flex-start;
+        padding-left: 20px;
+    }
+    
+    .timeline-point {
+        flex-direction: row;
+        margin-bottom: 15px;
+        width: 100%;
+    }
+    
+    .status-text {
+        margin-top: 0;
+        margin-left: 15px;
+        text-align: left;
+    }
+    
+    .timeline-line {
+        height: 30px;
+        width: 3px;
+        margin-left: 10px;
     }
 }
 </style>

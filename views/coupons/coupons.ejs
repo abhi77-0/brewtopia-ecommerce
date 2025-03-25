@@ -1,0 +1,273 @@
+<%- include('../partials/header') %>
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Available Coupons</h2>
+                <a href="/cart" class="btn btn-outline-primary">
+                    <i class="fas fa-shopping-cart me-2"></i>Back to Cart
+                </a>
+            </div>
+            
+            <div class="coupon-container">
+                <% if (coupons && coupons.length > 0) { %>
+                    <div class="row">
+                        <% coupons.forEach(function(coupon) { %>
+                            <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up">
+                                <div class="coupon-card">
+                                    <div class="coupon-header">
+                                        <div class="discount-badge">
+                                            <% if (coupon.discountType === 'percentage') { %>
+                                                <%= coupon.discountValue %>% OFF
+                                            <% } else { %>
+                                                ₹<%= coupon.discountValue %> OFF
+                                            <% } %>
+                                        </div>
+                                        <div class="coupon-title">
+                                            <%= coupon.name %>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="coupon-body">
+                                        <div class="coupon-code">
+                                            <span class="code-text"><%= coupon.code.toUpperCase() %></span>
+                                            <button class="copy-btn" onclick="copyToClipboard('<%= coupon.code %>')">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="coupon-details">
+                                            <p class="mb-2"><%= coupon.description %></p>
+                                            
+                                            <div class="coupon-meta">
+                                                <% if (coupon.minimumPurchase > 0) { %>
+                                                    <div class="meta-item">
+                                                        <i class="fas fa-tag me-1"></i> Min. Purchase: ₹<%= coupon.minimumPurchase %>
+                                                    </div>
+                                                <% } %>
+                                                
+                                                <% if (coupon.maxDiscount > 0 && coupon.discountType === 'percentage') { %>
+                                                    <div class="meta-item">
+                                                        <i class="fas fa-hand-holding-usd me-1"></i> Max Discount: ₹<%= coupon.maxDiscount %>
+                                                    </div>
+                                                <% } %>
+                                                
+                                                <div class="meta-item">
+                                                    <i class="far fa-calendar-alt me-1"></i> Valid till: 
+                                                    <%= new Date(coupon.expiryDate).toLocaleDateString('en-US', { 
+                                                        day: 'numeric', 
+                                                        month: 'short', 
+                                                        year: 'numeric' 
+                                                    }) %>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button class="btn btn-primary w-100 mt-3" onclick="applyCoupon('<%= coupon.code %>')">
+                                            Apply Coupon
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="no-coupons-container text-center py-5">
+                        <div class="no-coupons-icon mb-3">
+                            <i class="fas fa-ticket-alt fa-4x text-muted"></i>
+                        </div>
+                        <h4>No Coupons Available</h4>
+                        <p class="text-muted">Check back later for exciting offers!</p>
+                        <a href="/shop" class="btn btn-primary mt-3">Continue Shopping</a>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .coupon-card {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    
+    .coupon-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+    
+    .coupon-card::before {
+        content: '';
+        position: absolute;
+        left: -10px;
+        top: 50%;
+        width: 20px;
+        height: 20px;
+        background-color: #f8f9fa;
+        border-radius: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .coupon-card::after {
+        content: '';
+        position: absolute;
+        right: -10px;
+        top: 50%;
+        width: 20px;
+        height: 20px;
+        background-color: #f8f9fa;
+        border-radius: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .coupon-header {
+        background: linear-gradient(135deg, #FF9800, #F57C00);
+        color: white;
+        padding: 1.5rem;
+        position: relative;
+    }
+    
+    .discount-badge {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .coupon-title {
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+    
+    .coupon-body {
+        padding: 1.5rem;
+        background-color: white;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .coupon-code {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: #f8f9fa;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        border: 1px dashed #ddd;
+    }
+    
+    .code-text {
+        font-family: monospace;
+        font-size: 1.1rem;
+        font-weight: bold;
+        letter-spacing: 1px;
+    }
+    
+    .copy-btn {
+        background: none;
+        border: none;
+        color: #FF9800;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+    
+    .copy-btn:hover {
+        color: #F57C00;
+    }
+    
+    .coupon-details {
+        flex-grow: 1;
+    }
+    
+    .coupon-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .meta-item {
+        font-size: 0.85rem;
+        color: #666;
+    }
+    
+    .no-coupons-container {
+        background-color: #f8f9fa;
+        border-radius: 12px;
+        padding: 3rem;
+    }
+    
+    .no-coupons-icon {
+        color: #ddd;
+    }
+</style>
+
+<script>
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            // Show toast or notification
+            showToast('Coupon code copied!');
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+        });
+    }
+    
+    function applyCoupon(code) {
+        // Redirect to cart page with coupon code
+        window.location.href = `/cart?coupon=${code}`;
+    }
+    
+    function showToast(message) {
+        // Simple toast implementation
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 2000);
+        }, 100);
+    }
+</script>
+
+<style>
+    .toast-notification {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background-color: #333;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 4px;
+        z-index: 1000;
+        opacity: 0;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    
+    .toast-notification.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+</style>
+
+<%- include('../partials/footer') %> 

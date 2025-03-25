@@ -858,3 +858,55 @@ exports.availableCoupons = async (req, res) => {
         });
     }
 };
+
+// Display available coupons page
+exports.showAvailableCoupons = async (req, res) => {
+    try {
+        const userId = req.session.user?._id || req.session.user?.id;
+        console.log('Fetching coupons for user:', userId);
+        
+        // Get the cart to check total amount
+        const cart = await Cart.findOne({ user: userId })
+            .populate({
+                path: 'items.product',
+                model: 'Product',
+                select: 'name description images variants brand'
+            });
+            
+        if (!cart) {
+            req.flash('error', 'Please add items to your cart first');
+            return res.redirect('/cart');
+        }
+        
+        // Calculate cart subtotal
+        let subtotal = 0;
+        cart.items.forEach(item => {
+            if (item.product && item.product.variants && item.variant) {
+                const variantPrice = item.product.variants[item.variant]?.price || 0;
+                subtotal += variantPrice * item.quantity;
+            }
+        });
+        
+        // Find all active coupons
+        const activeCoupons = await Coupon.find({
+            isActive: true,
+            endDate: { $gt: new Date() },
+            startDate: { $lte: new Date() }
+        });
+        
+        console.log('Active non-expired coupons:', activeCoupons.length);
+        
+        // Render the coupons page from the users folder
+        res.render('users/coupons', {
+            title: 'Available Coupons',
+            coupons: activeCoupons,
+            cartSubtotal: subtotal,
+            user: req.session.user
+        });
+        
+    } catch (error) {
+        console.error('Error fetching available coupons:', error);
+        req.flash('error', 'Failed to fetch coupons');
+        res.redirect('/cart');
+    }
+};

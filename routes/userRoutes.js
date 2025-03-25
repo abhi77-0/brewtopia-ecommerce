@@ -8,6 +8,7 @@ const {
     validateResetPassword,
     validateForgotPassword 
 } = require('../middlewares/validationMiddleware');
+const checkoutController = require("../controllers/user/checkoutController");
 
 const router = express.Router();
 
@@ -79,5 +80,8 @@ router.post("/reset-password", validateResetPassword, userController.handleReset
 
 // Add this route to your user routes
 router.post('/profile/change-password', isAuthenticated, userController.changePassword);
+
+// Coupon routes
+router.get('/coupons', isAuthenticated, checkoutController.showAvailableCoupons);
 
 module.exports = router;
