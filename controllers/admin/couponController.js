@@ -6,6 +6,7 @@ exports.getCoupons = async (req, res) => {
         res.render('admin/coupons', {
             title: 'Manage Coupons',
             coupons,
+            path: '/admin/coupons',
             messages: {
                 success: req.flash('success'),
                 error: req.flash('error')
@@ -40,44 +41,49 @@ exports.createCoupon = async (req, res) => {
         const startDateObj = new Date(startDate);
         const endDateObj = new Date(endDate);
         
-        // Validate start date is not in the past (with some tolerance)
-        const nowWithoutMillis = new Date(now.setMilliseconds(0));
-        const startDateWithoutMillis = new Date(startDateObj.setMilliseconds(0));
-
-        // Allow for a small time difference (5 minutes) to account for form submission delay
-        const fiveMinutesAgo = new Date(nowWithoutMillis.getTime() - 5 * 60 * 1000);
-
-        if (startDateWithoutMillis < fiveMinutesAgo) {
-            console.log('Start date validation failed - date is in the past');
-            console.log('Start date:', startDateWithoutMillis);
-            console.log('Five minutes ago:', fiveMinutesAgo);
-            req.flash('error', 'Start date cannot be in the past');
-            return res.redirect('/admin/coupons');
+        // Set both dates to the beginning of the day for comparison
+        const todayStart = new Date(now.setHours(0, 0, 0, 0));
+        const startDay = new Date(startDateObj.setHours(0, 0, 0, 0));
+        
+        // Check if start date is before today
+        if (startDay < todayStart) {
+            return res.status(400).json({
+                success: false,
+                message: 'Start date cannot be in the past'
+            });
         }
 
         // Validate end date is after start date
-        if (startDateObj >= endDateObj) {
-            req.flash('error', 'End date must be after start date');
-            return res.redirect('/admin/coupons');
+        if (endDateObj <= startDateObj) {
+            return res.status(400).json({
+                success: false,
+                message: 'End date must be after start date'
+            });
         }
 
         // Validate discount amount
         if (discountAmount <= 0) {
-            req.flash('error', 'Discount amount must be greater than 0');
-            return res.redirect('/admin/coupons');
+            return res.status(400).json({
+                success: false,
+                message: 'Discount amount must be greater than 0'
+            });
         }
 
         // Validate minimum purchase
         if (minimumPurchase < 0) {
-            req.flash('error', 'Minimum purchase cannot be negative');
-            return res.redirect('/admin/coupons');
+            return res.status(400).json({
+                success: false,
+                message: 'Minimum purchase cannot be negative'
+            });
         }
 
         // Check if coupon code already exists
         const existingCoupon = await Coupon.findOne({ code: code.toUpperCase() });
         if (existingCoupon) {
-            req.flash('error', 'Coupon code already exists');
-            return res.redirect('/admin/coupons');
+            return res.status(400).json({
+                success: false,
+                message: 'Coupon code already exists'
+            });
         }
 
         // Create the coupon
@@ -95,12 +101,17 @@ exports.createCoupon = async (req, res) => {
         
         console.log('Created coupon:', newCoupon);
 
-        req.flash('success', 'Coupon created successfully');
-        res.redirect('/admin/coupons');
+        return res.status(201).json({
+            success: true,
+            message: 'Coupon created successfully',
+            coupon: newCoupon
+        });
     } catch (error) {
         console.error('Error creating coupon:', error);
-        req.flash('error', 'Failed to create coupon: ' + error.message);
-        res.redirect('/admin/coupons');
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to create coupon: ' + error.message
+        });
     }
 };
 

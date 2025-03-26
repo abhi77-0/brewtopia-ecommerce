@@ -1,37 +1,171 @@
-<!-- Sidebar
-<nav class="sidebar">
-    <div class="sidebar-sticky">
+<!-- Sidebar -->
+<div class="sidebar">
+    <div class="sidebar-header">
+        <a href="/admin/dashboard" class="sidebar-brand">Brewtopia Admin</a>
+    </div>
+    
+    <div class="sidebar-menu">
+        <div class="menu-header">Main</div>
         <ul class="nav flex-column">
             <li class="nav-item">
-                <a class="sidebar-link <%= path === '/admin/dashboard' ? 'active' : '' %>" href="/admin/dashboard">
-                    <i class="fas fa-tachometer-alt mr-2"></i>
-                    Dashboard
+                <a class="nav-link <%= path === '/admin/dashboard' ? 'active' : '' %>" href="/admin/dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="sidebar-link <%= path === '/admin/products' ? 'active' : '' %>" href="/admin/products">
-                    <i class="fas fa-beer mr-2"></i>
-                    Products
+                <a class="nav-link <%= path === '/admin/orders' ? 'active' : '' %>" href="/admin/orders">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Orders</span>
+                </a>
+            </li>
+        </ul>
+        
+        <div class="menu-header">Catalog</div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link <%= path === '/admin/products' ? 'active' : '' %>" href="/admin/products">
+                    <i class="fas fa-box"></i>
+                    <span>Products</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="sidebar-link <%= path === '/admin/categories' ? 'active' : '' %>" href="/admin/categories">
-                    <i class="fas fa-list mr-2"></i>
-                    Categories
+                <a class="nav-link <%= path === '/admin/categories' ? 'active' : '' %>" href="/admin/categories">
+                    <i class="fas fa-list"></i>
+                    <span>Categories</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="sidebar-link <%= path === '/admin/users' ? 'active' : '' %>" href="/admin/users">
-                    <i class="fas fa-users mr-2"></i>
-                    Users
+                <a class="nav-link <%= path === '/admin/offer' ? 'active' : '' %>" href="/admin/offers">
+                    <i class="fas fa-tag"></i>
+                    <span>Offers</span>
                 </a>
             </li>
+        </ul>
+        
+        <div class="menu-header">Users</div>
+        <ul class="nav flex-column">
             <li class="nav-item">
-                <a class="sidebar-link <%= path === '/admin/orders' ? 'active' : '' %>" href="/admin/orders">
-                    <i class="fas fa-box mr-2"></i>
-                    Orders
+                <a class="nav-link <%= path === '/admin/users' ? 'active' : '' %>" href="/admin/users">
+                    <i class="fas fa-users"></i>
+                    <span>Customers</span>
+                </a>
+            </li>
+        </ul>
+        
+        <div class="menu-header">Reports</div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link <%= path === '/admin/sales-report' ? 'active' : '' %>" href="/admin/sales-report">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Sales Report</span>
+                </a>
+            </li>
+        </ul>
+        
+        <div class="menu-header">Settings</div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" href="/admin/logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
                 </a>
             </li>
         </ul>
     </div>
-</nav>  -->
+</div>
+
+<!-- Sidebar CSS -->
+<style>
+    :root {
+        --primary-color: #5D4037;
+        --secondary-color: #8D6E63;
+        --accent-color: #FF9800;
+        --sidebar-width: 260px;
+    }
+    
+    /* Sidebar Styles */
+    .sidebar {
+        width: var(--sidebar-width);
+        background: linear-gradient(to bottom, var(--primary-color), var(--secondary-color));
+        color: white;
+        position: fixed;
+        height: 100vh;
+        overflow-y: auto;
+        transition: all 0.3s;
+        z-index: 1000;
+    }
+    
+    .sidebar-header {
+        padding: 1.5rem;
+        text-align: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .sidebar-brand {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .sidebar-menu {
+        padding: 1rem 0;
+    }
+    
+    .menu-header {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: rgba(255, 255, 255, 0.5);
+        padding: 0.75rem 1.5rem;
+        margin-top: 1rem;
+    }
+    
+    .nav-link {
+        padding: 0.75rem 1.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        transition: all 0.3s;
+        border-left: 3px solid transparent;
+    }
+    
+    .nav-link:hover, .nav-link.active {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-left-color: var(--accent-color);
+    }
+    
+    .nav-link i {
+        margin-right: 0.75rem;
+        width: 20px;
+        text-align: center;
+    }
+    
+    /* Main Content Adjustment */
+    .main-content {
+        margin-left: var(--sidebar-width);
+        padding: 2rem;
+        transition: all 0.3s;
+    }
+    
+    /* Responsive Sidebar */
+    @media (max-width: 768px) {
+        .sidebar {
+            margin-left: calc(-1 * var(--sidebar-width));
+        }
+        
+        .sidebar.active {
+            margin-left: 0;
+        }
+        
+        .main-content {
+            margin-left: 0;
+        }
+        
+        .main-content.active {
+            margin-left: var(--sidebar-width);
+        }
+    }
+</style>

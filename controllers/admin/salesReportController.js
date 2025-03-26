@@ -10,7 +10,8 @@ const salesReportController = {
         try {
             res.render('admin/sales/sales-report', {
                 title: 'Sales Report',
-                currentPage: 'sales-report'
+                currentPage: 'sales-report',
+                path: '/admin/sales-report'
             });
         } catch (error) {
             console.error('Error loading sales report page:', error);
@@ -96,6 +97,7 @@ const salesReportController = {
             res.render('admin/sales/sales-report-results', {
                 title: 'Sales Report Results',
                 currentPage: 'sales-report',
+                path: '/admin/sales-report',
                 orders,
                 period,
                 startDate: formattedStartDate,

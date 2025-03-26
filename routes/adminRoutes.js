@@ -10,6 +10,7 @@ const orderController = require('../controllers/admin/OrderController');
 const couponController = require('../controllers/admin/couponController');
 const offerController = require('../controllers/admin/offerController');
 const salesReportController = require('../controllers/admin/salesReportController');
+const dashboardController = require('../controllers/admin/dashboardController');
 
 // Import middleware and configurations
 const { isAdmin } = require('../middlewares/adminAuth');
@@ -21,7 +22,7 @@ router.post('/login', adminController.adminLogin);
 router.get('/logout', adminController.adminLogout);
 
 // Admin Dashboard Route
-router.get('/dashboard', isAdmin, adminController.getDashboard);
+router.get('/dashboard', dashboardController.getDashboard);
 
 
 // Product Management Routes

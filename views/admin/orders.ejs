@@ -10,71 +10,43 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <!-- Custom Styles -->
     <style>
-        /* Navbar and Sidebar Styles (unchanged) */
-        .navbar {
-            background-color: #FF9800;
-            padding: 1rem 0;
+        :root {
+            --primary-color: #5D4037;
+            --secondary-color: #8D6E63;
+            --accent-color: #FF9800;
+            --light-bg: #f8f9fa;
+            --dark-text: #343a40;
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --sidebar-width: 260px;
         }
-
-        .navbar-brand {
-            color: #fff;
-            font-size: 1.5rem;
-            font-weight: bold;
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: var(--dark-text);
         }
-
-        .navbar-brand:hover {
-            color: #ffc107;
-        }
-
-        .admin-container {
+        
+        /* Admin layout */
+        .admin-layout {
             display: flex;
             min-height: 100vh;
         }
-
-        .sidebar {
-            width: 250px;
-            background-color: #2c3e50;
-            padding-top: 2rem;
-            color: white;
-            height: 100vh;
-            position: sticky;
-            top: 0;
-            overflow-y: auto;
-        }
-
-        .sidebar-link {
-            color: white;
-            text-decoration: none;
-            padding: 0.75rem 1.5rem;
-            display: block;
-            transition: all 0.3s;
-        }
-
-        .sidebar-link:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: #ffc107;
-        }
-
-        .sidebar-link.active {
-            background-color: #ffc107;
-            color: #1a1a1a;
-        }
-
+        
+        /* Main Content Styles */
         .main-content {
             flex: 1;
+            margin-left: var(--sidebar-width);
             padding: 2rem;
-            background-color: #f8f9fa;
-            min-height: 100vh;
-            overflow-y: auto;
+            transition: all 0.3s;
         }
-
-        /* Modern Order Card Styles */
+        
+        /* Order specific styles remain unchanged */
         .orders-container {
             display: grid;
             grid-template-columns: 1fr;
             gap: 1.5rem;
         }
-
+        
         .order-card {
             background-color: white;
             border-radius: 12px;
@@ -82,7 +54,7 @@
             overflow: hidden;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-
+        
         .order-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
@@ -344,36 +316,8 @@
     </style>
 </head>
 <body>
-    <div class="admin-container">
-        <!-- Sidebar (unchanged) -->
-        <div class="sidebar">
-            <div class="sidebar">
-                <a href="/admin/dashboard" class="sidebar-link active">
-                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-                </a>
-                <a href="/admin/products" class="sidebar-link">
-                    <i class="fas fa-beer me-2"></i> Products
-                </a>
-                <a href="/admin/categories" class="sidebar-link">
-                    <i class="fas fa-list me-2"></i> Categories
-                </a>
-                <a href="/admin/orders" class="sidebar-link">
-                    <i class="fas fa-shopping-cart me-2"></i> Orders
-                </a>
-                <a href="/admin/users" class="sidebar-link">
-                    <i class="fas fa-users me-2"></i> Users
-                </a>
-                <a href="/admin/offers" class="sidebar-link">
-                    <i class="fas fa-percent me-2"></i>Offers
-                </a>
-                <a href="/admin/coupons" class="sidebar-link">
-                    <i class="fas fa-ticket-alt me-2"></i> Coupons
-                </a>
-                <a href="/admin/sales-report" class="sidebar-link">
-                    <i class="fas fa-chart-line me-2"></i> Sales Report
-                </a>
-            </div>
-        </div>
+    <div class="admin-layout">
+        <%- include('./partials/sidebar') %>
 
         <div class="main-content">
             <h2 class="mb-4">Order Management</h2>
@@ -388,23 +332,7 @@
                         <div class="col-md-3">
                             <input type="text" class="form-control" name="customer" placeholder="Customer Name">
                         </div>
-                        <div class="col-md-2">
-                            <select class="form-select" name="status">
-                                <option value="">All Statuses</option>
-                                <% statusStages.forEach(status => { %>
-                                    <option value="<%= status %>"><%= status %></option>
-                                <% }) %>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <select class="form-select" name="paymentStatus">
-                                <option value="">All Payments</option>
-                                <option value="Pending">Pending</option>
-                                <option value="Completed">Completed</option>
-                                <option value="Failed">Failed</option>
-                                <option value="Refunded">Refunded</option>
-                            </select>
-                        </div>
+                       
                         <div class="col-md-2">
                             <button type="submit" class="btn btn-primary w-100">
                                 <i class="fas fa-search me-2"></i>Search
@@ -476,7 +404,6 @@
                                         <tr>
                                             <th>Product</th>
                                             <th>Quantity</th>
-                                            <th>Subtotal</th>
                                             <th>Return Status</th>
                                             <th>Actions</th>
                                         </tr>
@@ -495,7 +422,6 @@
                                                     <span class="product-variant"><%= item.variant %></span>
                                                 </td>
                                                 <td><span class="product-quantity"><%= item.quantity %></span></td>
-                                                <td class="product-subtotal">₹<%= item.finalPrice.toFixed(2) %></td>
                                                 <td>
                                                     <% if (item.returnStatus === 'pending') { %>
                                                         <div class="return-badge return-pending">

@@ -5,67 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= title %> - Brewtopia Admin</title>
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Navbar Styles */
-        .navbar {
-            background-color: #FF9800; /* Added the same orange color as dashboard */
-            padding: 1rem 0;
+        :root {
+            --primary-color: #5D4037;
+            --secondary-color: #8D6E63;
+            --accent-color: #FF9800;
+            --light-bg: #f8f9fa;
+            --dark-text: #343a40;
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --sidebar-width: 260px;
         }
-
-        .navbar-brand {
-            color: #fff;
-            font-size: 1.5rem;
-            font-weight: bold;
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: var(--dark-text);
         }
-
-        .navbar-brand:hover {
-            color: #ffc107;
-        }
-
-        /* Sidebar Styles */
-        .admin-container {
+        
+        /* Admin layout */
+        .admin-layout {
             display: flex;
-            min-height: calc(100vh - 76px);
+            min-height: 100vh;
         }
-
-        .sidebar {
-            width: 250px;
-            background-color: #2c3e50;
-            padding-top: 2rem;
-            color: white;
-            height: 100vh; /* Make sidebar full height */
-            position: sticky;
-            top: 0;
-        }
-
-        .sidebar-link {
-            color: white;
-            text-decoration: none;
-            padding: 0.75rem 1.5rem;
-            display: block;
-            transition: all 0.3s;
-        }
-
-        .sidebar-link:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: #ffc107;
-        }
-
-        .sidebar-link.active {
-            background-color: #ffc107;
-            color: #1a1a1a;
-        }
-
+        
         /* Main Content Styles */
         .main-content {
             flex: 1;
+            margin-left: var(--sidebar-width);
             padding: 2rem;
-            background-color: #f8f9fa;
+            transition: all 0.3s;
         }
-
+        
         /* Category Card Styles */
         .category-card {
             background: white;
@@ -75,39 +48,39 @@
             margin-bottom: 2rem;
             height: 100%;
         }
-
+        
         .category-card:hover {
             transform: translateY(-5px);
         }
-
+        
         .category-card .card-body {
             padding: 2rem;
         }
-
+        
         .category-card .card-title {
             color: #2c3e50;
             margin-bottom: 1rem;
             font-size: 1.25rem;
         }
-
+        
         .category-card .card-text {
             color: #6c757d;
             font-size: 0.9rem;
             margin-bottom: 1.5rem;
             min-height: 60px;
         }
-
+        
         .category-card .badge {
             font-size: 0.8rem;
             padding: 0.5rem 0.75rem;
         }
-
+        
         .category-card .action-buttons {
             margin-top: 1.5rem;
             display: flex;
             gap: 0.5rem;
         }
-
+        
         .category-card .btn-action {
             padding: 0.5rem 1rem;
             font-size: 0.875rem;
@@ -117,28 +90,28 @@
             flex: 1;
             justify-content: center;
         }
-
+        
         .category-card .btn-action i {
             font-size: 1rem;
         }
-
+        
         /* Update the row gutter */
         .categories-row {
             --bs-gutter-x: 2rem;
             --bs-gutter-y: 2rem;
         }
-
+        
         /* Modal Styles */
         .modal-content {
             border-radius: 10px;
             border: none;
         }
-
+        
         .modal-header {
             background-color: #f8f9fa;
             border-bottom: 1px solid rgba(0,0,0,0.1);
         }
-
+        
         .modal-footer {
             background-color: #f8f9fa;
             border-top: 1px solid rgba(0,0,0,0.1);
@@ -146,8 +119,8 @@
         
         /* Add button styling */
         .btn-primary {
-            background-color: #FF9800;
-            border-color: #FF9800;
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
         }
         
         .btn-primary:hover {
@@ -156,60 +129,47 @@
         }
         
         /* Page header styling */
-        h1 {
+        .page-title {
             color: #2c3e50;
             font-weight: 600;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="/admin/dashboard">Brewtopia Admin</a>
-            <div class="d-flex">
-                <a href="/admin/logout" class="btn btn-outline-light">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <div class="admin-container">
-      <!-- Sidebar -->
-      <div class="sidebar">
-        <a href="/admin/dashboard" class="sidebar-link active">
-            <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-        </a>
-        <a href="/admin/products" class="sidebar-link">
-            <i class="fas fa-beer me-2"></i> Products
-        </a>
-        <a href="/admin/categories" class="sidebar-link">
-            <i class="fas fa-list me-2"></i> Categories
-        </a>
-        <a href="/admin/orders" class="sidebar-link">
-            <i class="fas fa-shopping-cart me-2"></i> Orders
-        </a>
-        <a href="/admin/users" class="sidebar-link">
-            <i class="fas fa-users me-2"></i> Users
-        </a>
-        <a href="/admin/offers" class="sidebar-link">
-            <i class="fas fa-percent me-2"></i>Offers
-        </a>
-        <a href="/admin/coupons" class="sidebar-link">
-            <i class="fas fa-ticket-alt me-2"></i> Coupons
-        </a>
-        <a href="/admin/sales-report" class="sidebar-link">
-            <i class="fas fa-chart-line me-2"></i> Sales Report
-        </a>
-    </div>
-
-
+    <div class="admin-layout">
+        <!-- Include the sidebar partial -->
+        <%- include('./partials/sidebar') %>
+        
         <!-- Main Content -->
         <div class="main-content">
-            <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="page-title">Categories Management</h4>
+                <div class="user-dropdown">
+                    <div class="dropdown">
+                        <button class="btn dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="me-2">Admin</span>
+                            <i class="fas fa-user-circle fa-lg"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="/admin/profile"><i class="fas fa-user me-2"></i> Profile</a></li>
+                            <li><a class="dropdown-item" href="/admin/settings"><i class="fas fa-cog me-2"></i> Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/admin/logout"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="container-fluid p-0">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h1>Categories Management</h1>
+                    <h5>Manage Categories</h5>
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
                         <i class="fas fa-plus me-2"></i>Add New Category
                     </button>
@@ -309,7 +269,7 @@
     </div>
 
     <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
         // Add Category Form Submit
@@ -405,10 +365,11 @@
             }
         });
 
-        // Add this new function for toggling visibility
+        // Toggle visibility function
         async function toggleVisibility(id, currentVisibility) {
             try {
                 const action = currentVisibility ? 'hide' : 'show';
+
                 if (!confirm(`Are you sure you want to ${action} this category?`)) {
                     return;
                 }

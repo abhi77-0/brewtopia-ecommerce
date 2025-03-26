@@ -59,7 +59,7 @@ const OrderController = {
             console.log('Found Orders:', orders.length);
 
             res.render('admin/orders', {
-                title: 'Manage Orders',
+                title: 'Orders',
                 orders: orders,
                 totalOrders: totalOrders,
                 currentPage: page,
@@ -69,6 +69,7 @@ const OrderController = {
                 nextPage: page + 1,
                 prevPage: page - 1,
                 statusStages: statusStages,
+                path: '/admin/orders',
                 searchQuery: {
                     orderId: req.query.orderId || '',
                     customerName: req.query.customerName || ''
