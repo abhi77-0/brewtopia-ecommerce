@@ -495,7 +495,7 @@
                                                     <span class="product-variant"><%= item.variant %></span>
                                                 </td>
                                                 <td><span class="product-quantity"><%= item.quantity %></span></td>
-                                                <td class="product-subtotal">₹<%= order.total.toFixed(2) %></td>
+                                                <td class="product-subtotal">₹<%= item.finalPrice.toFixed(2) %></td>
                                                 <td>
                                                     <% if (item.returnStatus === 'pending') { %>
                                                         <div class="return-badge return-pending">

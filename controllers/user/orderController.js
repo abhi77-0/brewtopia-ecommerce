@@ -1031,13 +1031,23 @@ const orderController = {
             return res.status(500).json({ success: false, message: 'Server error' });
         }
     },
-    processReturnRefund: async (orderId, userId) => {
+    processReturnRefund: async (orderId, userId, itemId) => {
         try {
             const order = await Order.findById(orderId);
             if (!order) {
                 console.error('Order not found for refund processing');
                 return false;
             }
+
+            // Find the specific item in the order
+            const itemIndex = order.items.findIndex(item => item._id.toString() === itemId);
+            if (itemIndex === -1) {
+                console.error('Item not found in order');
+                return false;
+            }
+
+            // Get the item before processing
+            const returnedItem = order.items[itemIndex];
 
             // Find or create wallet
             let wallet = await Wallet.findOne({ userId });
@@ -1050,11 +1060,17 @@ const orderController = {
                 await User.findByIdAndUpdate(userId, { wallet: wallet._id });
             }
 
-            let refundAmount;
-                refundAmount = order.subtotal + order.gst + order.shippingFee - order.offerDiscount;
-
-            // Ensure refund amount is not negative
-            refundAmount = Math.max(0, Math.round(refundAmount));
+            // Calculate refund amount using the same logic as cancelOrder
+            const itemTotal = returnedItem.finalprice * returnedItem.quantity;
+            console.log(itemTotal)
+            const itemProportion = itemTotal / order.subtotal;
+            
+            // Calculate refund amount including proportional GST and shipping
+            const refundAmount = Math.round(
+                itemTotal + 
+                (order.gst * itemProportion) + 
+                (order.shippingFee * itemProportion)
+            );
 
             // Add refund transaction to wallet
             const newBalance = wallet.balance + refundAmount;
@@ -1062,7 +1078,7 @@ const orderController = {
                 userId,
                 amount: refundAmount,
                 type: 'credit',
-                description: `Refund for returned order #${order._id.toString().slice(-6).toUpperCase()}`,
+                description: `Refund for returned item from order #${order._id.toString().slice(-6).toUpperCase()}`,
                 orderId: order._id,
                 date: new Date(),
                 balance: newBalance
@@ -1070,6 +1086,51 @@ const orderController = {
 
             wallet.balance = newBalance;
             await wallet.save();
+
+            // Mark item as returned
+            order.items[itemIndex].status = 'Returned';
+
+            // Recalculate order totals
+            let subtotal = 0;
+            let offerDiscount = 0;
+
+            order.items.forEach(item => {
+                if (item && item.price && item.quantity && item.status !== 'Returned') {
+                    subtotal += (item.price * item.quantity);
+                    offerDiscount += (item.offerDiscount || 0);
+                }
+            });
+
+            // Recalculate coupon discount
+            let couponDiscount = 0;
+            if (order.couponDiscount > 0) {
+                const activeItems = order.items.filter(item => item.status !== 'Returned');
+                if (activeItems.length === 1) {
+                    couponDiscount = order.couponDiscount;
+                } else {
+                    const proportion = subtotal / order.subtotal;
+                    couponDiscount = Math.round(order.couponDiscount * proportion);
+                }
+            }
+
+            // Calculate shipping fee
+            const shippingFee = subtotal >= 1000 ? 0 : 40;
+
+            // Calculate GST (18% of subtotal)
+            const gst = Math.round(subtotal * 0.18);
+
+            // Calculate total
+            const total = subtotal + shippingFee + gst - offerDiscount - couponDiscount;
+
+            // Update order with new values
+            order.subtotal = subtotal;
+            order.offerDiscount = offerDiscount;
+            order.couponDiscount = couponDiscount;
+            order.shippingFee = shippingFee;
+            order.gst = gst;
+            order.total = total;
+
+            await order.save();
 
             console.log(`Return refund processed: Amount ${refundAmount} added to wallet for user ${userId}`);
             return true;
