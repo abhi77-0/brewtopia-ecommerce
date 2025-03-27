@@ -7,6 +7,8 @@ const fs = require('fs');
 const path = require('path');
 const Address = require('../../models/Address');
 const Wallet = require('../../models/walletModel');
+const Coupon = require('../../models/Coupon');
+const { updateCouponUsage } = require('../../utils/couponUtils');
 
 const orderController = {
     placeOrder: async (req, res) => {
@@ -267,8 +269,10 @@ const orderController = {
             // Clear cart after successful order
             await Cart.findOneAndDelete({ user: userId });
             
-            // Clear coupon from session
+            // Update coupon usage if a coupon was used
             if (req.session.coupon) {
+                await updateCouponUsage(userId, req.session.coupon);
+                // Clear coupon from session after successful usage
                 delete req.session.coupon;
             }
             

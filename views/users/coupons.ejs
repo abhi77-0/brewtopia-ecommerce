@@ -14,8 +14,17 @@
                 <% if (coupons && coupons.length > 0) { %>
                     <div class="row">
                         <% coupons.forEach(function(coupon) { %>
+                            <% 
+                            const userId = user && user._id ? user._id.toString() : '';
+                            const userUsageCount = coupon.usedBy ? coupon.usedBy.filter(usage => 
+                                usage.userId && usage.userId.toString() === userId
+                            ).length : 0;
+                            const hasReachedLimit = coupon.usageLimit && coupon.usedCount >= coupon.usageLimit;
+                            const hasReachedUserLimit = userUsageCount >= (coupon.perUserLimit || 1);
+                            const isDisabled = hasReachedLimit || hasReachedUserLimit;
+                            %>
                             <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up">
-                                <div class="coupon-card">
+                                <div class="coupon-card <%= isDisabled ? 'disabled-coupon' : '' %>">
                                     <div class="coupon-header">
                                         <div class="discount-badge">
                                             <% if (coupon.discountType === 'percentage') { %>
@@ -27,6 +36,12 @@
                                         <div class="coupon-title">
                                             <%= coupon.name %>
                                         </div>
+                                        <% if (hasReachedLimit || hasReachedUserLimit) { %>
+                                            <div class="usage-badge">
+                                                <i class="fas fa-lock"></i>
+                                                <%= hasReachedLimit ? 'Fully Redeemed' : 'Usage Limit Reached' %>
+                                            </div>
+                                        <% } %>
                                     </div>
                                     
                                     <div class="coupon-body">
@@ -69,11 +84,28 @@
                                                     %>
                                                     <%= expiryDate %>
                                                 </div>
+                                                
+                                                <div class="usage-info">
+                                                    <% if (coupon.usageLimit) { %>
+                                                        <div class="meta-item">
+                                                            <i class="fas fa-users me-1"></i> 
+                                                            Used: <%= coupon.usedCount || 0 %>/<%= coupon.usageLimit %>
+                                                        </div>
+                                                    <% } %>
+                                                    <div class="meta-item">
+                                                        <i class="fas fa-user me-1"></i> 
+                                                        Your Usage: <%= userUsageCount %>/<%= coupon.perUserLimit || 1 %>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         
-                                        <button class="btn btn-primary w-100 mt-3" onclick="applyCoupon('<%= coupon.code %>')">
-                                            Apply Coupon
+                                        <button class="btn btn-primary w-100 mt-3" 
+                                                onclick="applyCoupon('<%= coupon.code %>')"
+                                                <%= isDisabled ? 'disabled' : '' %>>
+                                            <%= isDisabled ? 
+                                                (hasReachedLimit ? 'Fully Redeemed' : 'Usage Limit Reached') : 
+                                                'Apply Coupon' %>
                                         </button>
                                     </div>
                                 </div>
@@ -220,6 +252,34 @@
     
     .no-coupons-icon {
         color: #ddd;
+    }
+    
+    .disabled-coupon {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+    
+    .usage-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+    
+    .usage-info {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px dashed #dee2e6;
+    }
+    
+    .btn:disabled {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        cursor: not-allowed;
     }
 </style>
 

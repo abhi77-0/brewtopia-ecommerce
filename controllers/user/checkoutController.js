@@ -7,6 +7,7 @@ const Coupon = require('../../models/Coupon');
 const Product = require('../../models/Product');
 const Address = require('../../models/Address');
 const Wallet = require('../../models/walletModel');
+const { updateCouponUsage } = require('../../utils/couponUtils');
 
 // Initialize Razorpay with error handling
 let razorpay;
@@ -581,16 +582,17 @@ exports.verifyPayment = async (req, res) => {
         
         await order.save();
         
+        // Update coupon usage if a coupon was used
+        if (req.session.coupon) {
+            await updateCouponUsage(userId, req.session.coupon);
+            delete req.session.coupon;
+        }
+        
         // Clear the cart
         await Cart.findOneAndUpdate(
             { user: userId },
             { $set: { items: [] } }
         );
-        
-        // Clear coupon from session
-        if (req.session.coupon) {
-            delete req.session.coupon;
-        }
         
         res.status(200).json({
             success: true,
@@ -599,7 +601,7 @@ exports.verifyPayment = async (req, res) => {
         });
         
     } catch (error) {
-        console.warn('Payment verification error:', error);
+        console.error('Payment verification error:', error);
         res.status(500).json({
             success: false,
             message: 'Payment verification failed',

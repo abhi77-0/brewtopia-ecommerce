@@ -1247,16 +1247,27 @@ async function fetchAvailableCoupons() {
         
         if (data.coupons && data.coupons.length > 0) {
             let couponsHTML = '';
-            const cartSubtotal = <%= subtotal %>; // Get cart subtotal from EJS
+            const cartSubtotal = <%= subtotal %>; 
             
             data.coupons.forEach(coupon => {
                 const isApplicable = !coupon.minimumPurchase || cartSubtotal >= coupon.minimumPurchase;
+                const hasReachedLimit = coupon.usedCount >= coupon.usageLimit;
+                const userUsageCount = coupon.usedBy.filter(usage => 
+                    usage.userId.toString() === '<%= user._id.toString() %>'
+                ).length;
+                const hasReachedUserLimit = userUsageCount >= coupon.perUserLimit;
+                
                 const discountText = coupon.discountType === 'percentage' 
                     ? `${coupon.discountAmount}% OFF` 
                     : `₹${coupon.discountAmount} OFF`;
+
+                const isDisabled = !isApplicable || hasReachedLimit || hasReachedUserLimit;
+                const disabledReason = !isApplicable ? 'Minimum purchase not met' :
+                                     hasReachedLimit ? 'Coupon fully redeemed' :
+                                     hasReachedUserLimit ? 'Usage limit reached' : '';
                 
                 couponsHTML += `
-                    <div class="coupon-card mb-3 ${!isApplicable ? 'inactive-coupon' : ''}">
+                    <div class="coupon-card mb-3 ${isDisabled ? 'inactive-coupon' : ''}">
                         <div class="coupon-content">
                             <div class="coupon-header">
                                 <h6 class="coupon-code">${coupon.code}</h6>
@@ -1270,17 +1281,22 @@ async function fetchAvailableCoupons() {
                                         Min purchase: ₹${coupon.minimumPurchase}
                                     </span>` : 
                                     ''}
+                                ${hasReachedUserLimit ? 
+                                    `<span class="text-danger">
+                                        <i class="fas fa-info-circle"></i> You've used this coupon ${userUsageCount}/${coupon.perUserLimit} times
+                                    </span>` : 
+                                    ''}
                             </div>
-                            ${!isApplicable ? 
+                            ${isDisabled ? 
                                 `<div class="invalid-coupon-message text-danger mt-2">
-                                    Add ₹${coupon.minimumPurchase - cartSubtotal} more to apply this coupon
+                                    <i class="fas fa-exclamation-circle"></i> ${disabledReason}
                                 </div>` : 
                                 ''}
                         </div>
-                        <button class="btn btn-sm ${isApplicable ? 'btn-primary' : 'btn-secondary'} apply-coupon-btn" 
+                        <button class="btn btn-sm ${!isDisabled ? 'btn-primary' : 'btn-secondary'} apply-coupon-btn" 
                                 onclick="applyCoupon('${coupon.code}')"
-                                ${!isApplicable ? 'disabled' : ''}>
-                            ${isApplicable ? 'Apply' : 'Not Applicable'}
+                                ${isDisabled ? 'disabled' : ''}>
+                            ${!isDisabled ? 'Apply' : 'Not Available'}
                         </button>
                     </div>
                 `;
