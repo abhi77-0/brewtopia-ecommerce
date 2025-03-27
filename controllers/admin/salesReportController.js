@@ -1,4 +1,5 @@
 const Order = require('../../models/Order');
+const User = require('../../models/userModel');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 const fs = require('fs');
@@ -8,10 +9,25 @@ const salesReportController = {
     // Render sales report page with filters
     getSalesReportPage: async (req, res) => {
         try {
+            // Get total sales for all time
+            const orders = await Order.find({
+                status: { $nin: ['Cancelled', 'Returned'] }
+            });
+
+            // Calculate summary statistics
+            const totalSales = orders.reduce((sum, order) => sum + (order.total || 0), 0);
+            const totalOrders = orders.length;
+            
+            // Get total customers
+            const totalCustomers = await User.countDocuments({ role: 'user' });
+
             res.render('admin/sales/sales-report', {
                 title: 'Sales Report',
                 currentPage: 'sales-report',
-                path: '/admin/sales-report'
+                path: '/admin/sales-report',
+                totalSales,
+                totalOrders,
+                totalCustomers
             });
         } catch (error) {
             console.error('Error loading sales report page:', error);

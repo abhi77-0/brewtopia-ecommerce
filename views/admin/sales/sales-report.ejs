@@ -8,70 +8,189 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #5D4037;
-            --secondary-color: #8D6E63;
-            --accent-color: #FF9800;
-            --light-bg: #f8f9fa;
-            --dark-text: #343a40;
-            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            --sidebar-width: 260px;
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --light: #f1f5f9;
+            --dark: #0f172a;
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            color: var(--dark-text);
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
         }
-        
-        /* Admin layout */
+
         .admin-layout {
             display: flex;
             min-height: 100vh;
         }
-        
-        /* Main Content Styles */
+
         .main-content {
             flex: 1;
-            margin-left: var(--sidebar-width);
+            margin-left: 260px;
             padding: 2rem;
-            transition: all 0.3s;
-        }
-        
-        .card {
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
         }
 
-        .card-header {
-            background-color: #f8f9fa;
-            border-bottom: 1px solid rgba(0,0,0,0.125);
-            padding: 1rem 1.25rem;
+        /* Header Section */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
         }
 
-        .card-title {
-            margin-bottom: 0;
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin: 0;
+        }
+
+        .breadcrumb {
+            background: transparent;
+            margin: 0;
+            padding: 0;
+        }
+
+        .breadcrumb-item a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        /* Card Styles */
+        .report-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+            border: none;
+        }
+
+        .report-card-header {
+            background: white;
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            border-radius: 1rem 1rem 0 0;
+        }
+
+        .report-card-title {
             font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin: 0;
         }
 
-        .card-body {
+        .report-card-body {
             padding: 1.5rem;
         }
 
-        .form-control, .btn {
-            border-radius: 5px;
+        /* Form Styles */
+        .form-label {
+            font-weight: 500;
+            color: var(--secondary);
+            margin-bottom: 0.5rem;
         }
 
-        .btn-primary {
-            background-color: #FF9800;
-            border-color: #FF9800;
+        .form-select, .form-control {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+            transition: all 0.2s;
         }
 
-        .btn-primary:hover {
-            background-color: #e68a00;
-            border-color: #e68a00;
+        .form-select:focus, .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Button Styles */
+        .btn-generate {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-generate:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        .btn-generate i {
+            font-size: 1.1rem;
+        }
+
+        /* Stats Cards */
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            background: var(--light);
+            color: var(--primary);
+        }
+
+        .stat-title {
+            color: var(--secondary);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .stats-container {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -79,64 +198,87 @@
     <div class="admin-layout">
         <%- include('../partials/sidebar') %>
         
-        <!-- Main Content -->
         <div class="main-content">
-            <div class="container-fluid">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h1 class="mb-0">Sales Report</h1>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Sales Report</li>
-                        </ol>
-                    </nav>
+            <div class="page-header">
+                <h1 class="page-title">Sales Report</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+                        <li class="breadcrumb-item active">Sales Report</li>
+                    </ol>
+                </nav>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-title">Total Sales</div>
+                    <div class="stat-value">₹<%= totalSales || 0 %></div>
                 </div>
 
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Generate Sales Report</h3>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-shopping-cart"></i>
                     </div>
+                    <div class="stat-title">Total Orders</div>
+                    <div class="stat-value"><%= totalOrders || 0 %></div>
+                </div>
 
-                    <div class="card-body">
-                        <form action="/admin/sales-report/generate" method="POST">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="form-group mb-3">
-                                        <label class="form-label">Report Period</label>
-                                        <select class="form-select" name="period" id="reportPeriod">
-                                            <option value="daily">Daily</option>
-                                            <option value="weekly">Weekly</option>
-                                            <option value="monthly">Monthly</option>
-                                            <option value="yearly">Yearly</option>
-                                            <option value="custom">Custom Date Range</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4 custom-date-range" style="display: none;">
-                                    <div class="form-group mb-3">
-                                        <label class="form-label">Start Date</label>
-                                        <input type="date" class="form-control" name="startDate" id="startDate">
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4 custom-date-range" style="display: none;">
-                                    <div class="form-group mb-3">
-                                        <label class="form-label">End Date</label>
-                                        <input type="date" class="form-control" name="endDate" id="endDate">
-                                    </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-title">Total Customers</div>
+                    <div class="stat-value"><%= totalCustomers || 0 %></div>
+                </div>
+            </div>
+
+            <div class="report-card">
+                <div class="report-card-header">
+                    <h3 class="report-card-title">Generate Sales Report</h3>
+                </div>
+
+                <div class="report-card-body">
+                    <form action="/admin/sales-report/generate" method="POST">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label class="form-label">Report Period</label>
+                                    <select class="form-select" name="period" id="reportPeriod">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="yearly">Yearly</option>
+                                        <option value="custom">Custom Date Range</option>
+                                    </select>
                                 </div>
                             </div>
                             
-                            <div class="row mt-3">
-                                <div class="col-md-12">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-chart-line me-2"></i> Generate Report
-                                    </button>
+                            <div class="col-md-4 custom-date-range" style="display: none;">
+                                <div class="form-group mb-3">
+                                    <label class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" name="startDate" id="startDate">
                                 </div>
                             </div>
-                        </form>
-                    </div>
+                            
+                            <div class="col-md-4 custom-date-range" style="display: none;">
+                                <div class="form-group mb-3">
+                                    <label class="form-label">End Date</label>
+                                    <input type="date" class="form-control" name="endDate" id="endDate">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <button type="submit" class="btn-generate">
+                                <i class="fas fa-chart-line"></i>
+                                Generate Report
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

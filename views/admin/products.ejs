@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
             --primary-color: #5D4037;
@@ -523,54 +524,72 @@
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             
-            // Show loading state
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            submitBtn.disabled = true;
-            
             try {
+                // Show loading state with SweetAlert2
+                Swal.fire({
+                    title: 'Updating Product...',
+                    text: 'Please wait',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                submitBtn.disabled = true;
+                
                 const formData = new FormData(form);
                 const productId = formData.get('productId');
                 
                 // Prepare variants data
                 const variants = {
                     '500ml': {
-                        price: formData.get('price500ml'),
-                        stock: formData.get('stock500ml')
+                        price: parseFloat(formData.get('price500ml')) || 0,
+                        stock: parseInt(formData.get('stock500ml')) || 0
                     },
                     '650ml': {
-                        price: formData.get('price650ml'),
-                        stock: formData.get('stock650ml')
+                        price: parseFloat(formData.get('price650ml')) || 0,
+                        stock: parseInt(formData.get('stock650ml')) || 0
                     }
                 };
                 
-                // Add variants to form data
-                formData.append('variants', JSON.stringify(variants));
+                formData.set('variants', JSON.stringify(variants));
                 
                 const response = await fetch(`/admin/products/edit/${productId}`, {
                     method: 'POST',
                     body: formData
                 });
-                
+
                 const data = await response.json();
-                
-                if (!response.ok) {
+
+                if (response.ok && data.success) {
+                    // Success message
+                    await Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: data.message || 'Product updated successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                    window.location.reload();
+                } else {
                     throw new Error(data.error || 'Failed to update product');
                 }
-
-                alert('Product updated successfully!');
-
-                // Close modal and refresh page
+                
+            } catch (error) {
+                console.error('Error updating product:', error);
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: error.message || 'Failed to update product'
+                });
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
                 const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
                 if (modal) {
                     modal.hide();
                 }
-                window.location.reload();
-            } catch (error) {
-                console.error('Error updating product:', error);
-                alert('Error updating product: ' + error.message);
-                // Reset button state
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
             }
         });
 
@@ -597,8 +616,7 @@
         // Add Product Form Submit
         document.getElementById('addProductForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            console.log('Add product form submission started');
-
+            
             const form = this;
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
@@ -616,7 +634,6 @@
                     }
                 };
 
-                // Create FormData and append all form fields
                 const formData = new FormData(form);
                 formData.append('variants', JSON.stringify(variants));
 
@@ -624,34 +641,39 @@
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
                 submitBtn.disabled = true;
 
-                console.log('Sending request to add product');
                 const response = await fetch('/admin/products/add', {
                     method: 'POST',
                     body: formData
                 });
 
-                const data = await response.json();
-                console.log('Response received:', data);
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to add product');
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Product added successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    throw new Error('Failed to add product');
                 }
 
-                // Show success message
-                alert('Product added successfully!');
-
-                // Close modal and refresh page
+            } catch (error) {
+                console.error('Error adding product:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Failed to add product'
+                });
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
                 const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
                 if (modal) {
                     modal.hide();
                 }
-                window.location.reload();
-            } catch (error) {
-                console.error('Error adding product:', error);
-                alert('Error adding product: ' + error.message);
-                // Reset button state
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
             }
         });
     </script>

@@ -29,7 +29,7 @@ router.get('/dashboard', dashboardController.getDashboard);
 router.get('/products', isAdmin, adminController.getAdminProducts);
 router.get('/products/:productId', isAdmin, adminController.getAdminProductDetail);
 router.post('/products/add', isAdmin, productImageUpload, adminController.addProduct);
-router.put('/products/:productId', isAdmin, productImageUpload, adminController.editProduct);
+router.post('/products/edit/:productId', isAdmin, productImageUpload, adminController.editProduct);
 router.delete('/products/:productId', isAdmin, adminController.deleteProduct);
 router.put('/products/:id/visibility', isAdmin, adminController.toggleProductVisibility);
 

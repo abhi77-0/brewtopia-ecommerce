@@ -267,21 +267,30 @@ const editProduct = async (req, res) => {
     try {
         const { productId } = req.params;
         const { name, description, category, brand } = req.body;
-        const variants = JSON.parse(req.body.variants);
-
+        
+        // Find product
         const product = await Product.findById(productId);
         if (!product || product.isDeleted) {
             return res.status(404).json({ error: 'Product not found' });
         }
 
+        // Parse variants
+        let variants;
+        try {
+            variants = JSON.parse(req.body.variants);
+        } catch (e) {
+            console.error('Variants parsing error:', e);
+            return res.status(400).json({ error: 'Invalid variants data' });
+        }
+
         // Update basic fields
-        product.name = name;
-        product.description = description;
-        product.category = category;
-        product.brand = brand;
+        product.name = name || product.name;
+        product.description = description || product.description;
+        product.category = category || product.category;
+        product.brand = brand || product.brand;
         product.variants = variants;
 
-        // Upload new images if provided
+        // Handle image uploads
         if (req.files) {
             const newImages = {};
             for (let i = 1; i <= 3; i++) {
@@ -296,26 +305,26 @@ const editProduct = async (req, res) => {
                 }
             }
 
-            // Only update images that were uploaded
+            // Update images
             product.images = {
                 ...product.images,
                 ...newImages
             };
         }
 
-        console.log('Updating product with data:', {
-            name,
-            description,
-            category,
-            brand,
-            variants
+        await product.save();
+        return res.status(200).json({ 
+            success: true,
+            message: 'Product updated successfully',
+            product: product
         });
 
-        await product.save();
-        res.json({ message: 'Product updated successfully', product });
     } catch (error) {
-        console.error('Error updating product:', error);
-        res.status(500).json({ error: error.message || 'Error updating product' });
+        console.error('Error in editProduct:', error);
+        return res.status(500).json({ 
+            success: false,
+            error: 'Failed to update product: ' + error.message 
+        });
     }
 };
 

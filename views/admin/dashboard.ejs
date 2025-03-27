@@ -299,6 +299,108 @@
                 padding: 1rem;
             }
         }
+
+        .graph-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+        }
+
+        .graph-wrapper {
+            position: relative;
+            height: 400px;
+            margin-top: 2rem;
+            padding: 20px;
+        }
+
+        .graph {
+            display: flex;
+            height: 100%;
+            position: relative;
+            padding-left: 60px; /* Space for y-axis labels */
+        }
+
+        .y-axis {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding-right: 10px;
+        }
+
+        .y-label {
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .bars-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+            height: 100%;
+            width: 100%;
+            padding-bottom: 30px; /* Space for x-axis labels */
+            border-left: 2px solid #e2e8f0;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .bar-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .bar {
+            width: 40px;
+            background: linear-gradient(to top, var(--primary-color), var(--secondary-color));
+            border-radius: 4px 4px 0 0;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .bar:hover {
+            opacity: 0.8;
+        }
+
+        .bar:hover::after {
+            content: attr(data-value) " (" attr(data-date) ")";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            margin-bottom: 4px;
+            z-index: 1;
+        }
+
+        .x-label {
+            position: absolute;
+            bottom: -25px;
+            font-size: 12px;
+            color: #64748b;
+            transform: rotate(-45deg);
+            white-space: nowrap;
+        }
+
+        .no-data {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -521,6 +623,45 @@
                             <% }); %>
                         <% } else { %>
                             <p class="text-muted">No brand data available</p>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Replace the existing graph container with this simpler version -->
+            <div class="graph-container">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">Overall Sales Overview</h4>
+                </div>
+
+                <div class="graph-wrapper">
+                    <div class="graph">
+                        <% if (salesData && salesData.length > 0) { %>
+                            <% 
+                                const maxSale = Math.max(...salesData.map(item => item.sales));
+                            %>
+                            <div class="y-axis">
+                                <% for(let i = 5; i >= 0; i--) { %>
+                                    <div class="y-label">₹<%= ((maxSale * i) / 5).toFixed(0) %></div>
+                                <% } %>
+                            </div>
+                            <div class="bars-container">
+                                <% salesData.forEach((item, index) => { %>
+                                    <div class="bar-item">
+                                        <div class="bar" 
+                                            style="height: <%= (item.sales / maxSale * 100) %>%"
+                                            data-value="₹<%= item.sales.toLocaleString() %>"
+                                            data-date="<%= item.date %>">
+                                        </div>
+                                        <div class="x-label"><%= new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) %></div>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        <% } else { %>
+                            <div class="no-data">
+                                <i class="fas fa-chart-bar fa-3x text-muted mb-2"></i>
+                                <p class="text-muted">No sales data available</p>
+                            </div>
                         <% } %>
                     </div>
                 </div>
