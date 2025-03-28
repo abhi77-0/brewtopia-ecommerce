@@ -94,20 +94,23 @@ exports.getAllProducts = async (req, res) => {
         const limit = parseInt(req.query.limit) || 6;
         const skip = (page - 1) * limit;
         
+        // First get all visible categories
+        const visibleCategories = await Category.find({ isVisible: true });
+        const visibleCategoryIds = visibleCategories.map(cat => cat._id);
+        
         // Build query - only show visible products
         const query = { 
-            isVisible: true
+            isVisible: true,
+            category: { $in: visibleCategoryIds } // Only include products from visible categories
         };
         
         // If category filter is applied, check if the category is visible
         if (categoryId) {
-            // First check if the category is visible
             const category = await Category.findOne({ 
                 _id: categoryId,
                 isVisible: true 
             });
             
-            // Only apply category filter if the category exists and is visible
             if (category) {
                 query.category = categoryId;
             } else {
@@ -115,7 +118,7 @@ exports.getAllProducts = async (req, res) => {
                 return res.render('shop/products', {
                     title: 'Our Products',
                     products: [],
-                    categories: [],
+                    categories: visibleCategories,
                     selectedCategory: '',
                     selectedBrand: '',
                     minPrice: 0,
@@ -175,26 +178,15 @@ exports.getAllProducts = async (req, res) => {
 
         // Get all visible products to extract unique brands
         const allProducts = await Product.find({ 
-            isVisible: true
-        }).populate({
-            path: 'category',
-            match: { isVisible: true } // Only include products with visible categories
+            isVisible: true,
+            category: { $in: visibleCategoryIds }
         });
         
-        // Filter out products whose category is null (category not visible)
-        const filteredProducts = allProducts.filter(product => product.category !== null);
-        
-        const brands = [...new Set(filteredProducts.map(product => product.brand).filter(Boolean))];
+        const brands = [...new Set(allProducts.map(product => product.brand).filter(Boolean))];
 
-        // Get total count for pagination (only count products with visible categories)
-        const productsWithVisibleCategories = await Product.find(query)
-            .populate({
-                path: 'category',
-                match: { isVisible: true }
-            });
-        
-        const filteredProductsCount = productsWithVisibleCategories.filter(p => p.category !== null).length;
-        const totalPages = Math.ceil(filteredProductsCount / limit) || 1;
+        // Get total count for pagination
+        const totalProducts = await Product.countDocuments(query);
+        const totalPages = Math.ceil(totalProducts / limit) || 1;
 
         // Fetch filtered products with pagination
         const populatedProducts = await Product.find(query)
@@ -227,19 +219,11 @@ exports.getAllProducts = async (req, res) => {
                 finalPrice: parseFloat(offerInfo.finalPrice || 0)
             };
 
-            // Log the offer information
-            console.log(`Product ${product.name} offer info:`, {
-                bestOffer: productWithOffer.bestOffer,
-                discountAmount: productWithOffer.discountAmount,
-                discountPercentage: productWithOffer.discountPercentage,
-                finalPrice: productWithOffer.finalPrice
-            });
-
             return productWithOffer;
         });
 
         // Get all visible categories for the filter sidebar
-        const categories = await Category.find({ isVisible: true });
+        const categories = visibleCategories;
 
         res.render('shop/products', {
             title: 'Our Products',
@@ -254,7 +238,7 @@ exports.getAllProducts = async (req, res) => {
             pagination: {
                 page,
                 limit,
-                totalProducts: filteredProductsCount,
+                totalProducts,
                 totalPages,
                 hasNextPage: page < totalPages,
                 hasPrevPage: page > 1,
