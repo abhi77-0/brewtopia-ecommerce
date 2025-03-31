@@ -123,6 +123,42 @@ const orderSchema = new mongoose.Schema({
     gst: {
         type: Number,
         default: 0
+    },
+    
+    // Fields for tracking refunds in admin wallet
+    refundProcessed: {
+        type: Boolean,
+        default: false
+    },
+    refundAmount: {
+        type: Number
+    },
+    refundDate: {
+        type: Date
+    },
+    
+    // Fields for tracking partial refunds (when removing items)
+    partialRefundProcessed: {
+        type: Boolean,
+        default: false
+    },
+    partialRefundAmount: {
+        type: Number
+    },
+    partialRefundDate: {
+        type: Date
+    },
+    
+    // Fields for tracking return refunds
+    returnRefundProcessed: {
+        type: Boolean,
+        default: false
+    },
+    returnRefundAmount: {
+        type: Number
+    },
+    returnRefundDate: {
+        type: Date
     }
 }, {
     timestamps: true

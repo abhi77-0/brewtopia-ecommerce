@@ -12,6 +12,11 @@ const offerController = require('../controllers/admin/offerController');
 const salesReportController = require('../controllers/admin/salesReportController');
 const dashboardController = require('../controllers/admin/dashboardController');
 
+
+
+
+
+
 // Import middleware and configurations
 const { isAdmin } = require('../middlewares/adminAuth');
 const { productImageUpload } = require('../config/multer');
@@ -98,6 +103,15 @@ router.post('/generate', isAdmin, salesReportController.generateSalesReport);
 // Download reports
 router.get('/download/pdf', isAdmin, salesReportController.downloadPDF);
 router.get('/download/excel', isAdmin, salesReportController.downloadExcel);
+
+
+
+// Wallet Management
+router.get('/wallet-management', isAdmin, dashboardController.getWalletManagement);
+
+
+
+
 
 module.exports = router;
 

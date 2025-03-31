@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Brewtopia Admin</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #5D4037;
+            --secondary-color: #8D6E63;
+            --accent-color: #FF9800;
+            --light-bg: #f8f9fa;
+            --dark-text: #343a40;
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --sidebar-width: 260px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: var(--dark-text);
+        }
+        
+        /* Sidebar Styles */
+        .admin-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(to bottom, var(--primary-color), var(--secondary-color));
+            color: white;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        
+        .page-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin: 0;
+        }
+        
+        /* Card Styles */
+        .content-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 2rem;
+        }
+        
+        /* Table Styles */
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table th {
+            font-weight: 600;
+            color: var(--primary-color);
+            border-top: none;
+        }
+        
+        .table td {
+            vertical-align: middle;
+        }
+        
+        /* Pagination Styles */
+        .pagination {
+            margin-bottom: 0;
+        }
+        
+        .page-link {
+            color: var(--primary-color);
+            border-radius: 4px;
+            margin: 0 3px;
+        }
+        
+        .page-item.active .page-link {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        /* Filter Styles */
+        .filter-form {
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Stats Card */
+        .stats-card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 70px;
+                text-align: center;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <%- include('./partials/sidebar') %>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Payment Transactions</h1>
+            </div>
+            
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="alert alert-danger">
+                    <%= error %>
+                </div>
+            <% } %>
+            
+            <!-- Stats Overview -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="stats-card text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-wallet fa-2x text-primary"></i>
+                        </div>
+                        <h3>₹<%= currentBalance.toLocaleString() %></h3>
+                        <p class="text-muted mb-0">Current Balance</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-arrow-up fa-2x text-success"></i>
+                        </div>
+                        <h3>₹<%= totalCredits.toLocaleString() %></h3>
+                        <p class="text-muted mb-0">Total Credits</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-arrow-down fa-2x text-danger"></i>
+                        </div>
+                        <h3>₹<%= totalDebits.toLocaleString() %></h3>
+                        <p class="text-muted mb-0">Total Refunds</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stats-card text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-chart-line fa-2x text-info"></i>
+                        </div>
+                        <h3>₹<%= netRevenue.toLocaleString() %></h3>
+                        <p class="text-muted mb-0">Net Revenue</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filter Form -->
+            <div class="filter-form">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="searchUser" class="form-label">Search User</label>
+                        <input type="text" class="form-control" id="searchUser" name="searchUser" 
+                               placeholder="Name or Email" value="<%= filters.searchUser %>">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="transactionType" class="form-label">Transaction Type</label>
+                        <select class="form-select" id="transactionType" name="transactionType">
+                            <option value="" <%= !filters.transactionType ? 'selected' : '' %>>All Types</option>
+                            <option value="credit" <%= filters.transactionType === 'credit' ? 'selected' : '' %>>Credit</option>
+                            <option value="debit" <%= filters.transactionType === 'debit' ? 'selected' : '' %>>Debit</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="dateFrom" class="form-label">Date From</label>
+                        <input type="date" class="form-control" id="dateFrom" name="dateFrom" 
+                               value="<%= filters.dateFrom ? filters.dateFrom.toISOString().split('T')[0] : '' %>">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="dateTo" class="form-label">Date To</label>
+                        <input type="date" class="form-control" id="dateTo" name="dateTo"
+                               value="<%= filters.dateTo ? filters.dateTo.toISOString().split('T')[0] : '' %>">
+                    </div>
+                    <div class="col-12 d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                        <a href="/admin/wallet-management" class="btn btn-outline-secondary">Reset</a>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Transactions Table -->
+            <div class="content-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="mb-0">Payment Transactions</h4>
+                    <span class="badge bg-primary">Total: <%= totalTransactions %></span>
+                </div>
+                
+                <% if (transactions && transactions.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Transaction ID</th>
+                                    <th>Date</th>
+                                    <th>User</th>
+                                    <th>Type</th>
+                                    <th>Payment Method</th>
+                                    <th>Amount</th>
+                                    <th>Balance After</th>
+                                    <th>Order</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% transactions.forEach(transaction => { %>
+                                    <tr>
+                                        <td><small class="text-muted"><%= transaction._id.toString().slice(-8).toUpperCase() %></small></td>
+                                        <td><%= new Date(transaction.date).toLocaleDateString('en-US', { 
+                                            day: 'numeric', 
+                                            month: 'short', 
+                                            year: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        }) %></td>
+                                        <td>
+                                            <div><%= transaction.userName || 'Unknown User' %></div>
+                                            <small class="text-muted"><%= transaction.userEmail %></small>
+                                        </td>
+                                        <td>
+                                            <% if (transaction.type === 'credit') { %>
+                                                <span class="badge bg-success">Credit</span>
+                                            <% } else { %>
+                                                <span class="badge bg-danger">Debit</span>
+                                            <% } %>
+                                        </td>
+                                        <td>
+                                            <% if (transaction.paymentMethod === 'razorpay') { %>
+                                                <span class="badge bg-info">Razorpay</span>
+                                            <% } else if (transaction.paymentMethod === 'wallet') { %>
+                                                <span class="badge bg-warning">Wallet</span>
+                                            <% } else if (transaction.paymentMethod === 'refund') { %>
+                                                <span class="badge bg-danger">Refund</span>
+                                            <% } else { %>
+                                                <span class="badge bg-secondary"><%= transaction.paymentMethod %></span>
+                                            <% } %>
+                                        </td>
+                                        <td class="<%= transaction.type === 'credit' ? 'text-success' : 'text-danger' %> fw-bold">
+                                            <%= transaction.type === 'credit' ? '+' : '-' %>₹<%= transaction.amount.toLocaleString() %>
+                                        </td>
+                                        <td>₹<%= transaction.balance.toLocaleString() %></td>
+                                        <td>
+                                            <a href="/admin/orders/<%= transaction.orderId %>" class="btn btn-sm btn-outline-secondary">
+                                                <%= transaction.orderId.toString().slice(-6).toUpperCase() %>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <% if (totalPages > 1) { %>
+                        <div class="d-flex justify-content-center mt-4">
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination">
+                                    <% if (hasPrevPage) { %>
+                                        <li class="page-item">
+                                            <a class="page-link" href="/admin/wallet-management?page=<%= prevPage %><%= 
+                                                (filters.searchUser ? '&searchUser=' + filters.searchUser : '') + 
+                                                (filters.transactionType ? '&transactionType=' + filters.transactionType : '') +
+                                                (filters.dateFrom ? '&dateFrom=' + filters.dateFrom.toISOString().split('T')[0] : '') +
+                                                (filters.dateTo ? '&dateTo=' + filters.dateTo.toISOString().split('T')[0] : '')
+                                            %>" aria-label="Previous">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        </li>
+                                    <% } %>
+                                    
+                                    <% for (let i = 1; i <= totalPages; i++) { %>
+                                        <li class="page-item <%= i === currentPage ? 'active' : '' %>">
+                                            <a class="page-link" href="/admin/wallet-management?page=<%= i %><%= 
+                                                (filters.searchUser ? '&searchUser=' + filters.searchUser : '') + 
+                                                (filters.transactionType ? '&transactionType=' + filters.transactionType : '') +
+                                                (filters.dateFrom ? '&dateFrom=' + filters.dateFrom.toISOString().split('T')[0] : '') +
+                                                (filters.dateTo ? '&dateTo=' + filters.dateTo.toISOString().split('T')[0] : '')
+                                            %>"><%= i %></a>
+                                        </li>
+                                    <% } %>
+                                    
+                                    <% if (hasNextPage) { %>
+                                        <li class="page-item">
+                                            <a class="page-link" href="/admin/wallet-management?page=<%= nextPage %><%= 
+                                                (filters.searchUser ? '&searchUser=' + filters.searchUser : '') + 
+                                                (filters.transactionType ? '&transactionType=' + filters.transactionType : '') +
+                                                (filters.dateFrom ? '&dateFrom=' + filters.dateFrom.toISOString().split('T')[0] : '') +
+                                                (filters.dateTo ? '&dateTo=' + filters.dateTo.toISOString().split('T')[0] : '')
+                                            %>" aria-label="Next">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        </li>
+                                    <% } %>
+                                </ul>
+                            </nav>
+                        </div>
+                    <% } %>
+                <% } else { %>
+                    <div class="text-center py-5">
+                        <i class="fas fa-wallet fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No payment transactions found</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

@@ -527,6 +527,11 @@ const orderController = {
                 // Save wallet changes
                 await wallet.save();
                 console.log(`Refund processed: ${refundAmount} added to wallet for user ${userId}`);
+                
+                // Mark the order as having a refund processed for admin tracking
+                order.refundProcessed = true;
+                order.refundAmount = refundAmount;
+                order.refundDate = new Date();
             }
 
             // Update the order status instead of deleting it
@@ -971,6 +976,11 @@ const orderController = {
                     
                     wallet.balance = newBalance;
                     await wallet.save();
+                    
+                    // Mark the order as having a partial refund processed for admin tracking
+                    order.partialRefundProcessed = true;
+                    order.partialRefundAmount = (order.partialRefundAmount || 0) + itemFinalPrice;
+                    order.partialRefundDate = new Date();
                 } catch (refundError) {
                     console.error('Error processing refund:', refundError);
                 }
@@ -1101,6 +1111,11 @@ const orderController = {
 
             // Mark item as returned
             order.items[itemIndex].status = 'Returned';
+            
+            // Mark the order as having a return refund processed for admin tracking
+            order.returnRefundProcessed = true;
+            order.returnRefundAmount = (order.returnRefundAmount || 0) + refundAmount;
+            order.returnRefundDate = new Date();
 
             // Recalculate order totals
             let subtotal = 0;
