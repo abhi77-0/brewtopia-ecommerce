@@ -845,6 +845,21 @@ function proceedToPayment() {
 }
 
 function placeOrder(addressId, paymentMethod) {
+    // Get the total amount
+    const totalElement = document.getElementById('total');
+    const totalAmount = parseFloat(totalElement.textContent.replace('₹', '').trim());
+    
+    // Validate COD restriction
+    if (paymentMethod === 'cod' && totalAmount >= 1000) {
+        Swal.fire({
+            title: 'Payment Method Not Available',
+            text: 'Cash on Delivery is not available for orders ₹1000 or above. Please choose another payment method.',
+            icon: 'warning',
+            confirmButtonColor: '#FF9800'
+        });
+        return;
+    }
+    
     // Show loading state
     Swal.fire({
         title: 'Processing Order',

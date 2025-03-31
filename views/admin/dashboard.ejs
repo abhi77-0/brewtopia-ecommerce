@@ -412,18 +412,6 @@
         <div class="main-content">
             <div class="page-header">
                 <h1 class="page-title">Dashboard</h1>
-                <div class="user-dropdown dropdown">
-                    <button class="btn btn-light dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="https://ui-avatars.com/api/?name=Admin&background=5D4037&color=fff" alt="Admin" class="me-2">
-                        <span>Admin</span>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><a class="dropdown-item" href="/admin/profile"><i class="fas fa-user-circle me-2"></i> Profile</a></li>
-                        <li><a class="dropdown-item" href="/admin/settings"><i class="fas fa-cog me-2"></i> Settings</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/admin/logout"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
-                    </ul>
-                </div>
             </div>
             
             <% if (typeof error !== 'undefined' && error) { %>
@@ -477,11 +465,6 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4 class="mb-0">Sales Overview</h4>
                     <div class="d-flex gap-2">
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-sm btn-outline-primary active" data-chart-type="bar">Bar</button>
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-chart-type="line">Line</button>
-                            <button type="button" class="btn btn-sm btn-outline-primary" data-chart-type="area">Area</button>
-                        </div>
                         <form id="periodForm" class="d-flex">
                             <select class="form-select form-select-sm" name="period" onchange="this.form.submit()">
                                 <option value="daily" <%= period === 'daily' ? 'selected' : '' %>>Daily</option>
@@ -529,17 +512,6 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card border-0 bg-light">
-                            <div class="card-body p-3">
-                                <h6 class="text-muted mb-1">Conversion Rate</h6>
-                                <h4 class="mb-0">3.2%</h4>
-                                <div class="small text-danger mt-1">
-                                    <i class="fas fa-arrow-down"></i> 0.5% from previous period
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 
                 <div class="chart-wrapper position-relative" style="height: 300px;">
@@ -559,9 +531,6 @@
                         <% if (topProducts && topProducts.length > 0) { %>
                             <% topProducts.forEach(product => { %>
                                 <div class="top-item">
-                                    <div class="top-item-image-container">
-                                        <img src="<%= product.image || '/images/placeholder.jpg' %>" alt="<%= product.name %>" class="top-item-image">
-                                    </div>
                                     <div class="top-item-details">
                                         <h6 class="mb-0" title="<%= product.name %>"><%= product.name %></h6>
                                     </div>
@@ -623,45 +592,6 @@
                             <% }); %>
                         <% } else { %>
                             <p class="text-muted">No brand data available</p>
-                        <% } %>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Replace the existing graph container with this simpler version -->
-            <div class="graph-container">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="mb-0">Overall Sales Overview</h4>
-                </div>
-
-                <div class="graph-wrapper">
-                    <div class="graph">
-                        <% if (salesData && salesData.length > 0) { %>
-                            <% 
-                                const maxSale = Math.max(...salesData.map(item => item.sales));
-                            %>
-                            <div class="y-axis">
-                                <% for(let i = 5; i >= 0; i--) { %>
-                                    <div class="y-label">₹<%= ((maxSale * i) / 5).toFixed(0) %></div>
-                                <% } %>
-                            </div>
-                            <div class="bars-container">
-                                <% salesData.forEach((item, index) => { %>
-                                    <div class="bar-item">
-                                        <div class="bar" 
-                                            style="height: <%= (item.sales / maxSale * 100) %>%"
-                                            data-value="₹<%= item.sales.toLocaleString() %>"
-                                            data-date="<%= item.date %>">
-                                        </div>
-                                        <div class="x-label"><%= new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) %></div>
-                                    </div>
-                                <% }); %>
-                            </div>
-                        <% } else { %>
-                            <div class="no-data">
-                                <i class="fas fa-chart-bar fa-3x text-muted mb-2"></i>
-                                <p class="text-muted">No sales data available</p>
-                            </div>
                         <% } %>
                     </div>
                 </div>

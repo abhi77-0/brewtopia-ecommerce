@@ -160,7 +160,15 @@ const orderController = {
             const total = subtotal + shippingFee + gst - totalOfferDiscount - totalCouponDiscount;
             const finalTotal = Math.max(0, Math.round(total));
             
-            // Calculate expected delivery date (e.g., 7 days from now)
+            // Prevent COD for orders ₹1000 or above
+            if (paymentMethod === 'cod' && finalTotal >= 1000) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cash on Delivery is not available for orders ₹1000 or above. Please choose another payment method.'
+                });
+            }
+            
+            // Calculate expected delivery date
             const expectedDeliveryDate = new Date();
             expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 7);
             
