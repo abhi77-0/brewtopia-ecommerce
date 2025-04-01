@@ -218,13 +218,6 @@ async function getTopSellingProducts() {
                     name: { $ifNull: ['$productDetails.name', 'Unknown Product'] },
                     totalSold: 1,
                     revenue: 1,
-                    image: { 
-                        $cond: {
-                            if: { $isArray: '$productDetails.images' },
-                            then: { $arrayElemAt: ['$productDetails.images', 0] },
-                            else: null
-                        }
-                    }
                 }
             }
         ]);
@@ -232,31 +225,7 @@ async function getTopSellingProducts() {
         console.log(`Found ${topProducts.length} top products`);
         if (topProducts.length === 0) {
             console.log('No top products found. Creating sample data for display...');
-            
-            // If no products found, return some sample data for display purposes
-            return [
-                {
-                    _id: 'sample1',
-                    name: 'Sample Product 1',
-                    totalSold: 42,
-                    revenue: 8400,
-                    image: '/images/placeholder.jpg'
-                },
-                {
-                    _id: 'sample2',
-                    name: 'Sample Product 2',
-                    totalSold: 36,
-                    revenue: 7200,
-                    image: '/images/placeholder.jpg'
-                },
-                {
-                    _id: 'sample3',
-                    name: 'Sample Product 3',
-                    totalSold: 28,
-                    revenue: 5600,
-                    image: '/images/placeholder.jpg'
-                }
-            ];
+           
         }
         
         return topProducts;

@@ -104,8 +104,10 @@ exports.postAddOffer = async (req, res) => {
         const startDateObj = new Date(startDate);
         const endDateObj = new Date(endDate);
 
-        // Validate start date is not in the past
-        if (startDateObj < now) {
+        // Validate start date is not in the past (with a small buffer of 1 minute)
+        // This allows creating offers that start right now
+        const oneMinuteAgo = new Date(now.getTime() - 60000); // 1 minute buffer
+        if (startDateObj < oneMinuteAgo) {
             return res.status(400).json({
                 success: false,
                 message: 'Start date cannot be in the past'
