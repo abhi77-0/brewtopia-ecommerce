@@ -307,9 +307,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const email = this.value.trim();
         const currentEmail = '<%= user.email %>';
 
+        // Clear warning initially on each input
+        emailWarning.style.display = 'none';
+        this.classList.remove('warning');
+        
+        // If email is empty, show warning
+        if (!email) {
+            emailWarning.querySelector('span').textContent = 'Email is required';
+            emailWarning.style.display = 'block';
+            this.classList.add('warning');
+            isEmailValid = false;
+            return;
+        }
+        
+        // If email is unchanged, it's valid
         if (email === currentEmail) {
-            emailWarning.style.display = 'none';
-            this.classList.remove('warning');
             isEmailValid = true;
             return;
         }
@@ -334,19 +346,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.classList.add('warning');
                     isEmailValid = false;
                 } else {
+                    // Explicitly hide warning and remove warning class for valid email
                     emailWarning.style.display = 'none';
                     this.classList.remove('warning');
                     isEmailValid = true;
                 }
-                updateSubmitButton();
+            })
+            .catch(error => {
+                console.error('Error checking email:', error);
+                // In case of error, assume email is valid to not block the user
+                emailWarning.style.display = 'none';
+                this.classList.remove('warning');
+                isEmailValid = true;
             });
     });
 
     // Phone validation
     phoneInput.addEventListener('input', function() {
-        this.value = this.value.replace(/\D/g, '');
+        const phone = this.value.trim();
         
-        if (this.value.length !== 10) {
+        // Basic phone validation (10 digits)
+        const phoneRegex = /^\d{10}$/;
+        if (!phoneRegex.test(phone)) {
             phoneWarning.style.display = 'block';
             this.classList.add('warning');
             isPhoneValid = false;
@@ -355,6 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.remove('warning');
             isPhoneValid = true;
         }
+        
         updateSubmitButton();
     });
 
@@ -362,12 +384,86 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.disabled = !(isEmailValid && isPhoneValid);
     }
 
-    // Form submission
+    // Form submission with AJAX
     form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
         if (!isEmailValid || !isPhoneValid) {
-            e.preventDefault();
             return false;
         }
+        
+        // Show loading state
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+        submitBtn.disabled = true;
+        
+        // Prepare form data
+        const formData = {
+            name: document.getElementById('nameInput').value,
+            email: emailInput.value,
+            phone: phoneInput.value
+        };
+        
+        // Send AJAX request
+        fetch('/users/profile/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Reset button state
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Changes';
+            submitBtn.disabled = false;
+            
+            if (data.success) {
+                if (data.requireVerification) {
+                    // If email verification is required, redirect to verification page
+                    Swal.fire({
+                        title: 'Verification Required',
+                        text: 'We need to verify your new email address. Redirecting to verification page...',
+                        icon: 'info',
+                        confirmButtonColor: '#FF9800',
+                        timer: 3000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        window.location.href = data.redirectUrl;
+                    });
+                } else {
+                    // Show success message
+                    Swal.fire({
+                        title: 'Success!',
+                        text: data.message,
+                        icon: 'success',
+                        confirmButtonColor: '#FF9800'
+                    }).then(() => {
+                        // Reload page to show updated info
+                        window.location.reload();
+                    });
+                }
+            } else {
+                // Show error message
+                Swal.fire({
+                    title: 'Error!',
+                    text: data.message,
+                    icon: 'error',
+                    confirmButtonColor: '#FF9800'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Changes';
+            submitBtn.disabled = false;
+            
+            Swal.fire({
+                title: 'Error!',
+                text: 'Something went wrong. Please try again.',
+                icon: 'error',
+                confirmButtonColor: '#FF9800'
+            });
+        });
     });
 
     // Password change form validation
