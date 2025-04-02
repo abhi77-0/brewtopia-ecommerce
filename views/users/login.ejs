@@ -40,12 +40,14 @@
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
             color: black;
             display: flex;
+            height: 550px;
         }
 
         .auth-image {
             flex: 1;
             background: url('https://t3.ftcdn.net/jpg/02/67/58/24/360_F_267582471_xWcBaQu0J0WgyADUIkvLa2087ErbY0UM.jpg') no-repeat center center/cover;
             border-radius: 24px 0 0 24px;
+            height: 100%;
         }
 
         .auth-form {
@@ -54,6 +56,8 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            overflow-y: auto;
+            height: 100%;
         }
 
         .form-title {
@@ -91,6 +95,8 @@
             display: none;
             color: #dc3545;
             font-size: 0.875rem;
+            margin-top: 0.25rem;
+            position: absolute;
         }
 
         .form-control.is-invalid {
@@ -113,6 +119,11 @@
             font-size: 0.875rem;
             margin-top: 0.25rem;
         }
+        
+        .form-group {
+            position: relative;
+            margin-bottom: 2rem;
+        }
     </style>
 </head>
 <body>
@@ -130,7 +141,7 @@
                 <% } %>
 
                 <form action="/users/login" method="POST" id="loginForm" novalidate>
-                    <div class="mb-3">
+                    <div class="form-group mb-3">
                         <label class="form-label">Email Address</label>
                         <input type="email" 
                                class="form-control <%= typeof validationErrors !== 'undefined' && validationErrors.some(e => e.includes('email')) ? 'is-invalid' : '' %>" 
@@ -147,7 +158,7 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="form-group mb-3">
                         <label class="form-label">Password</label>
                         <input type="password" 
                                class="form-control <%= typeof validationErrors !== 'undefined' && validationErrors.some(e => e.includes('password')) ? 'is-invalid' : '' %>"
@@ -202,8 +213,40 @@
             return password.length >= 6 && !password.includes(' ');
         }
 
-        function validateForm() {
+        // Track if fields have been touched
+        let emailTouched = false;
+        let passwordTouched = false;
+
+        function validateField(field) {
+            if (field.id === 'email') {
+                if (emailTouched) {
+                    if (!validateEmail(field.value)) {
+                        field.classList.add('is-invalid');
+                        emailError.style.display = 'block';
+                    } else {
+                        field.classList.remove('is-invalid');
+                        emailError.style.display = 'none';
+                    }
+                }
+            } else if (field.id === 'password') {
+                if (passwordTouched) {
+                    if (!validatePassword(field.value)) {
+                        field.classList.add('is-invalid');
+                        passwordError.style.display = 'block';
+                    } else {
+                        field.classList.remove('is-invalid');
+                        passwordError.style.display = 'none';
+                    }
+                }
+            }
+        }
+
+        function validateFormOnSubmit() {
             let isValid = true;
+
+            // Mark all fields as touched for validation
+            emailTouched = true;
+            passwordTouched = true;
 
             // Email validation
             if (!validateEmail(email.value)) {
@@ -225,15 +268,32 @@
                 passwordError.style.display = 'none';
             }
 
-            submitButton.disabled = !isValid;
             return isValid;
         }
 
-        email.addEventListener('input', validateForm);
-        password.addEventListener('input', validateForm);
+        // Mark fields as touched when user interacts with them
+        email.addEventListener('blur', function() {
+            emailTouched = true;
+            validateField(this);
+        });
 
+        password.addEventListener('blur', function() {
+            passwordTouched = true;
+            validateField(this);
+        });
+
+        // Validate only the current field during input
+        email.addEventListener('input', function() {
+            validateField(this);
+        });
+
+        password.addEventListener('input', function() {
+            validateField(this);
+        });
+
+        // Validate all fields on form submission
         form.addEventListener('submit', function(e) {
-            if (!validateForm()) {
+            if (!validateFormOnSubmit()) {
                 e.preventDefault();
             }
         });

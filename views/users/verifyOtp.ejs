@@ -169,6 +169,49 @@
             const resendButton = document.getElementById('resendButton');
             resendButton.disabled = true;
             
+            // Check if there's a stored timer value in localStorage
+            const storedEndTime = localStorage.getItem('otpTimerEndTime');
+            const email = document.querySelector('input[name="email"]').value;
+            const storedEmail = localStorage.getItem('otpEmail');
+            
+            // Check for stored resend attempts
+            const storedAttempts = localStorage.getItem('otpResendAttempts');
+            if (storedAttempts && storedEmail === email) {
+                resendAttempts = parseInt(storedAttempts);
+                
+                // If max attempts reached, disable resend button permanently
+                if (resendAttempts >= MAX_RESEND_ATTEMPTS) {
+                    resendButton.disabled = true;
+                    const messageDiv = document.getElementById('statusMessage');
+                    messageDiv.style.display = 'block';
+                    messageDiv.className = 'alert alert-warning';
+                    messageDiv.textContent = 'Maximum OTP resend attempts reached. Please start registration again.';
+                    return;
+                }
+            }
+            
+            // Only use stored time if it's for the same email
+            if (storedEndTime && storedEmail === email) {
+                const now = new Date().getTime();
+                const endTime = parseInt(storedEndTime);
+                
+                // Calculate remaining time
+                if (endTime > now) {
+                    timeLeft = Math.ceil((endTime - now) / 1000);
+                } else {
+                    // Timer expired
+                    localStorage.removeItem('otpTimerEndTime');
+                    resendButton.disabled = false;
+                    document.getElementById('timer').textContent = 'Time expired';
+                    return;
+                }
+            } else {
+                // Set new end time (current time + 60 seconds)
+                const endTime = new Date().getTime() + (timeLeft * 1000);
+                localStorage.setItem('otpTimerEndTime', endTime.toString());
+                localStorage.setItem('otpEmail', email);
+            }
+            
             updateTimerDisplay(); // Initial display
             
             if (!resendTimer) {
@@ -179,10 +222,16 @@
                     if (timeLeft <= 0) {
                         clearInterval(resendTimer);
                         resendTimer = null;
-                        resendButton.disabled = false;
-                        resendButton.textContent = 'Resend OTP';
+                        
+                        // Only enable resend button if max attempts not reached
+                        if (resendAttempts < MAX_RESEND_ATTEMPTS) {
+                            resendButton.disabled = false;
+                            resendButton.textContent = 'Resend OTP';
+                        }
+                        
                         timeLeft = 60;
                         document.getElementById('timer').textContent = 'Time expired';
+                        localStorage.removeItem('otpTimerEndTime');
                         return;
                     }
                     resendButton.textContent = `Resend OTP (${timeLeft}s)`;
@@ -213,7 +262,9 @@
                 messageDiv.style.display = 'block';
                 
                 if (data.success) {
-                    // If verification successful, redirect
+                    // If verification successful, clear timer data and redirect
+                    localStorage.removeItem('otpTimerEndTime');
+                    localStorage.removeItem('otpEmail');
                     window.location.href = data.redirectUrl || '/users/home';
                 } else {
                     // Show error without affecting timer
@@ -225,6 +276,7 @@
             .catch(error => {
                 console.error('Error:', error);
                 const messageDiv = document.getElementById('statusMessage');
+                
                 messageDiv.style.display = 'block';
                 messageDiv.className = 'alert alert-danger';
                 messageDiv.textContent = 'Error verifying OTP. Please try again.';
@@ -247,12 +299,26 @@
                 messageDiv.style.display = 'block';
                 
                 if (data.success) {
+                    // Display the message from the server
                     messageDiv.className = 'alert alert-success';
                     messageDiv.textContent = data.message;
-                    timeLeft = 60; // Only reset timer on successful resend
+                    
+                    // Reset timer
+                    timeLeft = 60;
+                    const endTime = new Date().getTime() + (timeLeft * 1000);
+                    localStorage.setItem('otpTimerEndTime', endTime.toString());
+                    
+                    // Use server's resend count
+                    if (data.resendCount !== undefined) {
+                        resendAttempts = data.resendCount;
+                        localStorage.setItem('otpResendAttempts', resendAttempts.toString());
+                    }
+                    
+                    // Start the timer
                     startResendTimer();
                     
-                    if (data.remainingAttempts === 0) {
+                    // If this was the last attempt, update UI accordingly
+                    if (data.isLastAttempt) {
                         document.getElementById('resendButton').disabled = true;
                     }
                 } else {
@@ -261,6 +327,8 @@
                     
                     if (data.maxAttemptsReached) {
                         document.getElementById('resendButton').disabled = true;
+                        resendAttempts = MAX_RESEND_ATTEMPTS;
+                        localStorage.setItem('otpResendAttempts', resendAttempts.toString());
                     }
                 }
             })

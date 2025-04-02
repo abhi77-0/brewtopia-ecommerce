@@ -206,7 +206,7 @@ exports.handleForgotPassword = async (req, res) => {
         const user = await User.findOne({ email });
         
         if (!user) {
-            return res.render("users/forgot-password", { 
+            return res.render("users/forgotPassword", { 
                 error: "No account found with this email address.",
                 user: null
             });
@@ -304,36 +304,63 @@ exports.handleResendOtp = async (req, res) => {
             });
         }
 
+        // Find existing OTP document
         const otpDoc = await OTP.findOne({ email });
-        const resendCount = otpDoc?.resendCount || 0;
+        
+        // Get current resend count (0 if no document exists)
+        let resendCount = 0;
+        if (otpDoc && otpDoc.resendCount !== undefined) {
+            resendCount = otpDoc.resendCount;
+        }
 
+        // Check if max attempts reached
         if (resendCount >= MAX_RESEND_ATTEMPTS) {
             return res.status(400).json({ 
                 success: false,
                 message: "Maximum OTP resend attempts reached. Please start registration again.",
-                maxAttemptsReached: true
+                maxAttemptsReached: true,
+                resendCount: MAX_RESEND_ATTEMPTS
             });
         }
 
         // Delete any existing OTP for this email
-        await OTP.deleteOne({ email });
+        if (otpDoc) {
+            await OTP.deleteOne({ email });
+        }
 
         try {
             // Generate new OTP
             await generateOTP(email);
-
-            // Update or create OTP document with resend count
-            await OTP.updateOne(
+            
+            // Increment resend count
+            const newResendCount = resendCount + 1;
+            
+            // Update OTP document with new resend count
+            await OTP.findOneAndUpdate(
                 { email },
-                { $set: { resendCount: resendCount + 1 } },
-                { upsert: true }
+                { $set: { resendCount: newResendCount } },
+                { upsert: true, new: true }
             );
             
-            const remainingAttempts = MAX_RESEND_ATTEMPTS - (resendCount + 1);
+            // Calculate remaining attempts (MAX_RESEND_ATTEMPTS - current count)
+            const remainingAttempts = MAX_RESEND_ATTEMPTS - newResendCount;
+            
+            // Determine if this was the last attempt
+            const isLastAttempt = newResendCount === MAX_RESEND_ATTEMPTS;
+            
+            let message;
+            if (isLastAttempt) {
+                message = "New OTP sent successfully. This was your last resend attempt.";
+            } else {
+                message = `New OTP sent successfully. ${remainingAttempts} resend ${remainingAttempts === 1 ? 'attempt' : 'attempts'} remaining.`;
+            }
+            
             return res.json({ 
                 success: true,
-                message: `New OTP sent successfully. ${remainingAttempts} resend attempts remaining.`,
-                remainingAttempts
+                message: message,
+                remainingAttempts: remainingAttempts,
+                resendCount: newResendCount,
+                isLastAttempt: isLastAttempt
             });
         } catch (otpError) {
             console.error("OTP Generation error:", otpError);
