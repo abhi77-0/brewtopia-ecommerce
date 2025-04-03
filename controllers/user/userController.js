@@ -470,17 +470,58 @@ exports.blockUser = async (req, res) => {
 };
 
 // Google Auth callback handler
-exports.handleGoogleCallback = (req, res) => {
-    // Store user data in session
-    req.session.user = {
-        id: req.user.id,
-        name: req.user.displayName,
-        email: req.user.emails[0].value,
-        picture: req.user.photos[0].value,
-        isAuthenticated: true
-    };
-    // Successful authentication, redirect home
-    res.redirect('/users/home');
+exports.handleGoogleAuthCallback = (req, res) => {
+    try {
+        console.log("Google auth callback handler executing");
+        console.log("User object:", req.user);
+        
+        // Check if user is blocked
+        if (req.user && req.user.blocked) {
+            console.log("User is blocked, redirecting to signup page");
+            
+            // Add to global blockedUsers
+            if (!global.blockedUsers) {
+                global.blockedUsers = [];
+            }
+            
+            const userIdStr = req.user._id.toString();
+            if (!global.blockedUsers.includes(userIdStr)) {
+                global.blockedUsers.push(userIdStr);
+            }
+            
+            // Logout and redirect to signup page with error message
+            req.logout(function(err) {
+                if (err) { 
+                    console.error('Error during logout:', err);
+                }
+                return res.redirect('/users/signup?error=Your+account+has+been+blocked+by+an+administrator.+Please+contact+support.');
+            });
+        } else {
+            console.log("User is not blocked, setting up session");
+            
+            // Store user data in session
+            req.session.user = {
+                id: req.user._id || req.user.id,
+                name: req.user.name || req.user.displayName,
+                email: req.user.email || (req.user.emails ? req.user.emails[0].value : ''),
+                picture: req.user.picture || (req.user.photos ? req.user.photos[0].value : ''),
+                googleId: req.user.googleId,
+                isAuthenticated: true
+            };
+            
+            // Save session before redirecting
+            req.session.save((err) => {
+                if (err) {
+                    console.error('Error saving session:', err);
+                }
+                console.log("Session saved, redirecting to home");
+                res.redirect('/users/home');
+            });
+        }
+    } catch (error) {
+        console.error("Error in Google auth callback:", error);
+        res.redirect('/users/signup?error=Authentication+failed.+Please+try+again.');
+    }
 };
 
 // Add this to your userController.js file if it's not already there

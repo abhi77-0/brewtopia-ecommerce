@@ -41,19 +41,11 @@ router.get('/auth/google',
 );
 
 router.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/users/login' }),
-    (req, res) => {
-        // Store user data in session
-        req.session.user = {
-            id: req.user._id,
-            name: req.user.name,
-            email: req.user.email,
-            picture: req.user.picture,
-            googleId: req.user.googleId,
-            isAuthenticated: true
-        };
-        res.redirect('/users/home');
-    }
+    passport.authenticate('google', { 
+        failureRedirect: '/users/signup?error=Authentication+failed',
+        session: true
+    }),
+    userController.handleGoogleAuthCallback
 );
 
 // Protected routes

@@ -60,16 +60,20 @@ exports.getCart = async (req, res) => {
             .populate({
                 path: 'items.product',
                 model: 'Product',
-                select: 'name description images variants brand offer categoryOffer',
+                select: 'name description images variants brand offer categoryOffer isVisible isDeleted',
                 populate: [
                     { path: 'offer' },
                     { path: 'categoryOffer' }
                 ]
             });
 
-        // Filter out any items where product is null (might have been deleted)
+        // Filter out any items where product is null, not visible, or deleted
         if (cart) {
-            cart.items = cart.items.filter(item => item.product != null);
+            cart.items = cart.items.filter(item => 
+                item.product != null && 
+                item.product.isVisible === true &&
+                item.product.isDeleted !== true
+            );
             
             // Process each item to ensure variant data is available
             cart.items.forEach(item => {

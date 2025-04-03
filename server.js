@@ -19,17 +19,14 @@ const walletRoutes = require('./routes/walletRoutes');
 const checkoutRoutes=require('./routes/checkoutRoutes')
 const wishlistRoutes = require('./routes/wishlistRoutes');
 const orderRoutes = require('./routes/orderRoutes');
-require('./config/googleAuth');
-
 const app = express();
 const server = http.createServer(app);
-// Add this AFTER your session middleware and passport initialization
 const userMiddleware = require('./middlewares/userMiddleware');
-app.use(userMiddleware);
+require('./config/googleAuth');
 
-// Set view engine (EJS in this example)
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
+
+
+
 
 // Session middleware (add this before routes)
 app.use(session({
@@ -38,6 +35,16 @@ app.use(session({
     saveUninitialized: false,
     cookie: { maxAge: 6 * 60 * 60 * 1000 }
 }));
+
+app.use(userMiddleware);
+
+
+
+// Set view engine (EJS in this example)
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
+
 
 // Initialize Passport and restore authentication state from session
 app.use(passport.initialize());

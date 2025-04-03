@@ -148,6 +148,24 @@ const toggleUserBlockStatus = async (req, res) => {
         user.blocked = !user.blocked;
         await user.save();
 
+        // If the user is being blocked, invalidate their session
+        if (user.blocked) {
+            // Add the user to a blockedUsers array in the app
+            if (!global.blockedUsers) {
+                global.blockedUsers = [];
+            }
+            
+            // Store the user ID in the global blockedUsers array
+            if (!global.blockedUsers.includes(userId)) {
+                global.blockedUsers.push(userId);
+            }
+        } else {
+            // If unblocking, remove from the blockedUsers array
+            if (global.blockedUsers && global.blockedUsers.includes(userId)) {
+                global.blockedUsers = global.blockedUsers.filter(id => id !== userId);
+            }
+        }
+
         res.json({ message: `User has been ${user.blocked ? 'blocked' : 'unblocked'}` });
     } catch (error) {
         console.error('Error toggling user status:', error);

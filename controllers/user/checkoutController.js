@@ -90,12 +90,24 @@ exports.getCheckout = async (req, res) => {
             .populate({
                 path: 'items.product',
                 model: 'Product',
-                select: 'name description images variants brand offer categoryOffer',
+                select: 'name description images variants brand offer categoryOffer isVisible isDeleted',
                 populate: [
                     { path: 'offer' },
                     { path: 'categoryOffer' }
                 ]
             });
+        
+        // Filter out products that are not visible or are deleted
+        if (cart) {
+            cart.items = cart.items.filter(item => 
+                item.product && 
+                item.product.isVisible === true &&
+                item.product.isDeleted !== true
+            );
+            
+            // Save the cart if any items were filtered out
+            await cart.save();
+        }
         
         // Get user details with populated addresses
         const user = await User.findById(userId)
@@ -106,7 +118,7 @@ exports.getCheckout = async (req, res) => {
             return res.redirect('/cart');
         }
 
-        // Calculate totals
+        // Calculate totals with only visible products
         cart.items.forEach(item => {
             if (item.product && item.product.variants && item.variant) {
                 const variantPrice = item.product.variants[item.variant]?.price || 0;
@@ -159,7 +171,7 @@ exports.processCheckout = async (req, res) => {
             .populate({
                 path: 'items.product',
                 model: 'Product',
-                select: 'name description images variants brand'
+                select: 'name description images variants brand isVisible isDeleted'
             });
             
         if (!cart || cart.items.length === 0) {
@@ -168,6 +180,24 @@ exports.processCheckout = async (req, res) => {
                 message: 'Your cart is empty'
             });
         }
+        
+        // Filter out products that are not visible or are deleted
+        cart.items = cart.items.filter(item => 
+            item.product && 
+            item.product.isVisible === true &&
+            item.product.isDeleted !== true
+        );
+        
+        // If all products were filtered out, return error
+        if (cart.items.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'All products in your cart are currently unavailable'
+            });
+        }
+        
+        // Save the filtered cart
+        await cart.save();
         
         // Calculate totals
         let subtotal = 0;
