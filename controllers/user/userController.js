@@ -430,8 +430,10 @@ exports.renderCategoryPage = (req, res) => {
 };
 
 exports.renderHomePage = (req, res) => {
-    res.render('users/home', { 
-        title: 'Welcome to Brewtopia'
+    res.render("users/home", { 
+        user: req.session.user,
+        featuredProducts: res.locals.featuredProducts || [],
+        title: "Home"
     });
 };
 

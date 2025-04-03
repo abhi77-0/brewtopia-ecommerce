@@ -222,10 +222,65 @@ const getAdminProductDetail = async (req, res) => {
     }
 };
 
+// Add Product with validation
 const addProduct = async (req, res) => {
     try {
         const { name, description, category, brand } = req.body;
-        const variants = JSON.parse(req.body.variants);
+        
+        // Validation
+        if (!name || !description || !category || !brand) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'All fields are required' 
+            });
+        }
+        
+        // Validate variants
+        let variants;
+        try {
+            variants = JSON.parse(req.body.variants);
+            
+            // Check if variants have valid price and stock
+            for (const size in variants) {
+                const variant = variants[size];
+                if (!variant.price || isNaN(parseFloat(variant.price)) || parseFloat(variant.price) <= 0) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        error: `Invalid price for ${size} variant` 
+                    });
+                }
+                
+                if (!variant.stock || isNaN(parseInt(variant.stock)) || parseInt(variant.stock) < 0) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        error: `Invalid stock for ${size} variant` 
+                    });
+                }
+                
+                // Convert to numbers
+                variant.price = parseFloat(variant.price);
+                variant.stock = parseInt(variant.stock);
+                
+                // Add MRP field if not present (for discount calculation)
+                if (!variant.mrp || variant.mrp <= 0) {
+                    variant.mrp = variant.price;
+                }
+            }
+        } catch (e) {
+            console.error('Variants parsing error:', e);
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Invalid variants data' 
+            });
+        }
+
+        // Check if at least one image is provided
+        if (!req.files || !req.files.image1) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'At least one product image is required' 
+            });
+        }
 
         // Upload images to Cloudinary
         const uploadPromises = [];
@@ -252,42 +307,92 @@ const addProduct = async (req, res) => {
                 image2: uploadedImages[1]?.secure_url || null,
                 image3: uploadedImages[2]?.secure_url || null
             },
-            status: 'active'
+            status: 'active',
+            isVisible: true
         });
 
         await product.save();
-        res.status(201).json({ message: 'Product added successfully', product });
+        res.status(201).json({ 
+            success: true,
+            message: 'Product added successfully', 
+            product 
+        });
     } catch (error) {
         console.error('Error adding product:', error);
-        res.status(500).json({ error: 'Error adding product' });
+        res.status(500).json({ 
+            success: false,
+            error: 'Error adding product: ' + error.message 
+        });
     }
 };
 
+// Edit Product with validation
 const editProduct = async (req, res) => {
     try {
         const { productId } = req.params;
         const { name, description, category, brand } = req.body;
         
+        // Validation
+        if (!name || !description || !category || !brand) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'All fields are required' 
+            });
+        }
+        
         // Find product
         const product = await Product.findById(productId);
         if (!product || product.isDeleted) {
-            return res.status(404).json({ error: 'Product not found' });
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Product not found' 
+            });
         }
 
         // Parse variants
         let variants;
         try {
             variants = JSON.parse(req.body.variants);
+            
+            // Check if variants have valid price and stock
+            for (const size in variants) {
+                const variant = variants[size];
+                if (!variant.price || isNaN(parseFloat(variant.price)) || parseFloat(variant.price) <= 0) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        error: `Invalid price for ${size} variant` 
+                    });
+                }
+                
+                if (variant.stock === undefined || isNaN(parseInt(variant.stock)) || parseInt(variant.stock) < 0) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        error: `Invalid stock for ${size} variant` 
+                    });
+                }
+                
+                // Convert to numbers
+                variant.price = parseFloat(variant.price);
+                variant.stock = parseInt(variant.stock);
+                
+                // Add MRP field if not present (for discount calculation)
+                if (!variant.mrp || variant.mrp <= 0) {
+                    variant.mrp = variant.price;
+                }
+            }
         } catch (e) {
             console.error('Variants parsing error:', e);
-            return res.status(400).json({ error: 'Invalid variants data' });
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Invalid variants data' 
+            });
         }
 
         // Update basic fields
-        product.name = name || product.name;
-        product.description = description || product.description;
-        product.category = category || product.category;
-        product.brand = brand || product.brand;
+        product.name = name;
+        product.description = description;
+        product.category = category;
+        product.brand = brand;
         product.variants = variants;
 
         // Handle image uploads
@@ -330,20 +435,35 @@ const editProduct = async (req, res) => {
 
 const deleteProduct = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.productId);
+        const productId = req.params.productId;
+        console.log(`Attempting to delete product with ID: ${productId}`);
         
-        if (!product || product.isDeleted) {
-            return res.status(404).json({ error: 'Product not found' });
+        // Find the product
+        const product = await Product.findById(productId);
+        
+        if (!product) {
+            console.log(`Product not found with ID: ${productId}`);
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Product not found' 
+            });
         }
+        
+        // Perform hard delete - completely remove from database
+        await Product.findByIdAndDelete(productId);
+        
+        console.log(`Product successfully deleted from database: ${productId}`);
 
-        // Soft delete
-        product.isDeleted = true;
-        await product.save();
-
-        res.json({ message: 'Product deleted successfully' });
+        return res.status(200).json({ 
+            success: true, 
+            message: `Product "${product.name}" has been permanently deleted` 
+        });
     } catch (error) {
         console.error('Error deleting product:', error);
-        res.status(500).json({ error: 'Error deleting product' });
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to delete product: ' + error.message 
+        });
     }
 };
 

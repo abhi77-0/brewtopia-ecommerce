@@ -412,3 +412,70 @@ exports.getProductVariants = async (req, res) => {
         });
     }
 };
+
+// Get featured products for home page
+exports.getFeaturedProducts = async (req, res, next) => {
+    try {
+        // First, get visible categories
+        const visibleCategories = await Category.find({ isVisible: true });
+        const visibleCategoryIds = visibleCategories.map(cat => cat._id);
+        
+        // Get products from visible categories, with increased limit to account for filtering
+        const featuredProducts = await Product.find({ 
+            isVisible: true,
+            isDeleted: { $ne: true },
+            category: { $in: visibleCategoryIds }
+        })
+        .populate('category')
+        .populate('offer')
+        .populate('categoryOffer')
+        .sort({ createdAt: -1 }) // Get newest products
+        .limit(8); // Increased limit to ensure we have enough after filtering
+        
+        // Calculate offers for each product
+        const productsWithOffers = featuredProducts.map(product => {
+            // Default values for products without variants
+            let originalPrice = product.price || 0;
+            let finalPrice = product.price || 0;
+            
+            // If product has variants, use those prices
+            if (product.variants && product.variants['500ml']) {
+                originalPrice = product.variants['500ml'].price || product.price;
+                
+                // Calculate best offer if any
+                const offerInfo = calculateBestOffer(product);
+                finalPrice = offerInfo.finalPrice || originalPrice;
+                
+                return {
+                    ...product.toObject(),
+                    bestOffer: offerInfo.bestOffer,
+                    discountAmount: offerInfo.discountAmount || 0,
+                    discountPercentage: offerInfo.discountPercentage || 0,
+                    finalPrice: finalPrice,
+                    originalPrice: originalPrice
+                };
+            } else {
+                // For products without variants
+                return {
+                    ...product.toObject(),
+                    bestOffer: null,
+                    discountAmount: 0,
+                    discountPercentage: 0,
+                    finalPrice: finalPrice,
+                    originalPrice: originalPrice
+                };
+            }
+        });
+        
+        // Take only the first 4 products
+        const limitedProducts = productsWithOffers.slice(0, 4);
+        
+        // Attach to res.locals for use in the template
+        res.locals.featuredProducts = limitedProducts;
+        next();
+    } catch (error) {
+        console.error('Error fetching featured products:', error);
+        res.locals.featuredProducts = [];
+        next();
+    }
+};

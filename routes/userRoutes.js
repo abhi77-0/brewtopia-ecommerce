@@ -9,6 +9,7 @@ const {
     validateForgotPassword 
 } = require('../middlewares/validationMiddleware');
 const checkoutController = require("../controllers/user/checkoutController");
+const shopController = require('../controllers/user/shopController');
 
 const router = express.Router();
 
@@ -58,7 +59,7 @@ router.get('/auth/google/callback',
 // Protected routes
 router.get('/products', isAuthenticated, userController.renderProductsPage);
 router.get('/category/:type', isAuthenticated, userController.renderCategoryPage);
-router.get('/home', isAuthenticated, userController.renderHomePage);
+router.get('/home', isAuthenticated, shopController.getFeaturedProducts, userController.renderHomePage);
 //profile
 router.get('/profile', isAuthenticated, userController.getProfile);
 router.get('/profile/edit', isAuthenticated, userController.getEditProfile);

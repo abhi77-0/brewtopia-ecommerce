@@ -35,10 +35,7 @@ router.get('/products', isAdmin, adminController.getAdminProducts);
 router.get('/products/:productId', isAdmin, adminController.getAdminProductDetail);
 router.post('/products/add', isAdmin, productImageUpload, adminController.addProduct);
 router.post('/products/edit/:productId', isAdmin, productImageUpload, adminController.editProduct);
-router.delete('/products/:productId', isAdmin, adminController.deleteProduct);
-router.put('/products/:id/visibility', isAdmin, adminController.toggleProductVisibility);
-
-// Toggle product visibility
+router.delete('/products/delete/:productId', isAdmin, adminController.deleteProduct);
 router.post('/products/toggle-visibility/:id', isAdmin, adminController.toggleProductVisibility);
 
 // User Management Routes
