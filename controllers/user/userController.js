@@ -23,8 +23,10 @@ exports.handleSignup = async (req, res) => {
         // Check if user exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.render("signup", { 
-                error: "User already exists. Please login instead."
+            return res.render("users/signup", { 
+                error: "User already exists. Please login instead.",
+                user: null,
+                formData: req.body
             });
         }
 
@@ -38,11 +40,17 @@ exports.handleSignup = async (req, res) => {
             password: hashedPassword 
         });
 
-        res.render("users/verifyOtp", { email });
+        res.render("users/verifyOtp", { 
+            email,
+            user: null,
+            error: null
+        });
     } catch (error) {
         console.error("Signup error:", error);
         res.render("users/signup", { 
-            error: "Error during signup. Please try again." 
+            error: "Error during signup. Please try again.",
+            user: null,
+            formData: req.body
         });
     }
 };

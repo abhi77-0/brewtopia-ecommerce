@@ -2,7 +2,7 @@ const Order = require('../../models/Order');
 const User = require('../../models/userModel');
 const Wallet = require('../../models/walletModel');
 const mongoose = require('mongoose');
-// const Product=require('../../models/Product');
+const Product=require('../../models/product');
 
 
 const OrderController = {

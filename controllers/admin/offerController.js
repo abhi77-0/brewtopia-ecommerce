@@ -1,6 +1,6 @@
 const Offer = require('../../models/Offer');
-// const Product = require('../../models/Product');
-// const Category = require('../../models/Category');
+const Product = require('../../models/product');
+const Category = require('../../models/category');
 const mongoose = require('mongoose');
 
 // Get all offers and render the main offer page

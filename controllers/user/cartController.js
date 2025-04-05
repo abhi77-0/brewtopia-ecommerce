@@ -1,5 +1,5 @@
-// const Cart = require('../../models/shopingCart'); 
-// const product = require('../../models/Product');
+const Cart = require('../../models/shopingCart'); 
+const product = require('../../models/product');
 const User = require('../../models/userModel');
 
 // Add this function at the top of your file

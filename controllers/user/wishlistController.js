@@ -1,5 +1,5 @@
-// const Wishlist = require('../../models/Wishlist');
-// const Product = require('../../models/Product');
+const Wishlist = require('../../models/Wishlist');
+const Product = require('../../models/product');
 
 exports.getWishlist = async (req, res) => {
     try {

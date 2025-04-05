@@ -1,6 +1,6 @@
-// const Product = require('../../models/Product');
-// const Category = require('../../models/Category');
-// const Offer = require('../../models/Offer');
+const Product = require('../../models/product');
+const Category = require('../../models/category');
+const Offer = require('../../models/Offer');
 
 // Helper function to calculate the best offer for a product
 const calculateBestOffer = (product) => {
