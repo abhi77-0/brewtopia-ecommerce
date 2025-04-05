@@ -1,6 +1,6 @@
 const Order = require('../../models/Order');
-const Product = require('../../models/Product');
-const Category = require('../../models/Category');
+// const Product = require('../../models/Product');
+// const Category = require('../../models/Category');
 const User = require('../../models/userModel');
 
 exports.getDashboard = async (req, res) => {
