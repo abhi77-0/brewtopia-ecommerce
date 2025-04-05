@@ -1,13 +1,13 @@
 const Order = require('../../models/Order');
-const Cart = require('../../models/shopingCart');
+// const Cart = require('../../models/shopingCart');
 const User = require('../../models/userModel');
-const Product = require('../../models/Product');
+// const Product = require('../../models/Product');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 const Address = require('../../models/Address');
 const Wallet = require('../../models/walletModel');
-const Coupon = require('../../models/Coupon');
+// const Coupon = require('../../models/Coupon');
 const { updateCouponUsage } = require('../../utils/couponUtils');
 
 const orderController = {
