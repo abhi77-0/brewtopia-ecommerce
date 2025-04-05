@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Import Product model to ensure it's loaded first
-require('./Product');
+require('./product');
 
 const categorySchema = new mongoose.Schema({
     name: {
