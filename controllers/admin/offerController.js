@@ -3,7 +3,7 @@ const Product = require('../../models/product');
 const Category = require('../../models/category');
 const mongoose = require('mongoose');
 
-// Get all offers and render the main offer page
+// Get all offers and render the main offer Page..
 exports.getOffers = async (req, res) => {
     try {
         // First, get all offers without populating
