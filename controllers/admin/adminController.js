@@ -1,6 +1,5 @@
 require('dotenv').config();
 const User = require('../../models/userModel');
-const Category = require('../../models/Category');
 const Product = require('../../models/Product');
 const { handleUpload } = require('../../utils/cloudinaryUpload');
 

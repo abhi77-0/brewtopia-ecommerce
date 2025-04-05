@@ -1,5 +1,5 @@
-const Category = require('../../models/category');
-const Product = require('../../models/product');
+const Category = require('../../models/Category');
+const Product = require('../../models/Product');
 
 
 // Category management controllers
