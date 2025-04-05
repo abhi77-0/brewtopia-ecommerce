@@ -19,7 +19,7 @@ const calculateBestOffer = (product) => {
             discountPercentage = product.offer.discountPercentage;
         }
 
-        // Check category offer
+        // CHECK CATEGORY OFFER
         if (product.categoryOffer && 
             product.categoryOffer.isActive !== false && 
             now >= new Date(product.categoryOffer.startDate) && 
