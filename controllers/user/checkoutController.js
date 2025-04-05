@@ -1,11 +1,10 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const path = require('path');
 const Cart = require('../../models/shopingCart');
 const User = require('../../models/userModel');
 const Order = require('../../models/Order');
 const Coupon = require('../../models/Coupon');
-const Product = require(path.join(__dirname, '../../models/Product'));
+const Product = require('../../models/Product');
 const Address = require('../../models/Address');
 const Wallet = require('../../models/walletModel');
 const { updateCouponUsage } = require('../../utils/couponUtils');
