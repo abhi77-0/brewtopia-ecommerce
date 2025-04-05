@@ -1,6 +1,7 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/userModel');
+const crypto = require('crypto');
 require('dotenv').config();
 
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
@@ -12,7 +13,7 @@ passport.use(
         {
             clientID: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: "http://localhost:3004/users/auth/google/callback",
+            callbackURL: process.env.GOOGLE_CALLBACK_URL,
             scope: ['profile', 'email'],
             passReqToCallback: true
         },
@@ -20,39 +21,34 @@ passport.use(
             try {
                 console.log("Google strategy executing");
                 
-                let user = await User.findOne({ googleId: profile.id });
-
-                if (!user) {
-                    console.log("Creating new user for Google auth");
-                    user = await User.create({
-                        googleId: profile.id,
-                        name: profile.displayName,
-                        email: profile.emails[0].value,
-                        picture: profile.photos[0].value,
-                        provider: 'google'
-                    });
-                }
+                // Check if user already exists
+                const existingUser = await User.findOne({ email: profile.emails[0].value });
                 
-                // Check if user is blocked
-                if (user.blocked) {
-                    console.log('Blocked user attempted to login via Google:', user._id);
-                    
-                    // Add to global blockedUsers if not already there
-                    if (!global.blockedUsers) {
-                        global.blockedUsers = [];
-                    }
-                    
-                    const userIdStr = user._id.toString();
-                    if (!global.blockedUsers.includes(userIdStr)) {
-                        global.blockedUsers.push(userIdStr);
-                    }
-                    
-                    // Instead of returning an error, return the user with a flag
-                    user.isBlocked = true;
-                    return done(null, user);
+                if (existingUser) {
+                    return done(null, existingUser);
                 }
 
-                return done(null, user);
+                console.log('Creating new user for Google auth');
+                
+                // Generate a random password for Google users
+                const randomPassword = crypto.randomBytes(32).toString('hex');
+                
+                // Create new user
+                const newUser = await User.create({
+                    name: profile.displayName,
+                    email: profile.emails[0].value,
+                    password: randomPassword, // Use the random password
+                    googleId: profile.id,
+                    isEmailVerified: true, // Since it's Google-authenticated
+                    authProvider: 'google',
+                    profile: {
+                        firstName: profile.name.givenName || '',
+                        lastName: profile.name.familyName || '',
+                        avatar: profile.photos?.[0]?.value || ''
+                    }
+                });
+
+                return done(null, newUser);
             } catch (error) {
                 console.error("Error in Google strategy:", error);
                 return done(error, null);

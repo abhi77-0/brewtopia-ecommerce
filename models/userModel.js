@@ -16,7 +16,10 @@ const userSchema = new Schema({
     },
     password: {
         type: String,
-        required: [true, 'Password is required']
+        required: function() {
+            // Only require password for local authentication
+            return this.authProvider === 'local' || !this.authProvider;
+        }
     },
     role: {
         type: String,
@@ -64,6 +67,11 @@ const userSchema = new Schema({
     wallet: {
         type: Schema.Types.ObjectId,
         ref: 'Wallet'
+    },
+    authProvider: {
+        type: String,
+        enum: ['local', 'google'],
+        default: 'local'
     }
 }, {
     timestamps: true

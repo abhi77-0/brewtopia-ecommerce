@@ -493,8 +493,10 @@ const toggleProductVisibility = async (req, res) => {
         const product = await Product.findById(productId);
         
         if (!product) {
-            req.flash('error', 'Product not found');
-            return res.redirect('/admin/products');
+            return res.status(404).json({ 
+                success: false, 
+                error: 'Product not found' 
+            });
         }
         
         // Toggle the visibility
@@ -503,15 +505,18 @@ const toggleProductVisibility = async (req, res) => {
         // Save the updated product
         await product.save();
         
-        // Send success message
-        req.flash('success', `Product "${product.name}" is now ${product.isVisible ? 'visible' : 'hidden'} to customers`);
+        // Send JSON response
+        return res.status(200).json({
+            success: true,
+            message: `Product "${product.name}" is now ${product.isVisible ? 'visible' : 'hidden'} to customers`
+        });
         
-        // Redirect back to products list
-        res.redirect('/admin/products');
     } catch (error) {
         console.error('Error toggling product visibility:', error);
-        req.flash('error', 'Failed to update product visibility');
-        res.redirect('/admin/products');
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to update product visibility' 
+        });
     }
 };
 

@@ -1,4 +1,3 @@
-
 const OTP = require('../models/otpModel');
 const nodemailer = require('nodemailer');
 
@@ -69,6 +68,10 @@ async function sendOTPEmail(email, otp) {
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
+        },
+        tls: {
+            // Do not fail on invalid certificates
+            rejectUnauthorized: false
         }
     });
 
@@ -83,6 +86,7 @@ async function sendOTPEmail(email, otp) {
         await transporter.sendMail(mailOptions);
     } catch (error) {
         console.error('Error sending OTP email:', error);
+        throw error; // Re-throw the error to handle it in the calling function
     }
 }
 
