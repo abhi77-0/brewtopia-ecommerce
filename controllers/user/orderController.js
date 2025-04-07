@@ -429,16 +429,24 @@ const orderController = {
     cancelOrder: async (req, res) => {
         try {
             const orderId = req.params.id;
+            const { cancelReason } = req.body;
             // Get user ID - handle both normal and Google auth users
             const userId = req.session.user?._id || req.session.user?.id;
             
-            console.log('Cancelling order:', orderId, 'for user:', userId);
+            console.log('Cancelling order:', orderId, 'for user:', userId, 'reason:', cancelReason);
 
             if (!userId) {
                 console.error('User ID not found in session:', req.session.user);
                 return res.status(401).json({
                     success: false,
                     message: 'Authentication error. Please log in again.'
+                });
+            }
+
+            if (!cancelReason) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cancellation reason is required'
                 });
             }
 
@@ -536,6 +544,7 @@ const orderController = {
 
             // Update the order status instead of deleting it
             order.status = 'Cancelled';
+            order.cancelReason = cancelReason;
             order.paymentStatus = order.paymentStatus === 'Completed' ? 'Refunded' : order.paymentStatus;
             await order.save();
             

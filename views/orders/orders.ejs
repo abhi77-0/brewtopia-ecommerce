@@ -287,6 +287,42 @@
     </div>
 </div>
 
+<!-- Add Cancel Order Modal -->
+<div class="modal fade" id="cancelOrderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="cancelOrderForm">
+                    <div class="mb-3">
+                        <label class="form-label">Select Reason for Cancellation</label>
+                        <select class="form-select" id="cancelReason" required>
+                            <option value="">Choose a reason...</option>
+                            <option value="Changed my mind">Changed my mind</option>
+                            <option value="Found better price elsewhere">Found better price elsewhere</option>
+                            <option value="Ordered by mistake">Ordered by mistake</option>
+                            <option value="Shipping time is too long">Shipping time is too long</option>
+                            <option value="Payment issues">Payment issues</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="otherReasonDiv" style="display: none;">
+                        <label class="form-label">Specify Other Reason</label>
+                        <textarea class="form-control" id="otherCancelReason" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" onclick="submitCancelOrder()">Cancel Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 :root {
     --primary: #FF9800;
@@ -868,6 +904,29 @@
         height: 60px;
     }
 }
+
+/* Add these new styles */
+#cancelOrderModal .form-select {
+    border-radius: 8px;
+    padding: 0.75rem;
+    border-color: #dee2e6;
+}
+
+#cancelOrderModal .form-select:focus {
+    border-color: #FF9800;
+    box-shadow: 0 0 0 0.2rem rgba(255, 152, 0, 0.25);
+}
+
+#cancelOrderModal textarea {
+    border-radius: 8px;
+    padding: 0.75rem;
+    border-color: #dee2e6;
+}
+
+#cancelOrderModal textarea:focus {
+    border-color: #FF9800;
+    box-shadow: 0 0 0 0.2rem rgba(255, 152, 0, 0.25);
+}
 </style>
 
 
@@ -879,64 +938,100 @@ function viewOrderDetails(orderId) {
     window.location.href = `/orders/${orderId}`;
 }
 
+let currentOrderId = null;
+
 function cancelOrder(orderId) {
+    currentOrderId = orderId;
+    const cancelModal = new bootstrap.Modal(document.getElementById('cancelOrderModal'));
+    cancelModal.show();
+}
+
+// Add event listener for the cancel reason select
+document.getElementById('cancelReason').addEventListener('change', function() {
+    const otherReasonDiv = document.getElementById('otherReasonDiv');
+    if (this.value === 'Other') {
+        otherReasonDiv.style.display = 'block';
+    } else {
+        otherReasonDiv.style.display = 'none';
+    }
+});
+
+function submitCancelOrder() {
+    const cancelReason = document.getElementById('cancelReason').value;
+    const otherReason = document.getElementById('otherCancelReason').value;
+    
+    if (!cancelReason) {
+        Swal.fire({
+            title: 'Error!',
+            text: 'Please select a reason for cancellation',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        });
+        return;
+    }
+
+    if (cancelReason === 'Other' && !otherReason.trim()) {
+        Swal.fire({
+            title: 'Error!',
+            text: 'Please specify the other reason',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        });
+        return;
+    }
+
+    const finalReason = cancelReason === 'Other' ? otherReason : cancelReason;
+
+    // Hide the modal
+    const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelOrderModal'));
+    cancelModal.hide();
+
+    // Show loading state
     Swal.fire({
-        title: 'Cancel Order',
-        text: "Are you sure you want to cancel this order?",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#FF9800',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Yes, cancel it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Show loading state
+        title: 'Processing...',
+        text: 'Cancelling your order',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    fetch(`/orders/${currentOrderId}/cancel`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ cancelReason: finalReason }),
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
             Swal.fire({
-                title: 'Processing...',
-                text: 'Cancelling your order',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
+                title: 'Cancelled!',
+                text: 'Your order has been cancelled.',
+                icon: 'success',
+                confirmButtonColor: '#FF9800'
+            }).then(() => {
+                location.reload();
             });
-            
-            fetch(`/orders/${orderId}/cancel`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'same-origin'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        title: 'Cancelled!',
-                        text: 'Your order has been cancelled.',
-                        icon: 'success',
-                        confirmButtonColor: '#FF9800'
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        title: 'Error!',
-                        text: data.message || 'Failed to cancel order',
-                        icon: 'error',
-                        confirmButtonColor: '#FF9800'
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    title: 'Error!',
-                    text: 'Failed to cancel order',
-                    icon: 'error',
-                    confirmButtonColor: '#FF9800'
-                });
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: data.message || 'Failed to cancel order',
+                icon: 'error',
+                confirmButtonColor: '#FF9800'
             });
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Failed to cancel order',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        });
     });
 }
 

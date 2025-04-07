@@ -116,9 +116,23 @@ const OrderController = {
                     message: 'Order not found'
                 });
             }
+
+            // Check if status has already been changed
+            if (order.statusChanged) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Order status has already been changed and cannot be modified again'
+                });
+            }
             
             // Update order status
             order.status = status;
+            order.statusChanged = true; // Mark that status has been changed
+            
+            // If order is delivered, set the deliveredAt date
+            if (status === 'Delivered') {
+                order.deliveredAt = new Date();
+            }
             
             // If order is delivered and payment method is COD, update payment status to Completed
             if (status === 'Delivered' && order.paymentMethod === 'cod') {

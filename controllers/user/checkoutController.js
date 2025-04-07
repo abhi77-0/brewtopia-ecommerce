@@ -721,7 +721,9 @@ exports.retryPayment = async (req, res) => {
 exports.applyCoupon = async (req, res) => {
     try {
         const { couponCode } = req.body;
-        const cart = await Cart.findOne({ user: req.user._id })
+        const userId = req.session.user?._id || req.session.user?.id;
+        
+        const cart = await Cart.findOne({ user: userId })
             .populate({
                 path: 'items.product',
                 model: 'Product'

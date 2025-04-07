@@ -69,6 +69,13 @@ const orderSchema = new mongoose.Schema({
         enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Return Requested', 'Return Accepted'],
         default: 'Pending'
     },
+    statusChanged: {
+        type: Boolean,
+        default: false
+    },
+    cancelReason: {
+        type: String
+    },
     returnRequest: {
         type: Boolean,
         default: false
