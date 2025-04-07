@@ -1,5 +1,5 @@
 const Cart = require('../../models/shopingCart'); 
-const product = require('../../models/product');
+const Product = require('../../models/product');
 const User = require('../../models/userModel');
 
 // Add this function at the top of your file
@@ -189,10 +189,10 @@ exports.addToCart = async (req, res) => {
 // Update cart item quantity
 exports.updateCart = async (req, res) => {
     try {
-        const { productId, quantity } = req.body;
+        const { productId, variant, quantity } = req.body;  // Extract variant from req.body
 
         // Validate input
-        if (!productId || !quantity || quantity < 1 || quantity > 5) {
+        if (!productId || !variant || !quantity || quantity < 1 || quantity > 5) {
             return res.status(400).json({
                 success: false,
                 error: 'Invalid quantity. Must be between 1 and 5.'
@@ -209,9 +209,10 @@ exports.updateCart = async (req, res) => {
             });
         }
 
-        // Find the item in the cart
+        // Find the item in the cart - now checking both productId and variant
         const cartItem = cart.items.find(item => 
-            item.product.toString() === productId
+            item.product.toString() === productId && 
+            item.variant === variant  // Add variant check
         );
 
         if (!cartItem) {
