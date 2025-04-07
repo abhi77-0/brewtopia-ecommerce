@@ -1,15 +1,20 @@
- const Category = require('../../models/category');
- const Product = require('../../models/product');
-
+const Category = require('../../models/category');
+const Product = require('../../models/product');
 
 // Category management controllers
 exports.getCategories = async (req, res) => {
     try {
-        const categories = await Category.find();
+        const categories = await Category.find({})
+            .lean()
+            .exec();
+
+        // Populate product counts
         const categoriesWithCounts = await Promise.all(categories.map(async (category) => {
-            const productCount = await Product.countDocuments({ category: category._id });
+            const productCount = await Product.countDocuments({ 
+                category: category._id
+            });
             return {
-                ...category.toObject(),
+                ...category,
                 productCount
             };
         }));
@@ -21,7 +26,7 @@ exports.getCategories = async (req, res) => {
             categories: categoriesWithCounts
         });
     } catch (error) {
-        console.error('Error fetching categories:', error);
+        console.error('Error in getCategories:', error);
         res.status(500).render('admin/categories', {
             title: 'Manage Categories',
             adminUser: req.session.adminUser,
@@ -36,7 +41,7 @@ exports.getCategory = async (req, res) => {
     try {
         const category = await Category.findById(req.params.id);
         
-        if (!category || category.isDeleted) {
+        if (!category) {
             return res.status(404).json({ error: 'Category not found' });
         }
 
@@ -50,12 +55,11 @@ exports.getCategory = async (req, res) => {
 // Add new category
 exports.addCategory = async (req, res) => {
     try {
-        const { name, description } = req.body;
+        const { name } = req.body;
 
         // Check if category with same name exists
         const existingCategory = await Category.findOne({ 
-            name: { $regex: new RegExp(`^${name}$`, 'i') },
-            isDeleted: false 
+            name: { $regex: new RegExp(`^${name}$`, 'i') }
         });
 
         if (existingCategory) {
@@ -64,11 +68,11 @@ exports.addCategory = async (req, res) => {
 
         const category = new Category({
             name,
-            description
+            isVisible: true
         });
 
-        await category.save();
-        res.status(201).json({ message: 'Category added successfully', category });
+        const savedCategory = await category.save();
+        res.status(201).json({ message: 'Category added successfully', category: savedCategory });
     } catch (error) {
         console.error('Error adding category:', error);
         res.status(500).json({ error: 'Error adding category' });
@@ -79,19 +83,18 @@ exports.addCategory = async (req, res) => {
 exports.updateCategory = async (req, res) => {
     try {
         const { categoryId } = req.params;
-        const { name, description } = req.body;
+        const { name } = req.body;
 
         const category = await Category.findById(categoryId);
         
-        if (!category || category.isDeleted) {
+        if (!category) {
             return res.status(404).json({ error: 'Category not found' });
         }
 
         // Check if another category with same name exists
         const existingCategory = await Category.findOne({
             _id: { $ne: categoryId },
-            name: { $regex: new RegExp(`^${name}$`, 'i') },
-            isDeleted: false
+            name: { $regex: new RegExp(`^${name}$`, 'i') }
         });
 
         if (existingCategory) {
@@ -99,8 +102,6 @@ exports.updateCategory = async (req, res) => {
         }
 
         category.name = name;
-        category.description = description;
-
         await category.save();
         res.json({ message: 'Category updated successfully', category });
     } catch (error) {
@@ -109,39 +110,7 @@ exports.updateCategory = async (req, res) => {
     }
 };
 
-// Delete category
-exports.deleteCategory = async (req, res) => {
-    try {
-        const category = await Category.findById(req.params.categoryId);
-        
-        if (!category || category.isDeleted) {
-            return res.status(404).json({ error: 'Category not found' });
-        }
-
-        // Check if category is being used by any products
-        const productsUsingCategory = await Product.find({ 
-            category: req.params.categoryId,
-            isDeleted: false
-        });
-
-        if (productsUsingCategory.length > 0) {
-            return res.status(400).json({ 
-                error: 'Cannot delete category as it is being used by products. Remove or reassign products first.' 
-            });
-        }
-
-        // Soft delete
-        category.isDeleted = true;
-        await category.save();
-
-        res.json({ message: 'Category deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting category:', error);
-        res.status(500).json({ error: 'Error deleting category' });
-    }
-};
-
-// Add this method to your admin category controller
+// Toggle visibility
 exports.toggleVisibility = async (req, res) => {
     try {
         const { id } = req.params;
@@ -164,5 +133,37 @@ exports.toggleVisibility = async (req, res) => {
     } catch (error) {
         console.error('Error toggling category visibility:', error);
         res.status(500).json({ error: 'Failed to update category visibility' });
+    }
+};
+
+// Get active categories for product add/edit
+exports.getActiveCategories = async (req, res, next) => {
+    try {
+        const isAdminRoute = req.path.startsWith('/admin');
+        const filter = isAdminRoute 
+            ? {}  // Show all categories in admin
+            : { isVisible: true };  // Only visible categories for frontend
+
+        const categories = await Category.find(filter).sort({ name: 1 });
+
+        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            return res.json({
+                success: true,
+                categories: categories
+            });
+        }
+
+        res.locals.categories = categories;
+        next();
+    } catch (error) {
+        console.error('Error fetching active categories:', error);
+        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to fetch categories'
+            });
+        }
+        res.locals.categories = [];
+        next();
     }
 }; 
