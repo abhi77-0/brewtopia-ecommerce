@@ -38,229 +38,291 @@
             </div>
         </div>
 
-<!-- Orders List -->
-<% if (orders && orders.length > 0) { %>
-    <div class="orders-container">
-        <% orders.forEach(function(order) { %>
-            <div class="order-card" data-aos="fade-up">
-                <div class="status-timeline mb-4">
-                    <% 
-                    var statuses = ['Pending', 'Processing', 'Shipped', 'Delivered'];
-                    
-                    if (order.status === 'Cancelled') {
-                        // Special handling for cancelled orders
-                    %>
-                        <div class="alert alert-danger" role="alert">
-                            <i class="fas fa-times-circle me-2"></i> Order Cancelled
-                        </div>
-                    <% } else if (order.status === 'Returned') { %>
-                        <div class="alert alert-info" role="alert">
-                            <i class="fas fa-undo-alt me-2"></i> Order Returned
-                        </div>
-                    <% } else if (order.status === 'Return Requested' || order.status === 'ReturnRequested') { %>
-                        <div class="alert alert-warning" role="alert">
-                            <i class="fas fa-hourglass-half me-2"></i> Return Requested
-                        </div>
-                    <% } else if (order.status === 'Return Accepted' || order.status === 'ReturnAccepted') { %>
-                        <div class="alert alert-success" role="alert">
-                            <i class="fas fa-check-circle me-2"></i> Return Accepted
-                        </div>
-                    <% } else { %>
-                        <% var currentIndex = statuses.indexOf(order.status); %>
-                        <div class="timeline-track">
-                            <% statuses.forEach(function(status, index) { %>
-                                <div class="timeline-point <%= index <= currentIndex ? 'active' : '' %>">
-                                    <div class="point"></div>
-                                    <span class="status-text"><%= status %></span>
-                                </div>
-                                <% if (index < statuses.length - 1) { %>
-                                    <div class="timeline-line <%= index < currentIndex ? 'active' : '' %>"></div>
-                                <% } %>
-                            <% }); %>
-                        </div>
-                    <% } %>
-                </div>
-
-                <!-- Order Info -->
-                <div class="order-info">
-                    <div class="order-header mb-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="order-id-container">
-                                <span class="order-label">Order ID</span>
-                                <h5 class="order-id">#<%= order._id.toString().slice(-8).toUpperCase() %></h5>
-                            </div>
-                            <div class="order-status-badge <%= order.status.toLowerCase().replace(' ', '-') %>">
-                                <i class="status-icon fas <%= 
-                                    order.status === 'Pending' ? 'fa-clock' : 
-                                    order.status === 'Processing' ? 'fa-cog fa-spin' : 
-                                    order.status === 'Shipped' ? 'fa-truck' : 
-                                    order.status === 'Delivered' ? 'fa-check-circle' : 
-                                    'fa-times-circle' 
-                                %>"></i>
-                                <%= order.status %>
-                            </div>
-                        </div>
-                        <div class="order-date mt-1">
-                            <i class="far fa-calendar-alt me-1"></i>
-                            Ordered on <%= new Date(order.createdAt).toLocaleDateString('en-US', { 
-                                day: 'numeric', 
-                                month: 'short', 
-                                year: 'numeric' 
-                            }) %>
+        <!-- Search Form -->
+        <div class="search-section mb-4" data-aos="fade-up">
+            <form action="/orders" method="GET" class="search-form">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">Order ID</label>
+                            <input type="text" name="orderId" class="form-control" placeholder="Search by Order ID" value="<%= query.orderId || '' %>">
                         </div>
                     </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="all" <%= !query.status || query.status === 'all' ? 'selected' : '' %>>All Status</option>
+                                <option value="Pending" <%= query.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                                <option value="Processing" <%= query.status === 'Processing' ? 'selected' : '' %>>Processing</option>
+                                <option value="Shipped" <%= query.status === 'Shipped' ? 'selected' : '' %>>Shipped</option>
+                                <option value="Delivered" <%= query.status === 'Delivered' ? 'selected' : '' %>>Delivered</option>
+                                <option value="Cancelled" <%= query.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" name="startDate" class="form-control" value="<%= query.startDate || '' %>">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">End Date</label>
+                            <input type="date" name="endDate" class="form-control" value="<%= query.endDate || '' %>">
+                        </div>
+                    </div>
+                    <div class="col-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i>Search
+                        </button>
+                        <a href="/orders" class="btn btn-secondary">
+                            <i class="fas fa-redo me-1"></i>Reset
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
 
-                    <!-- Order Items -->
-                    <div class="order-items-container">
-                        <% order.items.forEach((item, index) => { %>
-                            <div class="order-item <%= index < order.items.length - 1 ? 'mb-3 pb-3 border-bottom' : '' %>">
-                                <div class="d-flex align-items-center">
-                                    <div class="item-image-wrapper me-3">
-                                        <img src="<%= item.product.images.image1 %>" 
-                                             alt="<%= item.product.name %>"
-                                             class="item-image">
+        <% if (orders && orders.length > 0) { %>
+            <!-- Search Results Summary -->
+            <div class="search-results-summary mb-3" data-aos="fade-up">
+                <p class="text-muted">
+                    Showing <%= orders.length %> of <%= filteredCount %> orders
+                    <% if (Object.keys(query).length > 0 && query.page === undefined) { %>
+                        <span class="ms-2">
+                            <a href="/orders" class="text-primary">
+                                <i class="fas fa-times me-1"></i>Clear filters
+                            </a>
+                        </span>
+                    <% } %>
+                </p>
+            </div>
+
+            <!-- Orders List -->
+            <div class="orders-container">
+                <% orders.forEach(function(order) { %>
+                    <div class="order-card" data-aos="fade-up">
+                        <div class="status-timeline mb-4">
+                            <% 
+                            var statuses = ['Pending', 'Processing', 'Shipped', 'Delivered'];
+                            
+                            if (order.status === 'Cancelled') {
+                                // Special handling for cancelled orders
+                            %>
+                                <div class="alert alert-danger" role="alert">
+                                    <i class="fas fa-times-circle me-2"></i> Order Cancelled
+                                </div>
+                            <% } else if (order.status === 'Returned') { %>
+                                <div class="alert alert-info" role="alert">
+                                    <i class="fas fa-undo-alt me-2"></i> Order Returned
+                                </div>
+                            <% } else if (order.status === 'Return Requested' || order.status === 'ReturnRequested') { %>
+                                <div class="alert alert-warning" role="alert">
+                                    <i class="fas fa-hourglass-half me-2"></i> Return Requested
+                                </div>
+                            <% } else if (order.status === 'Return Accepted' || order.status === 'ReturnAccepted') { %>
+                                <div class="alert alert-success" role="alert">
+                                    <i class="fas fa-check-circle me-2"></i> Return Accepted
+                                </div>
+                            <% } else { %>
+                                <% var currentIndex = statuses.indexOf(order.status); %>
+                                <div class="timeline-track">
+                                    <% statuses.forEach(function(status, index) { %>
+                                        <div class="timeline-point <%= index <= currentIndex ? 'active' : '' %>">
+                                            <div class="point"></div>
+                                            <span class="status-text"><%= status %></span>
+                                        </div>
+                                        <% if (index < statuses.length - 1) { %>
+                                            <div class="timeline-line <%= index < currentIndex ? 'active' : '' %>"></div>
+                                        <% } %>
+                                    <% }); %>
+                                </div>
+                            <% } %>
+                        </div>
+
+                        <!-- Order Info -->
+                        <div class="order-info">
+                            <div class="order-header mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="order-id-container">
+                                        <span class="order-label">Order ID</span>
+                                        <h5 class="order-id">#<%= order._id.toString().slice(-8).toUpperCase() %></h5>
                                     </div>
-                                    <div class="item-details flex-grow-1">
-                                        <h6 class="item-name mb-1"><%= item.product.name %></h6>
-                                        <div class="item-meta d-flex flex-wrap gap-2 mb-2">
-                                            <span class="variant-badge">
-                                                <i class="fas fa-wine-bottle fa-sm me-1"></i><%= item.variant %>
-                                            </span>
-                                            <% if (item.product.brand) { %>
-                                                <span class="brand-badge">
-                                                    <i class="fas fa-tag fa-sm me-1"></i><%= item.product.brand %>
-                                                </span>
+                                    <div class="order-status-badge <%= order.status.toLowerCase().replace(' ', '-') %>">
+                                        <i class="status-icon fas <%= 
+                                            order.status === 'Pending' ? 'fa-clock' : 
+                                            order.status === 'Processing' ? 'fa-cog fa-spin' : 
+                                            order.status === 'Shipped' ? 'fa-truck' : 
+                                            order.status === 'Delivered' ? 'fa-check-circle' : 
+                                            'fa-times-circle' 
+                                        %>"></i>
+                                        <%= order.status %>
+                                    </div>
+                                </div>
+                                <div class="order-date mt-1">
+                                    <i class="far fa-calendar-alt me-1"></i>
+                                    Ordered on <%= new Date(order.createdAt).toLocaleDateString('en-US', { 
+                                        day: 'numeric', 
+                                        month: 'short', 
+                                        year: 'numeric' 
+                                    }) %>
+                                </div>
+                            </div>
+
+                            <!-- Order Items -->
+                            <div class="order-items-container">
+                                <% order.items.forEach((item, index) => { %>
+                                    <div class="order-item <%= index < order.items.length - 1 ? 'mb-3 pb-3 border-bottom' : '' %>">
+                                        <div class="d-flex align-items-center">
+                                            <div class="item-image-wrapper me-3">
+                                                <img src="<%= item.product.images.image1 %>" 
+                                                     alt="<%= item.product.name %>"
+                                                     class="item-image">
+                                            </div>
+                                            <div class="item-details flex-grow-1">
+                                                <h6 class="item-name mb-1"><%= item.product.name %></h6>
+                                                <div class="item-meta d-flex flex-wrap gap-2 mb-2">
+                                                    <span class="variant-badge">
+                                                        <i class="fas fa-wine-bottle fa-sm me-1"></i><%= item.variant %>
+                                                    </span>
+                                                    <% if (item.product.brand) { %>
+                                                        <span class="brand-badge">
+                                                            <i class="fas fa-tag fa-sm me-1"></i><%= item.product.brand %>
+                                                        </span>
+                                                    <% } %>
+                                                </div>
+                                                <div class="item-price-info d-flex justify-content-between align-items-center">
+                                                    <span class="quantity text-muted">
+                                                        <i class="fas fa-times fa-sm me-1"></i><%= item.quantity %>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="item-actions ms-2">
+                                                <% if ((order.status === 'Pending' || order.status === 'Processing') && order.items.length > 1) { %>
+                                                    <button class="btn btn-outline-danger btn-sm delete-product-btn" 
+                                                            onclick="deleteOrderProduct('<%= order._id %>', '<%= item.product._id %>')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                <% } %>
+                                                
+                                                <% if (order.status === 'Delivered') { %>
+                                                    <% if (item.returnStatus === 'pending') { %>
+                                                        <span class="badge bg-warning text-dark ms-2">
+                                                            <i class="fas fa-hourglass-half me-1"></i>Return Pending
+                                                        </span>
+                                                    <% } else if (item.returnStatus === 'accepted') { %>
+                                                        <span class="badge bg-success ms-2">
+                                                            <i class="fas fa-check me-1"></i>Return Accepted
+                                                        </span>
+                                                    <% } else if (item.returnStatus === 'rejected') { %>
+                                                        <span class="badge bg-danger ms-2">
+                                                            <i class="fas fa-times me-1"></i>Return Rejected
+                                                        </span>
+                                                    <% } else { %>
+                                                        <button class="btn btn-outline-warning btn-sm ms-2" 
+                                                                onclick="initiateReturn('<%= order._id %>', '<%= item.product._id %>', '<%= item._id %>')">
+                                                            <i class="fas fa-undo me-1"></i>Return
+                                                        </button>
+                                                    <% } %>
+                                                <% } %>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <% }); %>
+                            </div>
+
+                            <!-- Order Footer with Return Request -->
+                            <div class="order-footer mt-3 pt-3 border-top">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center">
+                                    <div class="delivery-info">
+                                        <% if(order.status !== 'Cancelled'){ %>
+                                            <% if (order.status === 'Delivered') { %>
+                                                <div class="delivered-badge">
+                                                    <i class="fas fa-check-circle me-2 text-success"></i>
+                                                    <span>
+                                                        Delivered on <%= new Date(order.deliveredAt || order.updatedAt || order.createdAt).toLocaleDateString('en-US', { 
+                                                            day: 'numeric', 
+                                                            month: 'short'
+                                                        }) %>
+                                                    </span>
+                                                </div>
+                                            <% } else { %>
+                                                <div class="expected-delivery">
+                                                    <i class="fas fa-truck me-2"></i>
+                                                    <span>Expected by <%= new Date(order.expectedDeliveryDate).toLocaleDateString('en-US', { 
+                                                        day: 'numeric', 
+                                                        month: 'short'
+                                                    }) %></span>
+                                                </div>
                                             <% } %>
-                                        </div>
-                                        <div class="item-price-info d-flex justify-content-between align-items-center">
-                                            <span class="quantity text-muted">
-                                                <i class="fas fa-times fa-sm me-1"></i><%= item.quantity %>
-                                            </span>
-                                        </div>
+                                        <% } %>
                                     </div>
-                                    <div class="item-actions ms-2">
-                                        <% if ((order.status === 'Pending' || order.status === 'Processing') && order.items.length > 1) { %>
-                                            <button class="btn btn-outline-danger btn-sm delete-product-btn" 
-                                                    onclick="deleteOrderProduct('<%= order._id %>', '<%= item.product._id %>')">
-                                                <i class="fas fa-trash"></i>
+                                    <div class="order-actions d-flex flex-wrap gap-2 mt-2 mt-md-0">
+                                        <% if (order.status !== 'Cancelled') { %>
+                                            <button onclick="viewOrderDetails('<%= order._id %>')" 
+                                                    class="btn btn-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>View Details
+                                            </button>
+                                        <% } else { %>
+                                            <button class="btn btn-secondary btn-sm" disabled>
+                                                <i class="fas fa-eye me-1"></i>View Details
                                             </button>
                                         <% } %>
-                                        
-                                        <% if (order.status === 'Delivered') { %>
-                                            <% if (item.returnStatus === 'pending') { %>
-                                                <span class="badge bg-warning text-dark ms-2">
-                                                    <i class="fas fa-hourglass-half me-1"></i>Return Pending
-                                                </span>
-                                            <% } else if (item.returnStatus === 'accepted') { %>
-                                                <span class="badge bg-success ms-2">
-                                                    <i class="fas fa-check me-1"></i>Return Accepted
-                                                </span>
-                                            <% } else if (item.returnStatus === 'rejected') { %>
-                                                <span class="badge bg-danger ms-2">
-                                                    <i class="fas fa-times me-1"></i>Return Rejected
-                                                </span>
-                                            <% } else { %>
-                                                <button class="btn btn-outline-warning btn-sm ms-2" 
-                                                        onclick="initiateReturn('<%= order._id %>', '<%= item.product._id %>', '<%= item._id %>')">
-                                                    <i class="fas fa-undo me-1"></i>Return
-                                                </button>
-                                            <% } %>
+                                        <% if (order.status === 'Processing' || order.status === 'Pending') { %>
+                                            <button onclick="cancelOrder('<%= order._id %>')" 
+                                                    class="btn btn-danger btn-sm">
+                                                <i class="fas fa-times me-1"></i>Cancel Order
+                                            </button>
                                         <% } %>
                                     </div>
                                 </div>
                             </div>
-                        <% }); %>
-                    </div>
-
-                    <!-- Order Footer with Return Request -->
-                    <div class="order-footer mt-3 pt-3 border-top">
-                        <div class="d-flex flex-wrap justify-content-between align-items-center">
-                            <div class="delivery-info">
-                                <% if(order.status !== 'Cancelled'){ %>
-                                    <% if (order.status === 'Delivered') { %>
-                                        <div class="delivered-badge">
-                                            <i class="fas fa-check-circle me-2 text-success"></i>
-                                            <span>
-                                                Delivered on <%= new Date(order.deliveredAt || order.updatedAt || order.createdAt).toLocaleDateString('en-US', { 
-                                                    day: 'numeric', 
-                                                    month: 'short'
-                                                }) %>
-                                            </span>
-                                        </div>
-                                    <% } else { %>
-                                        <div class="expected-delivery">
-                                            <i class="fas fa-truck me-2"></i>
-                                            <span>Expected by <%= new Date(order.expectedDeliveryDate).toLocaleDateString('en-US', { 
-                                                day: 'numeric', 
-                                                month: 'short'
-                                            }) %></span>
-                                        </div>
-                                    <% } %>
-                                <% } %>
-                            </div>
-                            <div class="order-actions d-flex flex-wrap gap-2 mt-2 mt-md-0">
-                                <% if (order.status !== 'Cancelled') { %>
-                                    <button onclick="viewOrderDetails('<%= order._id %>')" 
-                                            class="btn btn-primary btn-sm">
-                                        <i class="fas fa-eye me-1"></i>View Details
-                                    </button>
-                                <% } else { %>
-                                    <button class="btn btn-secondary btn-sm" disabled>
-                                        <i class="fas fa-eye me-1"></i>View Details
-                                    </button>
-                                <% } %>
-                                <% if (order.status === 'Processing' || order.status === 'Pending') { %>
-                                    <button onclick="cancelOrder('<%= order._id %>')" 
-                                            class="btn btn-danger btn-sm">
-                                        <i class="fas fa-times me-1"></i>Cancel Order
-                                    </button>
-                                <% } %>
-                            </div>
                         </div>
                     </div>
+                <% }); %>
+            </div>
+            
+            <!-- Pagination -->
+            <% if (totalPages > 1) { %>
+                <div class="pagination-container" data-aos="fade-up">
+                    <div class="pagination">
+                        <% if (hasPrevPage) { %>
+                            <a href="/orders?page=<%= prevPage %>" class="page-btn">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        <% } %>
+
+                        <% for(let i = 1; i <= totalPages; i++) { %>
+                            <a href="/orders?page=<%= i %>" 
+                               class="page-btn <%= currentPage === i ? 'active' : '' %>">
+                                <%= i %>
+                            </a>
+                        <% } %>
+
+                        <% if (hasNextPage) { %>
+                            <a href="/orders?page=<%= nextPage %>" class="page-btn">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        <% } %>
+                    </div>
                 </div>
+            <% } %>
+        <% } else { %>
+            <!-- Empty State -->
+            <div class="empty-state" data-aos="fade-up">
+                <div class="empty-illustration">
+                    <i class="fas fa-shopping-bag"></i>
+                </div>
+                <h3>No Orders Yet</h3>
+                <p>Time to treat yourself! Start shopping and your orders will appear here.</p>
+                <a href="/shop/products" class="btn btn-primary btn-lg mt-3">
+                    Explore Products
+                </a>
             </div>
-        <% }); %>
+        <% } %>
     </div>
-    
-    <!-- Pagination -->
-    <% if (totalPages > 1) { %>
-        <div class="pagination-container" data-aos="fade-up">
-            <div class="pagination">
-                <% if (hasPrevPage) { %>
-                    <a href="/orders?page=<%= prevPage %>" class="page-btn">
-                        <i class="fas fa-chevron-left"></i>
-                    </a>
-                <% } %>
-
-                <% for(let i = 1; i <= totalPages; i++) { %>
-                    <a href="/orders?page=<%= i %>" 
-                       class="page-btn <%= currentPage === i ? 'active' : '' %>">
-                        <%= i %>
-                    </a>
-                <% } %>
-
-                <% if (hasNextPage) { %>
-                    <a href="/orders?page=<%= nextPage %>" class="page-btn">
-                        <i class="fas fa-chevron-right"></i>
-                    </a>
-                <% } %>
-            </div>
-        </div>
-    <% } %>
-<% } else { %>
-    <!-- Empty State -->
-    <div class="empty-state" data-aos="fade-up">
-        <div class="empty-illustration">
-            <i class="fas fa-shopping-bag"></i>
-        </div>
-        <h3>No Orders Yet</h3>
-        <p>Time to treat yourself! Start shopping and your orders will appear here.</p>
-        <a href="/shop/products" class="btn btn-primary btn-lg mt-3">
-            Explore Products
-        </a>
-    </div>
-<% } %>
 </div>
 
 <!-- Return Request Modal -->
@@ -926,6 +988,78 @@
 #cancelOrderModal textarea:focus {
     border-color: #FF9800;
     box-shadow: 0 0 0 0.2rem rgba(255, 152, 0, 0.25);
+}
+
+/* Add these new styles */
+.search-section {
+    background: var(--white);
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.search-form .form-control,
+.search-form .form-select {
+    border-radius: 8px;
+    border: 1px solid var(--gray-200);
+    padding: 0.6rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.search-form .form-control:focus,
+.search-form .form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(255, 152, 0, 0.25);
+}
+
+.search-form .form-label {
+    color: var(--gray-700);
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.search-form .btn {
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.search-form .btn-primary {
+    background: var(--primary);
+    border: none;
+}
+
+.search-form .btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.search-form .btn-secondary {
+    background: var(--gray-100);
+    border: none;
+    color: var(--gray-700);
+}
+
+.search-form .btn-secondary:hover {
+    background: var(--gray-200);
+    transform: translateY(-2px);
+}
+
+.search-results-summary {
+    font-size: 0.9rem;
+}
+
+.search-results-summary a {
+    text-decoration: none;
+}
+
+.search-results-summary a:hover {
+    text-decoration: underline;
 }
 </style>
 

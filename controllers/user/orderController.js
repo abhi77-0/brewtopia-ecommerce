@@ -374,6 +374,27 @@ const orderController = {
             const page = parseInt(req.query.page) || 1;
             const limit = 4; // Orders per page
 
+            // Build search query
+            let searchQuery = { user: userId };
+
+            // Search by order ID
+            if (req.query.orderId) {
+                searchQuery._id = new RegExp(req.query.orderId, 'i');
+            }
+
+            // Search by status
+            if (req.query.status && req.query.status !== 'all') {
+                searchQuery.status = req.query.status;
+            }
+
+            // Search by date range
+            if (req.query.startDate && req.query.endDate) {
+                searchQuery.createdAt = {
+                    $gte: new Date(req.query.startDate),
+                    $lte: new Date(req.query.endDate + 'T23:59:59.999Z')
+                };
+            }
+
             // Get total counts (independent of pagination)
             const totalOrders = await Order.countDocuments({ user: userId });
             const activeOrders = await Order.countDocuments({ 
@@ -381,13 +402,17 @@ const orderController = {
                 status: { $in: ['Pending', 'Processing'] }
             });
 
+            // Get filtered orders count
+            const filteredCount = await Order.countDocuments(searchQuery);
+
             console.log('Total orders found:', totalOrders);
+            console.log('Filtered orders:', filteredCount);
 
             // Calculate pagination
-            const totalPages = Math.ceil(totalOrders / limit);
+            const totalPages = Math.ceil(filteredCount / limit);
 
-            // Fetch paginated orders
-            const orders = await Order.find({ user: userId })
+            // Fetch paginated and filtered orders
+            const orders = await Order.find(searchQuery)
                 .populate({
                     path: 'items.product',
                     select: 'name images brand variants'
@@ -417,7 +442,9 @@ const orderController = {
                 hasNextPage: page < totalPages,
                 hasPrevPage: page > 1,
                 nextPage: page + 1,
-                prevPage: page - 1
+                prevPage: page - 1,
+                query: req.query, // Pass search parameters back to view
+                filteredCount: filteredCount // Pass filtered count to view
             });
 
         } catch (error) {
