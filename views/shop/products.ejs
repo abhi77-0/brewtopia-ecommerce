@@ -1096,6 +1096,11 @@
                 icon.classList.toggle('fas');
                 button.classList.toggle('active');
 
+                // Update wishlist count in navbar
+                if (window.updateWishlistCount) {
+                    window.updateWishlistCount(data.count);
+                }
+
                 // Show success toast
                 Swal.fire({
                     toast: true,
@@ -1325,6 +1330,11 @@
                     // Close modal
                     bootstrap.Modal.getInstance(modal).hide();
                     
+                    // Update cart count in navbar if it exists
+                    if (window.updateCartCount) {
+                        window.updateCartCount(data.count);
+                    }
+                    
                     // Show success message
                     Swal.fire({
                         title: 'Added to Cart!',
@@ -1339,13 +1349,6 @@
                             window.location.href = '/cart';
                         }
                     });
-                    
-                    // Update cart count in navbar if it exists
-                    const cartBadge = document.querySelector('.cart-badge');
-                    if (cartBadge) {
-                        const currentCount = parseInt(cartBadge.textContent || '0');
-                        cartBadge.textContent = currentCount + 1;
-                    }
                 } else {
                     Swal.fire({
                         title: 'Error!',

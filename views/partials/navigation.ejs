@@ -1,4 +1,23 @@
 <!-- Navigation Icons -->
+<style>
+    .badge-notification {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        font-size: 10px;
+        background-color: #FF9800;
+        color: white;
+        border-radius: 50%;
+        padding: 3px 6px;
+        min-width: 16px;
+        text-align: center;
+    }
+    .nav-icon {
+        position: relative;
+        display: inline-block;
+    }
+</style>
+
 <ul class="navbar-nav ms-auto align-items-center">
     <li class="nav-item dropdown">
         <a class="nav-link user-profile dropdown-toggle" 
@@ -26,13 +45,65 @@
     <li class="nav-item">
         <a class="nav-link nav-icon" href="/users/wishlist" title="Wishlist">
             <i class="fas fa-heart"></i>
-            <span class="badge-notification">0</span>
+            <span class="badge-notification wishlist-count"><%= locals.wishlistCount || 0 %></span>
         </a>
     </li>
     <li class="nav-item">
         <a class="nav-link nav-icon" href="/cart" title="Cart">
             <i class="fas fa-shopping-cart"></i>
-            <span class="badge-notification">0</span>
+            <span class="badge-notification cart-count"><%= locals.cartCount || 0 %></span>
         </a>
     </li>
-</ul> 
+</ul>
+
+<script>
+    // Function to update cart count
+    function updateCartCount(count) {
+        document.querySelectorAll('.cart-count').forEach(elem => {
+            elem.textContent = count;
+        });
+    }
+    
+    // Function to update wishlist count
+    function updateWishlistCount(count) {
+        document.querySelectorAll('.wishlist-count').forEach(elem => {
+            elem.textContent = count;
+        });
+    }
+    
+    // Update cart and wishlist counts on page load
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Check if user is authenticated
+        if (document.querySelector('.dropdown-item[href="/users/logout"]')) {
+            try {
+                // Fetch cart count
+                const cartResponse = await fetch('/cart/count', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (cartResponse.ok) {
+                    const cartData = await cartResponse.json();
+                    if (cartData.success) {
+                        updateCartCount(cartData.count);
+                    }
+                }
+                
+                // Fetch wishlist count
+                const wishlistResponse = await fetch('/users/wishlist/count', {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (wishlistResponse.ok) {
+                    const wishlistData = await wishlistResponse.json();
+                    if (wishlistData.success) {
+                        updateWishlistCount(wishlistData.count);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching item counts:', error);
+            }
+        }
+    });
+    
+    // Make functions available globally
+    window.updateCartCount = updateCartCount;
+    window.updateWishlistCount = updateWishlistCount;
+</script> 

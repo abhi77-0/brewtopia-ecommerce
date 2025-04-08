@@ -178,7 +178,14 @@ exports.addToCart = async (req, res) => {
         }
 
         await cart.save();
-        res.json({ success: true });
+        
+        // Calculate the number of unique products in the cart
+        const uniqueProductCount = cart.items.length;
+        
+        res.json({ 
+            success: true,
+            count: uniqueProductCount
+        });
 
     } catch (error) {
         console.error('Error adding to cart:', error);
@@ -226,9 +233,13 @@ exports.updateCart = async (req, res) => {
         cartItem.quantity = parseInt(quantity);
         await cart.save();
 
+        // Calculate the number of unique products in the cart
+        const uniqueProductCount = cart.items.length;
+
         res.json({
             success: true,
-            message: 'Cart updated successfully'
+            message: 'Cart updated successfully',
+            count: uniqueProductCount
         });
 
     } catch (error) {
@@ -256,7 +267,14 @@ exports.removeFromCart = async (req, res) => {
             return res.status(404).json({ message: 'Item not found in cart' });
         }
 
-        res.status(200).json({ message: 'Item removed successfully' });
+        // Get the updated cart to calculate the new count
+        const updatedCart = await Cart.findOne({ user: userId });
+        const totalItems = updatedCart ? updatedCart.items.reduce((total, item) => total + item.quantity, 0) : 0;
+
+        res.status(200).json({ 
+            message: 'Item removed successfully',
+            count: totalItems
+        });
 
     } catch (error) {
         console.error('Error removing item from cart:', error);
@@ -285,5 +303,50 @@ exports.checkItemInCart = async (req, res) => {
     } catch (error) {
         console.error('Error checking cart:', error);
         res.status(500).json({ error: 'Failed to check cart' });
+    }
+};
+
+// Get cart count
+exports.getCartCount = async (req, res) => {
+    try {
+        if (!req.session.user) {
+            return res.json({
+                success: true,
+                count: 0
+            });
+        }
+
+        // Get user ID - handle both normal and Google auth users
+        const userId = req.session.user._id || req.session.user.id;
+        
+        if (!userId) {
+            return res.json({
+                success: true,
+                count: 0
+            });
+        }
+
+        const cart = await Cart.findOne({ user: userId });
+        
+        if (!cart || !cart.items) {
+            return res.json({
+                success: true,
+                count: 0
+            });
+        }
+
+        // Count the number of unique products in the cart
+        const count = cart.items.length;
+        
+        res.json({
+            success: true,
+            count
+        });
+    } catch (error) {
+        console.error('Error fetching cart count:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch cart count'
+        });
     }
 };

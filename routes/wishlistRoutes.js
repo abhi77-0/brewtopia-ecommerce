@@ -5,6 +5,7 @@ const { isAuthenticated } = require('../middlewares/authMiddleware');
 
 router.get('/users/wishlist', isAuthenticated, wishlistController.getWishlist);
 router.get('/users/wishlist/items', isAuthenticated, wishlistController.getWishlistItems);
+router.get('/users/wishlist/count', wishlistController.getWishlistCount);
 router.post('/users/wishlist/add', isAuthenticated, wishlistController.addToWishlist);
 router.post('/users/wishlist/remove', isAuthenticated, wishlistController.removeFromWishlist);
 router.post('/users/wishlist/move-to-cart', isAuthenticated, wishlistController.moveToCart);

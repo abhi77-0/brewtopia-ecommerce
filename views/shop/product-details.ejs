@@ -1010,6 +1010,11 @@
                 button.classList.toggle('active');
                 text.textContent = isAdding ? 'In Wishlist' : 'Add to Wishlist';
 
+                // Update wishlist count in navbar
+                if (window.updateWishlistCount) {
+                    window.updateWishlistCount(data.count);
+                }
+
                 // Show success toast
                 Swal.fire({
                     toast: true,
@@ -1060,10 +1065,9 @@
         const quantityInput = document.getElementById('quantity');
         const minusBtn = document.querySelector('.qty-btn.minus');
         const plusBtn = document.querySelector('.qty-btn.plus');
-        const selectedPrice = document.getElementById('selectedPrice');
-        const variantInput = document.getElementById('variant');
         const addToCartBtn = document.getElementById('addToCartBtn');
         let selectedStock = 0;
+        let selectedVariant = null;
 
         // Remove disabled attribute from add to cart button
         addToCartBtn.removeAttribute('disabled');
@@ -1080,6 +1084,7 @@
 
                     // Get stock from selected variant
                     selectedStock = parseInt(this.dataset.stock);
+                    selectedVariant = this.dataset.variant;
 
                     // Reset quantity to 1
                     quantityInput.value = 1;
@@ -1100,15 +1105,40 @@
         }
 
         // Quantity button handlers
-        minusBtn.addEventListener('click', () => {
+        minusBtn.addEventListener('click', async () => {
             const currentQty = parseInt(quantityInput.value);
             if (currentQty > 1) {
-                quantityInput.value = currentQty - 1;
-                updateQuantityButtons(currentQty - 1, selectedStock);
+                const newQty = currentQty - 1;
+                quantityInput.value = newQty;
+                updateQuantityButtons(newQty, selectedStock);
+                
+                // Update cart count via AJAX if item is in cart
+                if (selectedVariant) {
+                    try {
+                        const response = await fetch('/cart/update', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                productId: '<%= product._id %>',
+                                variant: selectedVariant,
+                                quantity: newQty
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success && window.updateCartCount) {
+                            window.updateCartCount(data.count);
+                        }
+                    } catch (error) {
+                        console.error('Error updating cart:', error);
+                    }
+                }
             }
         });
 
-        plusBtn.addEventListener('click', () => {
+        plusBtn.addEventListener('click', async () => {
             const currentQty = parseInt(quantityInput.value);
             const maxQty = selectedStock > 5 ? 5 : selectedStock;
             
@@ -1123,8 +1153,33 @@
             }
             
             if (currentQty < maxQty) {
-                quantityInput.value = currentQty + 1;
-                updateQuantityButtons(currentQty + 1, selectedStock);
+                const newQty = currentQty + 1;
+                quantityInput.value = newQty;
+                updateQuantityButtons(newQty, selectedStock);
+                
+                // Update cart count via AJAX if item is in cart
+                if (selectedVariant) {
+                    try {
+                        const response = await fetch('/cart/update', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                productId: '<%= product._id %>',
+                                variant: selectedVariant,
+                                quantity: newQty
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success && window.updateCartCount) {
+                            window.updateCartCount(data.count);
+                        }
+                    } catch (error) {
+                        console.error('Error updating cart:', error);
+                    }
+                }
             }
         });
 

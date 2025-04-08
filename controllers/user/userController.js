@@ -4,6 +4,7 @@ const PendingUser = require("../../models/pendingUserModel");
 const OTP = require("../../models/otpModel");
 const { generateOTP, verifyOTP } = require("../../config/otpService");
 const Address = require("../../models/Address");
+const Product = require("../../models/product");
 
 // Signup Handlers
 exports.renderSignupPage = (req, res) => {
@@ -437,12 +438,60 @@ exports.renderCategoryPage = (req, res) => {
     });
 };
 
-exports.renderHomePage = (req, res) => {
-    res.render("users/home", { 
-        user: req.session.user,
-        featuredProducts: res.locals.featuredProducts || [],
-        title: "Home"
+// Function to apply discounts to products
+const applyDiscounts = (products) => {
+    products.forEach(product => {
+        let bestDiscount = 0;
+        let discountType = null;
+        let discountAmount = 0;
+
+        // Check category offer
+        if (product.categoryOffer && product.categoryOffer.isActive) {
+            const categoryDiscount = product.categoryOffer.discountPercentage;
+            if (categoryDiscount > bestDiscount) {
+                bestDiscount = categoryDiscount;
+                discountType = 'category';
+                discountAmount = (product.price * categoryDiscount) / 100;
+            }
+        }
+
+        // Check product offer
+        if (product.offer && product.offer.isActive) {
+            const productDiscount = product.offer.discountPercentage;
+            if (productDiscount > bestDiscount) {
+                bestDiscount = productDiscount;
+                discountType = 'product';
+                discountAmount = (product.price * productDiscount) / 100;
+            }
+        }
+
+        // Apply the best discount
+        product.finalPrice = product.price - discountAmount;
+        product.discountPercentage = bestDiscount;
+        product.discountType = discountType;
     });
+};
+
+exports.renderHomePage = async (req, res) => {
+    try {
+        const featuredProducts = await Product.find({ featured: true })
+            .limit(8)
+            .populate(['category', 'offer', 'categoryOffer'])
+            .exec();
+        
+        // Apply discounts and calculate final prices
+        applyDiscounts(featuredProducts);
+        
+        res.render("users/home", {
+            user: req.session.user,
+            featuredProducts: res.locals.featuredProducts || [],
+            title: "Home",
+            currentPage: 'home'
+        });
+    } catch (error) {
+        console.error('Home page error:', error);
+        res.status(500).render('error', { message: 'Failed to load home page', error });
+    }
 };
 
 // Function to get all users
