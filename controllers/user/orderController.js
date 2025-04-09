@@ -9,6 +9,7 @@ const Address = require('../../models/Address');
 const Wallet = require('../../models/walletModel');
 const Coupon = require('../../models/Coupon');
 const { updateCouponUsage } = require('../../utils/couponUtils');
+const crypto = require('crypto');
 
 const orderController = {
     placeOrder: async (req, res) => {
@@ -1200,6 +1201,213 @@ const orderController = {
         } catch (error) {
             console.error('Error processing return refund:', error);
             return false;
+        }
+    },
+    // Helper function to create a failed order
+    async createFailedOrder(userId, addressId, failureReason, errorDetails = {}) {
+        try {
+            // Get cart details
+            const cart = await Cart.findOne({ user: userId })
+                .populate({
+                    path: 'items.product',
+                    model: 'Product'
+                });
+            
+            if (!cart) {
+                throw new Error('Cart not found');
+            }
+
+            // Get address details
+            const address = await Address.findById(addressId);
+            if (!address) {
+                throw new Error('Delivery address not found');
+            }
+            
+            // Calculate subtotal and prepare order items
+            let subtotal = 0;
+            const orderItems = cart.items.map(item => {
+                const price = item.product.variants[item.variant].price;
+                subtotal += price * item.quantity;
+                
+                return {
+                    product: item.product._id,
+                    variant: item.variant,
+                    price: price,
+                    quantity: item.quantity,
+                    originalPrice: price,
+                    finalPrice: price
+                };
+            });
+            
+            // Calculate shipping fee
+            const shippingFee = subtotal >= 1000 ? 0 : 40;
+            
+            // Calculate GST (18%)
+            const gst = Math.round(subtotal * 0.18);
+            
+            // Calculate total
+            const total = subtotal + shippingFee + gst;
+            
+            // Create the failed order with payment failure details
+            const order = new Order({
+                user: userId,
+                items: orderItems,
+                address: addressId,
+                paymentMethod: 'razorpay',
+                status: 'Cancelled',
+                paymentStatus: 'Failed',
+                cancelReason: failureReason,
+                subtotal: subtotal,
+                shippingFee: shippingFee,
+                gst: gst,
+                total: Math.round(total),
+                paymentFailure: {
+                    reason: failureReason,
+                    errorCode: errorDetails.errorCode || 'PAYMENT_FAILED',
+                    errorMessage: errorDetails.errorMessage || 'Payment verification failed',
+                    failureDate: new Date(),
+                    razorpayError: errorDetails.razorpayError || {}
+                }
+            });
+            
+            await order.save();
+            
+            return order;
+        } catch (error) {
+            console.error('Error creating failed order:', error);
+            throw error;
+        }
+    },
+    // Verify Razorpay payment
+    verifyPayment: async (req, res) => {
+        try {
+            const { razorpay_payment_id, razorpay_order_id, razorpay_signature, addressId } = req.body;
+            
+            // Get user ID from session
+            const userId = req.session.user?._id || req.session.user?.id;
+            
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'User not authenticated'
+                });
+            }
+            
+            // Verify the payment signature
+            const generated_signature = crypto
+                .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+                .update(razorpay_order_id + "|" + razorpay_payment_id)
+                .digest('hex');
+            
+            if (generated_signature !== razorpay_signature) {
+                // Create a failed order with signature verification failure
+                const failedOrder = await this.createFailedOrder(userId, addressId, 'Payment signature verification failed', {
+                    errorCode: 'SIGNATURE_VERIFICATION_FAILED',
+                    errorMessage: 'The payment signature verification failed',
+                    razorpayError: {
+                        orderId: razorpay_order_id,
+                        paymentId: razorpay_payment_id,
+                        signature: razorpay_signature
+                    }
+                });
+                
+                return res.status(400).json({
+                    success: false,
+                    message: 'Payment verification failed',
+                    orderId: failedOrder._id
+                });
+            }
+            
+            // ... rest of the existing verifyPayment code ...
+            
+        } catch (error) {
+            console.error('Payment verification error:', error);
+            
+            // Try to create a failed order if we have the user ID and address ID
+            try {
+                if (req.body.addressId) {
+                    const failedOrder = await this.createFailedOrder(
+                        req.session.user?._id || req.session.user?.id, 
+                        req.body.addressId, 
+                        'Payment verification failed',
+                        {
+                            errorCode: 'VERIFICATION_ERROR',
+                            errorMessage: error.message || 'An error occurred during payment verification',
+                            razorpayError: error
+                        }
+                    );
+                    
+                    return res.status(500).json({
+                        success: false,
+                        message: 'Payment verification failed',
+                        orderId: failedOrder._id
+                    });
+                }
+            } catch (orderError) {
+                console.error('Error creating failed order:', orderError);
+            }
+            
+            res.status(500).json({
+                success: false,
+                message: 'Payment verification failed',
+                error: error.message
+            });
+        }
+    },
+    // Update the payment status for a previously failed order when payment is successful
+    updatePaymentStatus: async (req, res) => {
+        try {
+            const orderId = req.params.id;
+            const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+
+            // Find the order
+            const order = await Order.findById(orderId);
+            if (!order) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Order not found'
+                });
+            }
+
+            // Verify that the order belongs to the logged-in user
+            const userId = req.user?._id || req.session.user?._id || req.session.user?.id;
+            if (order.user.toString() !== userId.toString()) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You are not authorized to update this order'
+                });
+            }
+
+            // Calculate expected delivery date (7 days from now)
+            const expectedDeliveryDate = new Date();
+            expectedDeliveryDate.setDate(expectedDeliveryDate.getDate() + 7);
+
+            // Update the order status
+            order.status = 'Processing';
+            order.paymentStatus = 'Completed';
+            order.paymentId = razorpay_payment_id;
+            order.razorpayOrderId = razorpay_order_id;
+            order.razorpayPaymentId = razorpay_payment_id;
+            order.razorpaySignature = razorpay_signature;
+            order.cancelReason = null;
+            order.paymentFailure = null;
+            order.expectedDeliveryDate = expectedDeliveryDate;
+            
+            // Save the updated order
+            await order.save();
+
+            return res.status(200).json({
+                success: true,
+                message: 'Order payment status updated successfully',
+                orderId: order._id
+            });
+        } catch (error) {
+            console.error('Error updating payment status:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Error updating payment status',
+                error: error.message
+            });
         }
     },
 }

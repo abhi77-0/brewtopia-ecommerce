@@ -100,6 +100,23 @@ const orderSchema = new mongoose.Schema({
         enum: ['Pending', 'Completed', 'Failed', 'Refunded'],
         default: 'Pending'
     },
+    paymentFailure: {
+        reason: {
+            type: String
+        },
+        errorCode: {
+            type: String
+        },
+        errorMessage: {
+            type: String
+        },
+        failureDate: {
+            type: Date
+        },
+        razorpayError: {
+            type: Object
+        }
+    },
     expectedDeliveryDate: Date,
     deliveredAt: Date,
     subtotal: {

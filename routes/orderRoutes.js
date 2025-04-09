@@ -27,6 +27,8 @@ router.get('/:id/details', isAuthenticated, orderController.getOrderDetails);
 router.delete('/:id/cancel', isAuthenticated, orderController.cancelOrder);
 // router.post('/:id/return', isAuthenticated, orderController.returnOrder);
 router.get('/invoice/:orderId', isAuthenticated, orderController.generateInvoice);
+// Update payment status for failed payment retry
+router.post('/:id/update-payment', isAuthenticated, orderController.updatePaymentStatus);
 
 // Add the new route for deleting a product from an order
 router.delete('/:orderId/products/:productId', isAuthenticated, orderController.deleteProductFromOrder);

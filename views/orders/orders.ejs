@@ -110,10 +110,21 @@
                             
                             if (order.status === 'Cancelled') {
                                 // Special handling for cancelled orders
+                                if (order.paymentStatus === 'Failed') {
                             %>
+                                <div class="alert alert-danger" role="alert">
+                                    <i class="fas fa-times-circle me-2"></i> Payment Failed
+                                    <div class="mt-2">
+                                        <button onclick="retryPayment('<%= order._id %>')" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-redo me-1"></i> Retry Payment
+                                        </button>
+                                    </div>
+                                </div>
+                            <% } else { %>
                                 <div class="alert alert-danger" role="alert">
                                     <i class="fas fa-times-circle me-2"></i> Order Cancelled
                                 </div>
+                            <% } %>
                             <% } else if (order.status === 'Returned') { %>
                                 <div class="alert alert-info" role="alert">
                                     <i class="fas fa-undo-alt me-2"></i> Order Returned
@@ -1319,6 +1330,160 @@ function submitReturn() {
             icon: 'error',
             confirmButtonColor: '#FF9800'
         });
+    });
+}
+
+function retryPayment(orderId) {
+    // Show loading state
+    Swal.fire({
+        title: 'Processing...',
+        text: 'Preparing payment options',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Fetch order details and initiate payment
+    fetch(`/checkout/razorpay/retry/${orderId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success && data.order) {
+            // Initialize Razorpay payment
+            const options = {
+                key: '<%= process.env.RAZORPAY_KEY_ID %>',
+                amount: data.order.amount,
+                currency: "INR",
+                name: "Brewtopia",
+                description: "Order Payment Retry",
+                order_id: data.order.id,
+                handler: function(response) {
+                    // Update the order status when payment is successful
+                    updateOrderPaymentStatus(orderId, response);
+                },
+                prefill: {
+                    name: "<%= user.name %>",
+                    email: "<%= user.email %>",
+                    contact: "<%= user.phone %>"
+                },
+                theme: {
+                    color: "#FF9800"
+                },
+                modal: {
+                    ondismiss: function() {
+                        Swal.fire({
+                            icon: 'error', 
+                            title: '<strong style="color: #f44336;">Payment Failed</strong>', 
+                            html: `
+                                <p style="color: #333; font-size: 16px; font-weight: 400;">
+                                    We were unable to process your payment. Please try again or 
+                                    <a href="#" style="color: #007bff; text-decoration: underline;">contact support</a> for assistance.
+                                </p>
+                            `,
+                            confirmButtonText: 'Close',
+                            confirmButtonColor: '#151D20', 
+                            background: '#f9f9f9', 
+                            footer: '<a href="#" style="color: #007bff;">Need help? Visit our Help Center</a>', 
+                            customClass: {
+                                popup: 'swal-custom-popup',
+                                confirmButton: 'swal-custom-confirm-button'
+                            }
+                        });
+                    }
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
+        } else {
+            throw new Error(data.message || 'Failed to initiate payment');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to initiate payment',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        });
+    });
+}
+
+// New function to update order payment status
+function updateOrderPaymentStatus(orderId, razorpayResponse) {
+    // Show loading while updating order status
+    Swal.fire({
+        title: 'Processing Payment',
+        text: 'Please wait while we update your order...',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        willOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Send request to update the order status
+    fetch(`/orders/${orderId}/update-payment`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+            razorpay_order_id: razorpayResponse.razorpay_order_id,
+            razorpay_signature: razorpayResponse.razorpay_signature
+        })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // Redirect to payment success page instead of showing alert
+            window.location.href = `/checkout/razorpay/success/${orderId}`;
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: result.message || 'There was an error updating your order.',
+                icon: 'error',
+                confirmButtonColor: '#FF9800'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error updating order:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'There was an error updating your order. Please contact support.',
+            icon: 'error',
+            confirmButtonColor: '#FF9800'
+        });
+    });
+}
+
+function handleRetryPaymentSuccess(response, orderId) {
+    // This function is kept for backward compatibility
+    updateOrderPaymentStatus(orderId, response);
+}
+
+function handleRetryPaymentFailure(orderId, message) {
+    Swal.fire({
+        title: 'Payment Failed',
+        text: message || 'Payment was not completed',
+        icon: 'error',
+        confirmButtonColor: '#FF9800'
     });
 }
 </script>

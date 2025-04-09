@@ -382,10 +382,101 @@ exports.createRazorpayOrder = async (req, res) => {
     }
 };
 
+// Helper function to create a failed order
+async function createFailedOrder(userId, addressId, failureReason, errorDetails = {}) {
+    try {
+        console.log('Creating failed order for user:', userId);
+        
+        // Get cart details with populated product details
+        const cart = await Cart.findOne({ user: userId })
+            .populate({
+                path: 'items.product',
+                model: 'Product'
+            });
+            
+        if (!cart) {
+            console.log('Cart not found for user:', userId);
+            throw new Error('Cart not found');
+        }
+
+        // Get address details
+        const address = await Address.findById(addressId);
+        if (!address) {
+            console.log('Address not found:', addressId);
+            throw new Error('Delivery address not found');
+        }
+        
+        // Calculate subtotal and prepare order items
+        let subtotal = 0;
+        const orderItems = cart.items.map(item => {
+            const price = item.product.variants[item.variant].price;
+            subtotal += price * item.quantity;
+            
+            return {
+                product: item.product._id,
+                variant: item.variant,
+                price: price,
+                quantity: item.quantity,
+                originalPrice: price,
+                finalPrice: price
+            };
+        });
+        
+        // Calculate shipping fee
+        const shippingFee = subtotal >= 1000 ? 0 : 40;
+        
+        // Calculate GST (18%)
+        const gst = Math.round(subtotal * 0.18);
+        
+        // Calculate total
+        const total = subtotal + shippingFee + gst;
+        
+        console.log('Creating order with items:', orderItems.length);
+        
+        // Create the failed order with payment failure details
+        const order = new Order({
+            user: userId,
+            items: orderItems,
+            address: addressId,
+            paymentMethod: 'razorpay',
+            status: 'Cancelled',
+            paymentStatus: 'Failed',
+            cancelReason: failureReason,
+            subtotal: subtotal,
+            shippingFee: shippingFee,
+            gst: gst,
+            total: Math.round(total),
+            paymentFailure: {
+                reason: failureReason,
+                errorCode: errorDetails.errorCode || 'PAYMENT_FAILED',
+                errorMessage: errorDetails.errorMessage || 'Payment verification failed',
+                failureDate: new Date(),
+                razorpayError: errorDetails.razorpayError || {}
+            }
+        });
+        
+        // Save the order
+        const savedOrder = await order.save();
+        console.log('Failed order created:', savedOrder._id);
+        
+        // Clear the cart after creating failed order
+        await Cart.findOneAndUpdate(
+            { user: userId },
+            { $set: { items: [] } }
+        );
+        console.log('Cart cleared for user:', userId);
+        
+        return savedOrder;
+    } catch (error) {
+        console.error('Error creating failed order:', error);
+        throw error;
+    }
+}
+
 // Verify Razorpay payment
 exports.verifyPayment = async (req, res) => {
     try {
-        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, addressId } = req.body;
+        const { razorpay_payment_id, razorpay_order_id, razorpay_signature, addressId } = req.body;
         
         // Get user ID from session
         const userId = req.session.user?._id || req.session.user?.id;
@@ -397,6 +488,8 @@ exports.verifyPayment = async (req, res) => {
             });
         }
         
+        console.log('Verifying payment for user:', userId);
+        
         // Verify the payment signature
         const generated_signature = crypto
             .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
@@ -404,9 +497,22 @@ exports.verifyPayment = async (req, res) => {
             .digest('hex');
             
         if (generated_signature !== razorpay_signature) {
+            console.log('Payment signature verification failed');
+            // Create a failed order with signature verification failure
+            const failedOrder = await createFailedOrder(userId, addressId, 'Payment signature verification failed', {
+                errorCode: 'SIGNATURE_VERIFICATION_FAILED',
+                errorMessage: 'The payment signature verification failed',
+                razorpayError: {
+                    orderId: razorpay_order_id,
+                    paymentId: razorpay_payment_id,
+                    signature: razorpay_signature
+                }
+            });
+            
             return res.status(400).json({
                 success: false,
-                message: 'Payment verification failed'
+                message: 'Payment verification failed',
+                orderId: failedOrder._id
             });
         }
         
@@ -443,11 +549,25 @@ exports.verifyPayment = async (req, res) => {
             const price = item.product.variants[item.variant].price;
             subtotal += price * item.quantity;
             
+            // Calculate offer discount for this item
+            let itemDiscount = 0;
+            const offerInfo = calculateBestOffer(item.product);
+            
+            if (offerInfo.bestOffer) {
+                const regularTotal = price * item.quantity;
+                const discountedTotal = regularTotal * (1 - offerInfo.discountPercentage / 100);
+                itemDiscount = regularTotal - discountedTotal;
+            }
+            
             return {
                 product: item.product._id,
                 variant: item.variant,
                 price: price,
-                quantity: item.quantity
+                quantity: item.quantity,
+                originalPrice: price,
+                finalPrice: price,
+                offerDiscount: itemDiscount / item.quantity, // Per item discount
+                couponDiscount: 0
             };
         });
         
@@ -530,86 +650,7 @@ exports.verifyPayment = async (req, res) => {
             };
         }
         
-        // Calculate and set proper discount values for each item
-        if (order && order.items && Array.isArray(order.items)) {
-            // Get cart to access product details with offers
-            const cart = await Cart.findOne({ user: userId })
-                .populate({
-                    path: 'items.product',
-                    model: 'Product',
-                    populate: [
-                        { path: 'offer' },
-                        { path: 'categoryOffer' }
-                    ]
-                });
-            
-            if (cart && cart.items) {
-                // Calculate total cart value for coupon distribution
-                const cartTotal = cart.items.reduce((sum, item) => {
-                    const price = item.product.variants[item.variant].price;
-                    return sum + (price * item.quantity);
-                }, 0);
-                
-                // Get coupon discount from session if exists
-                let totalCouponDiscount = 0;
-                if (req.session.coupon) {
-                    totalCouponDiscount = req.session.coupon.discountAmount || 0;
-                }
-                
-                // Map cart items to order items by product ID and variant
-                for (let i = 0; i < order.items.length; i++) {
-                    const orderItem = order.items[i];
-                    const cartItem = cart.items.find(item => 
-                        item.product._id.toString() === orderItem.product.toString() && 
-                        item.variant === orderItem.variant
-                    );
-                    
-                    if (cartItem) {
-                        // Calculate offer discount
-                        let discountPercentage = 0;
-                        
-                        if (cartItem.product.offer && cartItem.product.offer.isActive !== false && 
-                            new Date() >= new Date(cartItem.product.offer.startDate) && 
-                            new Date() <= new Date(cartItem.product.offer.endDate)) {
-                            discountPercentage = Math.max(discountPercentage, cartItem.product.offer.discountPercentage);
-                        }
-                        
-                        if (cartItem.product.categoryOffer && cartItem.product.categoryOffer.isActive !== false && 
-                            new Date() >= new Date(cartItem.product.categoryOffer.startDate) && 
-                            new Date() <= new Date(cartItem.product.categoryOffer.endDate)) {
-                            discountPercentage = Math.max(discountPercentage, cartItem.product.categoryOffer.discountPercentage);
-                        }
-                        
-                        if (discountPercentage > 0) {
-                            const itemPrice = orderItem.price;
-                            const itemTotal = itemPrice * orderItem.quantity;
-                            orderItem.offerDiscount = Math.round(itemTotal * (discountPercentage / 100));
-                        }
-                        
-                        // Calculate coupon discount (proportional distribution)
-                        if (totalCouponDiscount > 0) {
-                            const itemPrice = orderItem.price;
-                            const itemTotal = itemPrice * orderItem.quantity;
-                            const proportion = itemTotal / cartTotal;
-                            orderItem.couponDiscount = Math.round(totalCouponDiscount * proportion);
-                        }
-                        
-                        // Set originalPrice and finalPrice
-                        orderItem.originalPrice = orderItem.price;
-                        const totalDiscount = (orderItem.offerDiscount || 0) + (orderItem.couponDiscount || 0);
-                        const perUnitDiscount = orderItem.quantity > 0 ? totalDiscount / orderItem.quantity : 0;
-                        orderItem.finalPrice = Math.max(0, orderItem.price - perUnitDiscount);
-                    }
-                }
-            } else {
-                // Fallback if cart not found - set required fields with default values
-                for (let i = 0; i < order.items.length; i++) {
-                    order.items[i].originalPrice = order.items[i].price;
-                    order.items[i].finalPrice = order.items[i].price;
-                }
-            }
-        }
-        
+        // Save the order
         await order.save();
         
         // Update coupon usage if a coupon was used
@@ -632,6 +673,33 @@ exports.verifyPayment = async (req, res) => {
         
     } catch (error) {
         console.error('Payment verification error:', error);
+        
+        // Try to create a failed order if we have the user ID and address ID
+        try {
+            if (req.body.addressId) {
+                const userId = req.session.user?._id || req.session.user?.id;
+                console.log('Creating failed order due to error:', error.message, 'for user:', userId);
+                const failedOrder = await createFailedOrder(
+                    userId, 
+                    req.body.addressId, 
+                    'Payment verification failed',
+                    {
+                        errorCode: 'VERIFICATION_ERROR',
+                        errorMessage: error.message || 'An error occurred during payment verification',
+                        razorpayError: error
+                    }
+                );
+                
+                return res.status(500).json({
+                    success: false,
+                    message: 'Payment verification failed',
+                    orderId: failedOrder._id
+                });
+            }
+        } catch (orderError) {
+            console.error('Error creating failed order:', orderError);
+        }
+        
         res.status(500).json({
             success: false,
             message: 'Payment verification failed',
@@ -669,17 +737,49 @@ exports.paymentSuccess = async (req, res) => {
 // Payment failure page
 exports.paymentFailure = async (req, res) => {
     try {
-        const { orderId } = req.params;
+        const orderId = req.params.orderId;
+        
+        // Find the order with populated details
         const order = await Order.findById(orderId)
-            .populate('items.product');
-
-        res.render('cart/payment-failure', {
+            .populate('items.product')
+            .populate('address')
+            .populate('user')
+            .exec();
+            
+        if (!order) {
+            req.flash('error', 'Order not found');
+            return res.redirect('/orders');
+        }
+        
+        // Format dates
+        const orderDate = new Date(order.createdAt).toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+        
+        const expectedDate = new Date(order.expectedDeliveryDate).toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+        
+        // Render the order details page with payment failure flag
+        res.render('orders/order-details', {
             title: 'Payment Failed',
-            order,
-            user: req.session.user
+            order: order,
+            orderDate: orderDate,
+            expectedDate: expectedDate,
+            user: req.session.user,
+            isPaymentFailed: true,
+            paymentFailureDetails: order.paymentFailure || {
+                reason: 'Payment failed',
+                errorMessage: 'An error occurred during payment processing'
+            }
         });
     } catch (error) {
-        console.error('Error loading failure page:', error);
+        console.error('Error loading payment failure page:', error);
+        req.flash('error', 'Error loading order details');
         res.redirect('/orders');
     }
 };
@@ -951,5 +1051,47 @@ exports.showAvailableCoupons = async (req, res) => {
         console.error('Error fetching available coupons:', error);
         req.flash('error', 'Failed to fetch coupons');
         res.redirect('/cart');
+    }
+};
+
+exports.createFailedOrder = async (req, res) => {
+    try {
+        const { addressId, failureReason } = req.body;
+        
+        // Get user ID from session
+        const userId = req.session.user?._id || req.session.user?.id;
+        
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not authenticated'
+            });
+        }
+        
+        console.log('Creating failed order for user:', userId, 'with address:', addressId);
+        
+        // Create a failed order
+        const failedOrder = await createFailedOrder(
+            userId,
+            addressId,
+            failureReason || 'Payment was cancelled by user',
+            {
+                errorCode: 'USER_CANCELLED',
+                errorMessage: failureReason || 'Payment was cancelled by user'
+            }
+        );
+        
+        return res.status(200).json({
+            success: true,
+            message: 'Failed order created successfully',
+            orderId: failedOrder._id
+        });
+    } catch (error) {
+        console.error('Error creating failed order:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to create order',
+            error: error.message
+        });
     }
 };

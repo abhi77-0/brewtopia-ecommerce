@@ -18,6 +18,7 @@ router.get('/confirmation/:orderId', isAuthenticated, checkoutController.orderCo
 // Add these routes for Razorpay
 router.post('/razorpay/create-order', isAuthenticated, checkoutController.createRazorpayOrder);
 router.post('/razorpay/verify', isAuthenticated, checkoutController.verifyPayment);
+router.post('/razorpay/create-failed-order', isAuthenticated, checkoutController.createFailedOrder);
 router.get('/razorpay/success/:orderId', isAuthenticated, checkoutController.paymentSuccess);
 router.get('/razorpay/failure/:orderId', isAuthenticated, checkoutController.paymentFailure);
 router.get('/razorpay/retry/:orderId', isAuthenticated, checkoutController.retryPayment);
