@@ -1354,7 +1354,7 @@ const orderController = {
             });
         }
     },
-    // Update the payment status for a previously failed order when payment is successful
+    // Update the payment status for a previously failed order when payment is successfull
     updatePaymentStatus: async (req, res) => {
         try {
             const orderId = req.params.id;
