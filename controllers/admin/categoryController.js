@@ -4,7 +4,19 @@ const Product = require('../../models/product');
 // Category management controllers
 exports.getCategories = async (req, res) => {
     try {
+        // Pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 6; 
+        const skip = (page - 1) * limit;
+        
+        // Get total count for pagination
+        const totalCategories = await Category.countDocuments({});
+        const totalPages = Math.ceil(totalCategories / limit);
+        
+        // Get paginated categories
         const categories = await Category.find({})
+            .skip(skip)
+            .limit(limit)
             .lean()
             .exec();
 
@@ -23,7 +35,13 @@ exports.getCategories = async (req, res) => {
             title: 'Manage Categories',
             adminUser: req.session.adminUser,
             path: '/admin/categories',
-            categories: categoriesWithCounts
+            categories: categoriesWithCounts,
+            pagination: {
+                page,
+                limit,
+                totalCategories,
+                totalPages
+            }
         });
     } catch (error) {
         console.error('Error in getCategories:', error);
@@ -31,7 +49,13 @@ exports.getCategories = async (req, res) => {
             title: 'Manage Categories',
             adminUser: req.session.adminUser,
             path: '/admin/categories',
-            categories: []
+            categories: [],
+            pagination: {
+                page: 1,
+                limit: 6,
+                totalCategories: 0,
+                totalPages: 0
+            }
         });
     }
 };

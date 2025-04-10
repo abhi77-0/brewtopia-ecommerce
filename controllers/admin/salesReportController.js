@@ -9,9 +9,10 @@ const salesReportController = {
     // Render sales report page with filters
     getSalesReportPage: async (req, res) => {
         try {
-            // Get total sales for all time
+            // Get total sales for all time - only include delivered, payment completed orders
             const orders = await Order.find({
-                status: { $nin: ['Cancelled', 'Returned'] }
+                status: 'Delivered', // Only include delivered orders
+                paymentStatus: 'Completed' // Only include orders with completed payments
             });
 
             // Calculate summary statistics
@@ -73,10 +74,11 @@ const salesReportController = {
                 end = new Date(now.setHours(23, 59, 59, 999));
             }
             
-            // Query orders within the date range
+            // Query orders within the date range - only include delivered, payment completed orders
             const orders = await Order.find({
                 createdAt: { $gte: start, $lte: end },
-                status: { $nin: ['Cancelled', 'Returned'] } // Exclude cancelled and returned orders
+                status: 'Delivered', // Only include delivered orders
+                paymentStatus: 'Completed' // Only include orders with completed payments
             }).populate({
                 path: 'user',
                 select: 'name email'
@@ -144,10 +146,11 @@ const salesReportController = {
             const end = new Date(endDate);
             end.setHours(23, 59, 59, 999);
             
-            // Query orders within the date range
+            // Query orders within the date range - only include delivered, payment completed orders
             const orders = await Order.find({
                 createdAt: { $gte: start, $lte: end },
-                status: { $nin: ['Cancelled', 'Returned'] }
+                status: 'Delivered', // Only include delivered orders
+                paymentStatus: 'Completed' // Only include orders with completed payments
             }).populate({
                 path: 'user',
                 select: 'name email'
@@ -278,10 +281,11 @@ const salesReportController = {
             const end = new Date(endDate);
             end.setHours(23, 59, 59, 999);
             
-            // Query orders within the date range
+            // Query orders within the date range - only include delivered, payment completed orders
             const orders = await Order.find({
                 createdAt: { $gte: start, $lte: end },
-                status: { $nin: ['Cancelled', 'Returned'] }
+                status: 'Delivered', // Only include delivered orders
+                paymentStatus: 'Completed' // Only include orders with completed payments
             }).populate({
                 path: 'user',
                 select: 'name email'
@@ -412,4 +416,4 @@ const salesReportController = {
     }
 };
 
-module.exports = salesReportController; 
+module.exports = salesReportController;

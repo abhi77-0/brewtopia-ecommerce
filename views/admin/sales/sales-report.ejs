@@ -175,6 +175,12 @@
             color: var(--dark);
         }
 
+        .stat-note {
+            font-size: 0.875rem;
+            color: var(--secondary);
+            margin-top: 0.5rem;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .main-content {
@@ -217,6 +223,7 @@
                     </div>
                     <div class="stat-title">Total Sales</div>
                     <div class="stat-value">₹<%= totalSales || 0 %></div>
+                    <div class="stat-note text-muted small mt-1">From delivered orders only</div>
                 </div>
 
                 <div class="stat-card">
@@ -225,6 +232,7 @@
                     </div>
                     <div class="stat-title">Total Orders</div>
                     <div class="stat-value"><%= totalOrders || 0 %></div>
+                    <div class="stat-note text-muted small mt-1">Delivered orders only</div>
                 </div>
 
                 <div class="stat-card">
@@ -239,6 +247,7 @@
             <div class="report-card">
                 <div class="report-card-header">
                     <h3 class="report-card-title">Generate Sales Report</h3>
+                    <p class="text-muted mb-0 mt-2 small">This report only includes orders that have been delivered and fully paid.</p>
                 </div>
 
                 <div class="report-card-body">

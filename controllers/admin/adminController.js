@@ -178,21 +178,25 @@ const getAdminProducts = async (req, res) => {
     try {
         console.log('=== ADMIN PRODUCTS LISTING ===');
         
-        // Get all products without any filters
-        const allProducts = await Product.find();
-        console.log(`Total products in database: ${allProducts.length}`);
+        // Pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const skip = (page - 1) * limit;
+        
+        // Get total count for pagination
+        const totalProducts = await Product.countDocuments();
+        const totalPages = Math.ceil(totalProducts / limit);
+        
+        // Get paginated products with category populated
+        const products = await Product.find()
+            .populate('category')
+            .skip(skip)
+            .limit(limit);
+            
+        console.log(`Products for page ${page}: ${products.length}`);
         
         // Get categories
         const categories = await Category.find().sort({ name: 1 });
-        
-        // Filter products in memory if needed
-        const products = allProducts.filter(product => {
-            // Only filter by isVisible if you want to show all products in admin
-            // return product.isVisible !== false;
-            return true; // Show all products in admin
-        });
-        
-        console.log(`Filtered products for display: ${products.length}`);
         
         if (products.length > 0) {
             console.log('First product:', {
@@ -219,7 +223,13 @@ const getAdminProducts = async (req, res) => {
             categories,
             brands,
             adminUser: req.session.adminUser,
-            path: '/admin/products'
+            path: '/admin/products',
+            pagination: {
+                page,
+                limit,
+                totalProducts,
+                totalPages
+            }
         });
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -230,7 +240,13 @@ const getAdminProducts = async (req, res) => {
             categories: [],
             brands: [],
             adminUser: req.session.adminUser,
-            path: '/admin/products'
+            path: '/admin/products',
+            pagination: {
+                page: 1,
+                limit: 5,
+                totalProducts: 0,
+                totalPages: 0
+            }
         });
     }
 };

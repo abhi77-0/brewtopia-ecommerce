@@ -126,6 +126,34 @@
                                     <% }) %>
                                 </tbody>
                             </table>
+                            
+                            <!-- Pagination Controls -->
+                            <% if (pagination && pagination.totalPages > 1) { %>
+                                <nav aria-label="Coupon pagination" class="mt-4">
+                                    <ul class="pagination justify-content-center">
+                                        <!-- Previous button -->
+                                        <li class="page-item <%= pagination.page === 1 ? 'disabled' : '' %>">
+                                            <a class="page-link" href="?page=<%= pagination.page - 1 %>" aria-label="Previous">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        </li>
+                                        
+                                        <!-- Page numbers -->
+                                        <% for(let i = 1; i <= pagination.totalPages; i++) { %>
+                                            <li class="page-item <%= pagination.page === i ? 'active' : '' %>">
+                                                <a class="page-link" href="?page=<%= i %>"><%= i %></a>
+                                            </li>
+                                        <% } %>
+                                        
+                                        <!-- Next button -->
+                                        <li class="page-item <%= pagination.page === pagination.totalPages ? 'disabled' : '' %>">
+                                            <a class="page-link" href="?page=<%= pagination.page + 1 %>" aria-label="Next">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            <% } %>
                         </div>
                     </div>
                 </div>
@@ -145,33 +173,40 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label">Coupon Code</label>
-                            <input type="text" class="form-control" name="code" required>
+                            <input type="text" class="form-control" name="code">
+                            <div class="invalid-feedback" id="code-error"></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Description</label>
-                            <textarea class="form-control" name="description" required></textarea>
+                            <textarea class="form-control" name="description"></textarea>
+                            <div class="invalid-feedback" id="description-error"></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Discount Amount (₹)</label>
-                            <input type="number" class="form-control" name="discountAmount" required min="1">
+                            <input type="number" class="form-control" name="discountAmount" min="1">
+                            <div class="invalid-feedback" id="discountAmount-error"></div>
                             <small class="text-muted">Enter the fixed discount amount in rupees</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Minimum Purchase</label>
-                            <input type="number" class="form-control" name="minimumPurchase" required>
+                            <input type="number" class="form-control" name="minimumPurchase">
+                            <div class="invalid-feedback" id="minimumPurchase-error"></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Start Date and Time (UTC)</label>
-                            <input type="datetime-local" class="form-control" name="startDate" required>
+                            <input type="datetime-local" class="form-control" name="startDate">
+                            <div class="invalid-feedback" id="startDate-error"></div>
                             <small class="text-muted">Current time is shown in your local timezone, but stored as UTC</small>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">End Date and Time (UTC)</label>
-                            <input type="datetime-local" class="form-control" name="endDate" required>
+                            <input type="datetime-local" class="form-control" name="endDate">
+                            <div class="invalid-feedback" id="endDate-error"></div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Usage Limit</label>
                             <input type="number" class="form-control" name="usageLimit">
+                            <div class="invalid-feedback" id="usageLimit-error"></div>
                             <small class="text-muted">Leave empty for unlimited uses</small>
                         </div>
                     </div>
@@ -306,8 +341,89 @@
             const addCouponForm = document.getElementById('addCouponForm');
             
             if (addCouponForm) {
+                // Reset all error messages when modal is opened
+                document.getElementById('addCouponModal').addEventListener('show.bs.modal', function() {
+                    resetFormErrors();
+                });
+                
                 addCouponForm.addEventListener('submit', function(e) {
                     e.preventDefault();
+                    
+                    // Reset all error messages
+                    resetFormErrors();
+                    
+                    // Track if form is valid
+                    let isValid = true;
+                    
+                    // Validation
+                    const code = this.querySelector('input[name="code"]');
+                    const description = this.querySelector('textarea[name="description"]');
+                    const discountAmount = this.querySelector('input[name="discountAmount"]');
+                    const minimumPurchase = this.querySelector('input[name="minimumPurchase"]');
+                    const startDate = this.querySelector('input[name="startDate"]');
+                    const endDate = this.querySelector('input[name="endDate"]');
+                    const usageLimit = this.querySelector('input[name="usageLimit"]');
+                    
+                    // Validate code
+                    if (!code.value.trim()) {
+                        showFieldError(code, 'code-error', 'Coupon Code is required');
+                        isValid = false;
+                    } else if (code.value.trim().length < 3 || code.value.trim().length > 15) {
+                        showFieldError(code, 'code-error', 'Coupon Code must be between 3 and 15 characters');
+                        isValid = false;
+                    }
+                    
+                    // Validate description
+                    if (!description.value.trim()) {
+                        showFieldError(description, 'description-error', 'Description is required');
+                        isValid = false;
+                    }
+                    
+                    // Validate discount amount
+                    if (!discountAmount.value.trim() || isNaN(discountAmount.value) || parseFloat(discountAmount.value) <= 0) {
+                        showFieldError(discountAmount, 'discountAmount-error', 'Please enter a valid discount amount greater than 0');
+                        isValid = false;
+                    }
+                    
+                    // Validate minimum purchase
+                    if (!minimumPurchase.value.trim() || isNaN(minimumPurchase.value) || parseFloat(minimumPurchase.value) < 0) {
+                        showFieldError(minimumPurchase, 'minimumPurchase-error', 'Please enter a valid minimum purchase amount (0 or greater)');
+                        isValid = false;
+                    }
+                    
+                    // Validate start date
+                    if (!startDate.value.trim()) {
+                        showFieldError(startDate, 'startDate-error', 'Start date is required');
+                        isValid = false;
+                    }
+                    
+                    // Validate end date
+                    if (!endDate.value.trim()) {
+                        showFieldError(endDate, 'endDate-error', 'End date is required');
+                        isValid = false;
+                    }
+                    
+                    // Compare dates
+                    if (startDate.value && endDate.value) {
+                        const startDateTime = new Date(startDate.value);
+                        const endDateTime = new Date(endDate.value);
+                        
+                        if (endDateTime <= startDateTime) {
+                            showFieldError(endDate, 'endDate-error', 'End date must be after start date');
+                            isValid = false;
+                        }
+                    }
+                    
+                    // Check if usage limit is valid (if provided)
+                    if (usageLimit.value.trim() && (isNaN(usageLimit.value) || parseInt(usageLimit.value) <= 0)) {
+                        showFieldError(usageLimit, 'usageLimit-error', 'Usage limit must be a positive number');
+                        isValid = false;
+                    }
+                    
+                    // If form is not valid, stop submission
+                    if (!isValid) {
+                        return false;
+                    }
                     
                     // Create form data object
                     const formData = new FormData(this);
@@ -360,6 +476,32 @@
                 });
             } else {
                 console.error('Form element not found');
+            }
+            
+            // Helper function to show field-specific errors
+            function showFieldError(field, errorId, message) {
+                field.classList.add('is-invalid');
+                const errorElement = document.getElementById(errorId);
+                if (errorElement) {
+                    errorElement.textContent = message;
+                    errorElement.style.display = 'block';
+                }
+            }
+            
+            // Helper function to reset all form errors
+            function resetFormErrors() {
+                const form = document.getElementById('addCouponForm');
+                const invalidInputs = form.querySelectorAll('.is-invalid');
+                const errorMessages = form.querySelectorAll('.invalid-feedback');
+                
+                invalidInputs.forEach(input => {
+                    input.classList.remove('is-invalid');
+                });
+                
+                errorMessages.forEach(error => {
+                    error.textContent = '';
+                    error.style.display = 'none';
+                });
             }
         });
     </script>

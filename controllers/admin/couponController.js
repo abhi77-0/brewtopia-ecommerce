@@ -2,11 +2,31 @@ const Coupon = require('../../models/Coupon');
 
 exports.getCoupons = async (req, res) => {
     try {
-        const coupons = await Coupon.find().sort({ createdAt: -1 });
+        // Pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const skip = (page - 1) * limit;
+        
+        // Get total count for pagination
+        const totalCoupons = await Coupon.countDocuments();
+        const totalPages = Math.ceil(totalCoupons / limit);
+        
+        // Get paginated coupons
+        const coupons = await Coupon.find()
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit);
+        
         res.render('admin/coupons', {
             title: 'Manage Coupons',
             coupons,
             path: '/admin/coupons',
+            pagination: {
+                page,
+                limit,
+                totalCoupons,
+                totalPages
+            },
             messages: {
                 success: req.flash('success'),
                 error: req.flash('error')

@@ -6,8 +6,20 @@ const mongoose = require('mongoose');
 // Get all offers and render the main offer Page..
 exports.getOffers = async (req, res) => {
     try {
-        // First, get all offers without populating
-        const offers = await Offer.find().sort('-createdAt');
+        // Pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 4;
+        const skip = (page - 1) * limit;
+        
+        // Get total count for pagination
+        const totalOffers = await Offer.countDocuments();
+        const totalPages = Math.ceil(totalOffers / limit);
+        
+        // First, get paginated offers without populating
+        const offers = await Offer.find()
+            .sort('-createdAt')
+            .skip(skip)
+            .limit(limit);
         
         // Manually populate the applicableTo field based on type
         for (let offer of offers) {
@@ -41,6 +53,12 @@ exports.getOffers = async (req, res) => {
             products,
             categories,
             path: '/admin/offers',
+            pagination: {
+                page,
+                limit,
+                totalOffers,
+                totalPages
+            },
             messages: req.flash()
         });
     } catch (error) {
