@@ -204,10 +204,20 @@ const getAdminProducts = async (req, res) => {
             console.log('No products to display');
         }
 
+        // Define brands based on the enum values in Product schema
+        const brands = [
+            { _id: 'kingfisher', name: 'Kingfisher' },
+            { _id: 'heineken', name: 'Heineken' },
+            { _id: 'budweiser', name: 'Budweiser' },
+            { _id: 'corona', name: 'Corona' },
+            { _id: 'carlsberg', name: 'Carlsberg' }
+        ];
+
         res.render('admin/products', {
             title: 'Manage Products',
             products,
             categories,
+            brands,
             adminUser: req.session.adminUser,
             path: '/admin/products'
         });
@@ -218,6 +228,7 @@ const getAdminProducts = async (req, res) => {
             error: 'Error fetching products: ' + error.message,
             products: [],
             categories: [],
+            brands: [],
             adminUser: req.session.adminUser,
             path: '/admin/products'
         });

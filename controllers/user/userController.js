@@ -138,6 +138,18 @@ exports.handleVerifyOtp = async (req, res) => {
             });
         }
         
+        // Check if this is a password reset flow
+        if (req.session.resetEmail && req.session.resetEmail === email) {
+            // OTP verified for password reset - redirect to reset password page
+            await OTP.deleteOne({ email });
+            
+            return res.json({
+                success: true,
+                message: "OTP verified successfully for password reset.",
+                redirectUrl: `/users/reset-password?email=${encodeURIComponent(email)}`
+            });
+        }
+        
         // Handle regular signup verification (existing logic)
         const pendingUser = await PendingUser.findOne({ email });
         
@@ -197,17 +209,26 @@ exports.handleLogin = async (req, res) => {
     try {
         const user = await User.findOne({ email });
         if (!user) {
-            return res.render("users/login", { error: "Invalid email or password" });
+            return res.render("users/login", { 
+                error: "Invalid email or password",
+                user: null
+            });
         }
 
         // Check if the user is blocked
         if (user.blocked) {
-            return res.render("users/login", { error: "Your account is blocked. Please contact support." });
+            return res.render("users/login", { 
+                error: "Your account is blocked. Please contact support.",
+                user: null
+            });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.render("users/login", { error: "Invalid email or password" });
+            return res.render("users/login", { 
+                error: "Invalid email or password",
+                user: null
+            });
         }
 
         req.session.user = { 
@@ -216,10 +237,18 @@ exports.handleLogin = async (req, res) => {
             name: user.name 
         };
 
-        res.redirect("/users/home");
+        // Check if there's a returnTo URL in the session (from authentication middleware)
+        const returnTo = req.session.returnTo;
+        delete req.session.returnTo; // Clear it after use
+        
+        // Redirect to the original URL or home page
+        res.redirect(returnTo || "/users/home");
     } catch (error) {
         console.error("Login error:", error);
-        res.render("login", { error: "An error occurred during login" });
+        res.render("users/login", { 
+            error: "An error occurred during login. Please try again.",
+            user: null
+        });
     }
 };
 
@@ -245,6 +274,8 @@ exports.handleForgotPassword = async (req, res) => {
     const { email } = req.body;
 
     try {
+        console.log('Processing forgot password for:', email);
+        
         const user = await User.findOne({ email });
         
         if (!user) {
@@ -262,17 +293,13 @@ exports.handleForgotPassword = async (req, res) => {
         
         // Store email in session for password reset flow
         req.session.resetEmail = email;
+        console.log('Reset email stored in session:', email);
 
-        res.render("users/verifyOtp", { 
-            email,
-            isEmailUpdate: false,
-            resetPassword: true,
-            error: null,
-            user: null
-        });
+        // Redirect to the OTP verification page with email parameter
+        res.redirect(`/users/verify-otp-reset?email=${encodeURIComponent(email)}`);
     } catch (error) {
         console.error("Forgot password error:", error);
-        res.render("users/forgot-password", { 
+        res.render("users/forgotPassword", { 
             error: "An error occurred. Please try again.",
             user: null
         });
@@ -283,8 +310,10 @@ exports.handleResetPassword = async (req, res) => {
     const { email, password, confirmPassword } = req.body;
 
     try {
+        console.log('Handling reset password for:', email);
+        
         if (password !== confirmPassword) {
-            return res.render('users/reset-password', {
+            return res.render('users/resetPassword', {
                 email,
                 error: 'Passwords do not match',
                 user: null
@@ -293,7 +322,8 @@ exports.handleResetPassword = async (req, res) => {
 
         const user = await User.findOne({ email });
         if (!user) {
-            return res.render('users/reset-password', {
+            console.log('User not found for password reset:', email);
+            return res.render('users/resetPassword', {
                 email,
                 error: 'User not found',
                 user: null
@@ -304,6 +334,7 @@ exports.handleResetPassword = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         user.password = hashedPassword;
         await user.save();
+        console.log('Password reset successful for:', email);
 
         // Clear the reset email from session
         delete req.session.resetEmail;
@@ -313,7 +344,7 @@ exports.handleResetPassword = async (req, res) => {
 
     } catch (error) {
         console.error('Password reset error:', error);
-        res.render('users/reset-password', {
+        res.render('users/resetPassword', {
             email,
             error: 'Error resetting password. Please try again.',
             user: null
@@ -566,13 +597,17 @@ exports.handleGoogleAuthCallback = (req, res) => {
                 isAuthenticated: true
             };
             
+            // Get the return URL from session (if exists)
+            const returnTo = req.session.returnTo;
+            delete req.session.returnTo; // Clear after use
+            
             // Save session before redirecting
             req.session.save((err) => {
                 if (err) {
                     console.error('Error saving session:', err);
                 }
                 console.log("Session saved, redirecting to home");
-                res.redirect('/users/home');
+                res.redirect(returnTo || '/users/home');
             });
         }
     } catch (error) {
@@ -965,3 +1000,24 @@ exports.changePassword = async (req, res) => {
         });
     }
 }
+
+// Render OTP verification page for password reset
+exports.renderVerifyOtpForPasswordReset = (req, res) => {
+    const { email } = req.query;
+    
+    // Ensure email is present and matches the reset email in session
+    if (!email || !req.session.resetEmail || email !== req.session.resetEmail) {
+        console.log('Invalid email for password reset OTP verification:', email);
+        return res.redirect('/users/forgot-password');
+    }
+    
+    console.log('Rendering OTP verification for password reset:', email);
+    
+    res.render("users/verifyOtp", { 
+        email,
+        isEmailUpdate: false,
+        resetPassword: true,
+        error: null,
+        user: null
+    });
+};

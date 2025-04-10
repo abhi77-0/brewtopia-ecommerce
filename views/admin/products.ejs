@@ -339,117 +339,97 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="addProductForm" enctype="multipart/form-data">
-                        <div class="row mb-4">
-                            <!-- Product Name -->
-                            <div class="col-md-6 mb-3">
+                    <form id="addProductForm" enctype="multipart/form-data" novalidate>
+                        <input type="hidden" name="abv" value="5.0">
+                        <div class="row mb-3">
+                            <div class="col-12">
                                 <label class="form-label">Product Name</label>
-                                <input type="text" name="name" class="form-control" required>
-                            </div>
-                            
-                            <!-- Category -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Category</label>
-                                <select name="category" class="form-control" required>
-                                    <option value="">Select Category</option>
-                                    <% if (categories && categories.length > 0) { %>
-                                        <% categories.forEach(function(category) { %>
-                                            <option value="<%= category._id %>">
-                                                <%= category.name %>
-                                            </option>
-                                        <% }); %>
-                                    <% } else { %>
-                                        <option value="" disabled>No categories available</option>
-                                    <% } %>
-                                </select>
-                            </div>
-
-                            <!-- Brand -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Brand</label>
-                                <select name="brand" class="form-control" required>
-                                    <option value="">Select Brand</option>
-                                    <option value="kingfisher">Kingfisher</option>
-                                    <option value="heineken">Heineken</option>
-                                    <option value="budweiser">Budweiser</option>
-                                    <option value="corona">Corona</option>
-                                    <option value="carlsberg">Carlsberg</option>
-                                </select>
-                            </div>
-
-                            <!-- Description -->
-                            <div class="col-12 mb-3">
-                                <label class="form-label">Description</label>
-                                <textarea name="description" class="form-control" rows="3" required></textarea>
+                                <input type="text" name="name" class="form-control" data-validation="required">
+                                <div class="invalid-feedback"></div>
                             </div>
                         </div>
-
-                        <!-- Product Images -->
-                        <div class="row mb-4">
-                            <h6 class="mb-3">Product Images</h6>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Image 1</label>
-                                <input type="file" name="image1" class="form-control image-input" accept="image/*" required>
-                                <div class="image-preview mt-2" id="preview1">
-                                    <i class="fas fa-image"></i>
-                                </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label class="form-label">Category</label>
+                                <select name="category" class="form-control" data-validation="required">
+                                    <option value="">Select Category</option>
+                                    <% categories.forEach(category => { %>
+                                        <option value="<%= category._id %>"><%= category.name %></option>
+                                    <% }); %>
+                                </select>
+                                <div class="invalid-feedback"></div>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Brand</label>
+                                <select name="brand" class="form-control" data-validation="required">
+                                    <option value="">Select Brand</option>
+                                    <% brands.forEach(brand => { %>
+                                        <option value="<%= brand._id %>"><%= brand.name %></option>
+                                    <% }); %>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea name="description" class="form-control" rows="3" data-validation="required"></textarea>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <label class="form-label">Image 1</label>
+                                <input type="file" name="image1" class="form-control image-input" accept="image/*" data-validation="required">
+                                <div class="image-preview" id="preview1"><i class="fas fa-plus"></i></div>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-4 mb-3 mb-md-0">
                                 <label class="form-label">Image 2</label>
                                 <input type="file" name="image2" class="form-control image-input" accept="image/*">
-                                <div class="image-preview mt-2" id="preview2">
-                                    <i class="fas fa-image"></i>
-                                </div>
+                                <div class="image-preview" id="preview2"><i class="fas fa-plus"></i></div>
                             </div>
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-4">
                                 <label class="form-label">Image 3</label>
                                 <input type="file" name="image3" class="form-control image-input" accept="image/*">
-                                <div class="image-preview mt-2" id="preview3">
-                                    <i class="fas fa-image"></i>
-                                </div>
+                                <div class="image-preview" id="preview3"><i class="fas fa-plus"></i></div>
                             </div>
                         </div>
-
-                        <!-- Variants -->
-                        <div class="row mb-4">
-                            <h6 class="mb-3">Product Variants</h6>
-                            <!-- 500ml Variant -->
-                            <div class="col-md-6 mb-3">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h6>500ml Variant</h6>
-                                        <div class="mb-3">
-                                            <label class="form-label">Price (₹)</label>
-                                            <input type="number" name="price500ml" class="form-control" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Stock</label>
-                                            <input type="number" name="stock500ml" class="form-control" required>
-                                        </div>
+                        <div class="row align-items-center">
+                            <div class="col-md-6 mb-4">
+                                <div class="p-3 rounded shadow-sm bg-light">
+                                    <h6>500ml Variant</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Price (₹)</label>
+                                        <input type="number" name="price500ml" class="form-control" data-validation="required" data-validation-min="1">
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                    <div class="mb-0">
+                                        <label class="form-label">Stock</label>
+                                        <input type="number" name="stock500ml" class="form-control" data-validation="required" data-validation-min="0">
+                                        <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
                             </div>
-                            <!-- 650ml Variant -->
-                            <div class="col-md-6 mb-3">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h6>650ml Variant</h6>
-                                        <div class="mb-3">
-                                            <label class="form-label">Price (₹)</label>
-                                            <input type="number" name="price650ml" class="form-control" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Stock</label>
-                                            <input type="number" name="stock650ml" class="form-control" required>
-                                        </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="p-3 rounded shadow-sm bg-light">
+                                    <h6>650ml Variant</h6>
+                                    <div class="mb-3">
+                                        <label class="form-label">Price (₹)</label>
+                                        <input type="number" name="price650ml" class="form-control" data-validation="required" data-validation-min="1">
+                                        <div class="invalid-feedback"></div>
+                                    </div>
+                                    <div class="mb-0">
+                                        <label class="form-label">Stock</label>
+                                        <input type="number" name="stock650ml" class="form-control" data-validation="required" data-validation-min="0">
+                                        <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="submit" class="btn btn-primary">Add Product</button>
+                            <button type="submit" class="btn btn-primary" id="addProductBtn">Add Product</button>
                         </div>
                     </form>
                 </div>
@@ -466,112 +446,115 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="editProductForm" enctype="multipart/form-data">
-                        <input type="hidden" name="productId">
-                        <div class="row mb-4">
-                            <div class="col-md-6 mb-3">
-                                <div class="mb-3">
-                                    <label class="form-label">Product Name</label>
-                                    <input type="text" name="name" class="form-control" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Category</label>
-                                    <select name="category" class="form-control" required>
-                                        <option value="">Select Category</option>
-                                        <% if (categories && categories.length > 0) { %>
-                                            <% categories.forEach(function(category) { %>
-                                                <option value="<%= category._id %>"><%= category.name %></option>
-                                            <% }); %>
-                                        <% } else { %>
-                                            <option value="" disabled>No categories available</option>
-                                        <% } %>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Brand</label>
-                                    <select name="brand" class="form-control" required>
-                                        <option value="">Select Brand</option>
-                                        <option value="kingfisher">Kingfisher</option>
-                                        <option value="heineken">Heineken</option>
-                                        <option value="budweiser">Budweiser</option>
-                                        <option value="corona">Corona</option>
-                                        <option value="carlsberg">Carlsberg</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="mb-3">
-                                    <label class="form-label">Description</label>
-                                    <textarea name="description" class="form-control" rows="5" required></textarea>
-                                </div>
+                    <form id="editProductForm" enctype="multipart/form-data" novalidate>
+                        <input type="hidden" name="productId" id="editProductId">
+                        <input type="hidden" name="abv" value="5.0">
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label class="form-label">Product Name</label>
+                                <input type="text" name="name" class="form-control" data-validation="required">
+                                <div class="invalid-feedback"></div>
                             </div>
                         </div>
-
-                        <!-- Product Images -->
+                        <div class="row mb-3">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label class="form-label">Category</label>
+                                <select name="category" class="form-control" data-validation="required">
+                                    <option value="">Select Category</option>
+                                    <% categories.forEach(category => { %>
+                                        <option value="<%= category._id %>"><%= category.name %></option>
+                                    <% }); %>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Brand</label>
+                                <select name="brand" class="form-control" data-validation="required">
+                                    <option value="">Select Brand</option>
+                                    <% brands.forEach(brand => { %>
+                                        <option value="<%= brand._id %>"><%= brand.name %></option>
+                                    <% }); %>
+                                </select>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <label class="form-label">Description</label>
+                                <textarea name="description" class="form-control" rows="5" data-validation="required"></textarea>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
                         <div class="row mb-4">
-                            <h6>Product Images</h6>
-                            <div class="col-md-4 mb-3">
-                                <div class="mb-3">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <label class="form-label">Main Image</label>
-                                    <input type="file" name="image1" class="form-control" accept="image/*">
-                                    <div class="image-preview" id="preview1Edit">
-                                        <i class="fas fa-image"></i>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="keepImage1">
+                                        <label class="form-check-label" for="keepImage1">Keep current</label>
                                     </div>
                                 </div>
+                                <input type="file" name="image1" class="form-control" accept="image/*">
+                                <div class="image-preview mt-2" id="editPreview1"><i class="fas fa-plus"></i></div>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <div class="mb-3">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <label class="form-label">Second Image</label>
-                                    <input type="file" name="image2" class="form-control" accept="image/*">
-                                    <div class="image-preview" id="preview2Edit">
-                                        <i class="fas fa-image"></i>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="keepImage2">
+                                        <label class="form-check-label" for="keepImage2">Keep current</label>
                                     </div>
                                 </div>
+                                <input type="file" name="image2" class="form-control" accept="image/*">
+                                <div class="image-preview mt-2" id="editPreview2"><i class="fas fa-plus"></i></div>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <div class="mb-3">
+                            <div class="col-md-4">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <label class="form-label">Third Image</label>
-                                    <input type="file" name="image3" class="form-control" accept="image/*">
-                                    <div class="image-preview" id="preview3Edit">
-                                        <i class="fas fa-image"></i>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="keepImage3">
+                                        <label class="form-check-label" for="keepImage3">Keep current</label>
                                     </div>
                                 </div>
+                                <input type="file" name="image3" class="form-control" accept="image/*">
+                                <div class="image-preview mt-2" id="editPreview3"><i class="fas fa-plus"></i></div>
                             </div>
                         </div>
-
-                        <!-- Variants -->
-                        <div class="row mb-4">
-                            <div class="col-md-6 mb-3">
-                                <div class="variant-section">
+                        <div class="row align-items-center">
+                            <div class="col-md-6 mb-4">
+                                <div class="p-3 rounded shadow-sm bg-light">
                                     <h6>500ml Variant</h6>
                                     <div class="mb-3">
                                         <label class="form-label">Price (₹)</label>
-                                        <input type="number" name="price500ml" step="0.01" class="form-control" required>
+                                        <input type="number" name="price500ml" step="0.01" class="form-control" data-validation="required" data-validation-min="1">
+                                        <div class="invalid-feedback"></div>
                                     </div>
-                                    <div class="mb-3">
+                                    <div class="mb-0">
                                         <label class="form-label">Stock</label>
-                                        <input type="number" name="stock500ml" class="form-control" required>
+                                        <input type="number" name="stock500ml" class="form-control" data-validation="required" data-validation-min="0">
+                                        <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="variant-section">
+                            <div class="col-md-6 mb-4">
+                                <div class="p-3 rounded shadow-sm bg-light">
                                     <h6>650ml Variant</h6>
                                     <div class="mb-3">
                                         <label class="form-label">Price (₹)</label>
-                                        <input type="number" name="price650ml" step="0.01" class="form-control" required>
+                                        <input type="number" name="price650ml" step="0.01" class="form-control" data-validation="required" data-validation-min="1">
+                                        <div class="invalid-feedback"></div>
                                     </div>
-                                    <div class="mb-3">
+                                    <div class="mb-0">
                                         <label class="form-label">Stock</label>
-                                        <input type="number" name="stock650ml" class="form-control" required>
+                                        <input type="number" name="stock650ml" class="form-control" data-validation="required" data-validation-min="0">
+                                        <div class="invalid-feedback"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                            <button type="submit" class="btn btn-primary" id="updateProductBtn">Update Product</button>
                         </div>
                     </form>
                 </div>
@@ -743,76 +726,6 @@
             });
         }
 
-        document.getElementById('addProductForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            try {
-                // Show loading state
-                Swal.fire({
-                    title: 'Adding Product...',
-                    text: 'Please wait while we process your request.',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                const formData = new FormData(this);
-                
-                // Format variants data
-                const variants = {
-                    '500ml': {
-                        price: parseFloat(formData.get('price500ml')),
-                        stock: parseInt(formData.get('stock500ml')),
-                        mrp: parseFloat(formData.get('price500ml'))
-                    },
-                    '650ml': {
-                        price: parseFloat(formData.get('price650ml')),
-                        stock: parseInt(formData.get('stock650ml')),
-                        mrp: parseFloat(formData.get('price650ml'))
-                    }
-                };
-
-                // Remove individual variant fields and add formatted variants
-                formData.delete('price500ml');
-                formData.delete('stock500ml');
-                formData.delete('price650ml');
-                formData.delete('stock650ml');
-                formData.append('variants', JSON.stringify(variants));
-
-                const response = await fetch('/admin/products/add', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'Failed to add product');
-                }
-
-                // Show success message
-                await Swal.fire({
-                    title: 'Success!',
-                    text: 'Product added successfully',
-                    icon: 'success',
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-
-                // Close modal and refresh page
-                bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
-                window.location.reload();
-            } catch (error) {
-                Swal.fire({
-                    title: 'Error!',
-                    text: error.message,
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
-            }
-        });
-
         // Image preview functionality
         document.querySelectorAll('.image-input').forEach((input, index) => {
             const previewId = `preview${index + 1}`;
@@ -881,6 +794,269 @@
                 if (!previewDiv.querySelector('.spinner-border')) {
                     input.click();
                 }
+            });
+        });
+
+        // Add the form validation after the existing code
+        document.addEventListener('DOMContentLoaded', function() {
+            // Form validation function
+            function validateForm(formElement) {
+                let isValid = true;
+                const formFields = formElement.querySelectorAll('[data-validation]');
+                
+                // Reset all fields to valid state
+                formFields.forEach(field => {
+                    field.classList.remove('is-invalid');
+                    const feedbackElement = field.nextElementSibling;
+                    if (feedbackElement && feedbackElement.classList.contains('invalid-feedback')) {
+                        feedbackElement.textContent = '';
+                    }
+                });
+                
+                // Validate each field
+                formFields.forEach(field => {
+                    const validationRules = field.dataset.validation ? field.dataset.validation.split(' ') : [];
+                    
+                    // Check required fields
+                    if (validationRules.includes('required') && !field.value.trim()) {
+                        isValid = false;
+                        field.classList.add('is-invalid');
+                        const feedbackElement = field.nextElementSibling;
+                        if (feedbackElement && feedbackElement.classList.contains('invalid-feedback')) {
+                            feedbackElement.textContent = 'This field is required';
+                        }
+                    }
+                    
+                    // Check minimum value for number inputs
+                    if (field.type === 'number' && field.value && field.dataset.validationMin !== undefined) {
+                        const minValue = parseFloat(field.dataset.validationMin);
+                        if (parseFloat(field.value) < minValue) {
+                            isValid = false;
+                            field.classList.add('is-invalid');
+                            const feedbackElement = field.nextElementSibling;
+                            if (feedbackElement && feedbackElement.classList.contains('invalid-feedback')) {
+                                feedbackElement.textContent = `Value must be at least ${minValue}`;
+                            }
+                        }
+                    }
+                });
+                
+                return isValid;
+            }
+            
+            // Add Product form submission
+            document.getElementById('addProductForm').addEventListener('submit', function(e) {
+                // Prevent default form submission first
+                e.preventDefault();
+                
+                // Perform validation
+                const isValid = validateForm(this);
+                
+                // If validation fails, just focus on the first invalid field without showing a SweetAlert
+                if (!isValid) {
+                    // Find the first invalid field
+                    const firstInvalid = this.querySelector('.is-invalid');
+                    if (firstInvalid) {
+                        // Scroll into view and focus
+                        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstInvalid.focus();
+                    }
+                    return false;
+                }
+                
+                // If validation passes, continue with the AJAX submit
+                // Show loading state
+                const submitBtn = document.querySelector('#addProductForm button[type="submit"]');
+                const originalBtnText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+                
+                // Rest of the AJAX submission code
+                // Create FormData
+                const formData = new FormData(this);
+                
+                // Format variants data
+                const variants = {
+                    '500ml': {
+                        price: parseFloat(formData.get('price500ml')) || 0,
+                        stock: parseInt(formData.get('stock500ml')) || 0,
+                        mrp: parseFloat(formData.get('price500ml')) || 0
+                    },
+                    '650ml': {
+                        price: parseFloat(formData.get('price650ml')) || 0,
+                        stock: parseInt(formData.get('stock650ml')) || 0,
+                        mrp: parseFloat(formData.get('price650ml')) || 0
+                    }
+                };
+                
+                // Remove individual variant fields and add formatted variants
+                formData.delete('price500ml');
+                formData.delete('stock500ml');
+                formData.delete('price650ml');
+                formData.delete('stock650ml');
+                formData.append('variants', JSON.stringify(variants));
+                
+                // Submit via AJAX
+                fetch('/admin/products/add', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Close modal
+                        bootstrap.Modal.getInstance(document.getElementById('addProductModal')).hide();
+                        
+                        // Show success message only for successful submission
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Product created successfully'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        // For server-side validation errors, show as form errors instead of SweetAlert
+                        if (data.error) {
+                            // Show the error as text below the form
+                            const errorMessageElement = document.createElement('div');
+                            errorMessageElement.className = 'alert alert-danger mt-3';
+                            errorMessageElement.textContent = data.error;
+                            
+                            // Insert at the top of the form
+                            this.insertAdjacentElement('afterbegin', errorMessageElement);
+                            
+                            // Scroll to the error message
+                            errorMessageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    
+                    // Show error message as text in the form instead of SweetAlert
+                    const errorMessageElement = document.createElement('div');
+                    errorMessageElement.className = 'alert alert-danger mt-3';
+                    errorMessageElement.textContent = 'An error occurred while creating the product. Please try again.';
+                    
+                    // Insert at the top of the form
+                    this.insertAdjacentElement('afterbegin', errorMessageElement);
+                })
+                .finally(() => {
+                    // Reset button state
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                });
+            });
+            
+            // Edit Product form submission
+            document.getElementById('editProductForm').addEventListener('submit', function(e) {
+                // Prevent default form submission
+                e.preventDefault();
+                
+                // Perform validation
+                const isValid = validateForm(this);
+                
+                // If validation fails, just focus on the first invalid field without SweetAlert
+                if (!isValid) {
+                    // Find the first invalid field
+                    const firstInvalid = this.querySelector('.is-invalid');
+                    if (firstInvalid) {
+                        // Scroll into view and focus
+                        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstInvalid.focus();
+                    }
+                    return false;
+                }
+                
+                // If validation passes, continue with the AJAX submit
+                // Show loading state
+                const submitBtn = document.querySelector('#editProductForm button[type="submit"]');
+                const originalBtnText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating...';
+                
+                // Rest of the form submission code
+                // Create FormData
+                const formData = new FormData(this);
+                
+                // Add keep image flags
+                formData.append('keepImage1', document.getElementById('keepImage1').checked);
+                formData.append('keepImage2', document.getElementById('keepImage2').checked);
+                formData.append('keepImage3', document.getElementById('keepImage3').checked);
+                
+                // Format variants data
+                const variants = {
+                    '500ml': {
+                        price: parseFloat(formData.get('price500ml')) || 0,
+                        stock: parseInt(formData.get('stock500ml')) || 0,
+                        mrp: parseFloat(formData.get('price500ml')) || 0
+                    },
+                    '650ml': {
+                        price: parseFloat(formData.get('price650ml')) || 0,
+                        stock: parseInt(formData.get('stock650ml')) || 0,
+                        mrp: parseFloat(formData.get('price650ml')) || 0
+                    }
+                };
+                
+                // Remove individual variant fields and add formatted variants
+                formData.delete('price500ml');
+                formData.delete('stock500ml');
+                formData.delete('price650ml');
+                formData.delete('stock650ml');
+                formData.append('variants', JSON.stringify(variants));
+                
+                // Submit via AJAX
+                fetch('/admin/products/update', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Close modal
+                        bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
+                        
+                        // Show success message only for successful update
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Product updated successfully'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        // For server-side validation errors, show as form errors instead of SweetAlert
+                        if (data.error) {
+                            // Show the error as text below the form
+                            const errorMessageElement = document.createElement('div');
+                            errorMessageElement.className = 'alert alert-danger mt-3';
+                            errorMessageElement.textContent = data.error;
+                            
+                            // Insert at the top of the form
+                            this.insertAdjacentElement('afterbegin', errorMessageElement);
+                            
+                            // Scroll to the error message
+                            errorMessageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    
+                    // Show error message as text in the form instead of SweetAlert
+                    const errorMessageElement = document.createElement('div');
+                    errorMessageElement.className = 'alert alert-danger mt-3';
+                    errorMessageElement.textContent = 'An error occurred while updating the product. Please try again.';
+                    
+                    // Insert at the top of the form
+                    this.insertAdjacentElement('afterbegin', errorMessageElement);
+                })
+                .finally(() => {
+                    // Reset button state
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnText;
+                });
             });
         });
     </script>

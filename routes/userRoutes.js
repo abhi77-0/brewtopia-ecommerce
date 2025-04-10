@@ -67,6 +67,9 @@ router.get('/address/:id', isAuthenticated, userController.getAddress);
 router.put('/address/:id', isAuthenticated, userController.updateAddress);
 router.delete('/address/:id', isAuthenticated, userController.deleteAddress);
 
+// OTP verification for password reset
+router.get("/verify-otp-reset", userController.renderVerifyOtpForPasswordReset);
+
 // Reset password routes
 router.get("/reset-password", userController.renderResetPasswordPage);
 router.post("/reset-password", validateResetPassword, userController.handleResetPassword);
