@@ -18,6 +18,10 @@ const pendingUserSchema = new Schema({
         type: String,
         required: [true, 'Password is required']
     },
+    referralCode: {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+    },
     createdAt: {
         type: Date,
         default: Date.now,

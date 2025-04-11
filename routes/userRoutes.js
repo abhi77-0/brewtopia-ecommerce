@@ -83,4 +83,5 @@ router.get('/coupons', isAuthenticated, checkoutController.showAvailableCoupons)
 // Email change verification route
 router.get('/verify-email-change', isAuthenticated, userController.renderEmailChangeVerification);
 
+
 module.exports = router;

@@ -49,6 +49,20 @@ const userSchema = new Schema({
         type: Boolean,
         default: false
     },
+    // Referral system fields
+    referralCode: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
+    referredBy: {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    referralCount: {
+        type: Number,
+        default: 0
+    },
     // For email verification
     newEmail: String,
     emailVerificationToken: String,
@@ -80,6 +94,19 @@ const userSchema = new Schema({
 // Add indexes
 userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
+userSchema.index({ referralCode: 1 });
+
+// Generate referral code before saving
+userSchema.pre('save', async function(next) {
+    if (!this.referralCode) {
+        let code;
+        do {
+            code = Math.random().toString(36).substring(2, 8).toUpperCase();
+        } while (await this.constructor.findOne({ referralCode: code }));
+        this.referralCode = code;
+    }
+    next();
+});
 
 //const User = mongoose.model('User', userSchema);
 const User = mongoose.models.User || mongoose.model('User', userSchema);

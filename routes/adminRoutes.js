@@ -46,8 +46,9 @@ router.put('/users/:id/block', isAdmin, adminController.toggleUserBlockStatus);
 router.get('/categories', isAdmin, categoryController.getCategories);
 router.get('/categories/:id', isAdmin, categoryController.getCategory);
 router.post('/categories/add', isAdmin, categoryController.addCategory);
-router.put('/categories/:categoryId', isAdmin, categoryController.updateCategory);
+router.put('/categories/edit',isAdmin,categoryController.updateCategory);
 router.patch('/categories/:id/toggle-visibility', isAdmin, categoryController.toggleVisibility);
+
 
 // Order Management Routes
 router.get('/orders', isAdmin, orderController.getAllOrders);
@@ -105,6 +106,7 @@ router.get('/download/excel', isAdmin, salesReportController.downloadExcel);
 
 // Wallet Management
 router.get('/wallet-management', isAdmin, dashboardController.getWalletManagement);
+
 
 
 

@@ -106,8 +106,7 @@ exports.addCategory = async (req, res) => {
 // Update category
 exports.updateCategory = async (req, res) => {
     try {
-        const { categoryId } = req.params;
-        const { name } = req.body;
+        const { categoryId, name } = req.body;
 
         const category = await Category.findById(categoryId);
         

@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const User = require("../../models/userModel");
 const PendingUser = require("../../models/pendingUserModel");
 const OTP = require("../../models/otpModel");
+const Wallet = require("../../models/walletModel");
 const { generateOTP, verifyOTP } = require("../../config/otpService");
 const Address = require("../../models/Address");
 const Product = require("../../models/product");
@@ -13,12 +14,13 @@ exports.renderSignupPage = (req, res) => {
     }
     res.render("users/signup", { 
         error: req.query.error,
-        user: null 
+        user: null,
+        referralCode: req.query.referralCode || ''
     }); 
 };
 
 exports.handleSignup = async (req, res) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, referralCode } = req.body;
 
     try {
         // Check if user exists
@@ -31,14 +33,28 @@ exports.handleSignup = async (req, res) => {
             });
         }
 
+        // Check if referral code is valid
+        let referrer = null;
+        if (referralCode) {
+            referrer = await User.findOne({ referralCode });
+            if (!referrer) {
+                return res.render("users/signup", { 
+                    error: "Invalid referral code",
+                    user: null,
+                    formData: req.body
+                });
+            }
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
         await generateOTP(email);
 
-        // Save pending user
+        // Save pending user with referral info
         await PendingUser.create({ 
             email, 
             name, 
-            password: hashedPassword 
+            password: hashedPassword,
+            referralCode: referrer ? referrer._id : null
         });
 
         res.render("users/verifyOtp", { 
@@ -68,7 +84,7 @@ exports.handleVerifyOtp = async (req, res) => {
     const { email, otp, isEmailUpdate } = req.body;
 
     try {
-        console.log('Verifying OTP for:', email, 'isEmailUpdate:', isEmailUpdate); // Debug log
+        console.log('Verifying OTP for:', email, 'isEmailUpdate:', isEmailUpdate);
 
         const otpDoc = await OTP.findOne({ email });
         
@@ -150,7 +166,7 @@ exports.handleVerifyOtp = async (req, res) => {
             });
         }
         
-        // Handle regular signup verification (existing logic)
+        // Handle regular signup verification
         const pendingUser = await PendingUser.findOne({ email });
         
         if (!pendingUser) {
@@ -164,10 +180,47 @@ exports.handleVerifyOtp = async (req, res) => {
         const newUser = new User({
             name: pendingUser.name,
             email: pendingUser.email,
-            password: pendingUser.password
+            password: pendingUser.password,
+            referredBy: pendingUser.referralCode
         });
 
         await newUser.save();
+
+        // Create wallet for new user
+        const wallet = new Wallet({
+            userId: newUser._id,
+            balance: 0
+        });
+        await wallet.save();
+
+        // Update user's wallet reference
+        newUser.wallet = wallet._id;
+        await newUser.save();
+
+        // Handle referral reward if applicable
+        if (pendingUser.referralCode) {
+            const referrer = await User.findById(pendingUser.referralCode);
+            if (referrer) {
+                // Update referrer's wallet
+                const referrerWallet = await Wallet.findOne({ userId: referrer._id });
+                if (referrerWallet) {
+                    referrerWallet.balance += 50;
+                    referrerWallet.transactions.push({
+                        userId: referrer._id,
+                        amount: 50,
+                        type: 'credit',
+                        description: 'Referral reward',
+                        balance: referrerWallet.balance
+                    });
+                    await referrerWallet.save();
+
+                    // Update referrer's referral count
+                    referrer.referralCount += 1;
+                    await referrer.save();
+                }
+            }
+        }
+
         await PendingUser.deleteOne({ email });
         await OTP.deleteOne({ email });
 
@@ -619,52 +672,28 @@ exports.handleGoogleAuthCallback = (req, res) => {
 // Add this to your userController.js file if it's not already there
 exports.getProfile = async (req, res) => {
     try {
-
-        // Check authentication status
-        if (!req.isAuthenticated() && !req.session.user) {
-            return res.redirect('/users/login');
-        }
-
-        // Determine user identifier based on auth type
-        let userIdentifier;
-        
-        if (req.user) {
-            // Passport auth (likely Google)
-            userIdentifier = { 
-                id: req.user.id || req.user._id,
-                email: req.user.email
-            };
-        } else if (req.session.user) {
-            // Local session auth
-            userIdentifier = {
-                id: req.session.user.id || req.session.user._id,
-                email: req.session.user.email
-            };
-        }
-
-        // Find user in database with more robust query
-        const user = await User.findOne({
-            $or: [
-                { _id: userIdentifier.id },
-                { email: userIdentifier.email }
-            ]
-        });
+        const user = await User.findById(req.session.user.id)
+            .populate('wallet')
+            .select('-password -resetPasswordToken -resetPasswordExpires -emailVerificationToken -emailVerificationExpires');
 
         if (!user) {
-            console.log('User not found in database:', userIdentifier);
+            req.flash('error', 'User not found');
             return res.redirect('/users/login');
         }
 
         res.render('users/profile', {
             title: 'My Profile',
             user: user,
-            isAuthenticated: true
+            error: req.flash('error'),
+            success: req.flash('success')
         });
     } catch (error) {
         console.error('Error fetching user profile:', error);
-        res.redirect('/users/login');
+        req.flash('error', 'Error loading profile');
+        res.redirect('/users/home');
     }
 };
+
 // Get edit profile page
 exports.getEditProfile = async (req, res) => {
     try {
