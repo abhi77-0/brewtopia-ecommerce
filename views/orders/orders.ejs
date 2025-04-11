@@ -41,11 +41,18 @@
         <!-- Search Form -->
         <div class="search-section mb-4" data-aos="fade-up">
             <form action="/orders" method="GET" class="search-form">
+                <% if(locals.dateErrors && locals.dateErrors.length > 0) { %>
+                    <div class="alert alert-danger mb-3">
+                        <% locals.dateErrors.forEach(error => { %>
+                            <div><%= error %></div>
+                        <% }); %>
+                    </div>
+                <% } %>
                 <div class="row g-3">
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label class="form-label">Order ID</label>
-                            <input type="text" name="orderId" class="form-control" placeholder="Search by Order ID" value="<%= query.orderId || '' %>">
+                            <label class="form-label">Product Name</label>
+                            <input type="text" name="productName" class="form-control" placeholder="Search by Product Name" value="<%= query.productName || '' %>">
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -64,17 +71,19 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label class="form-label">Start Date</label>
-                            <input type="date" name="startDate" class="form-control" value="<%= query.startDate || '' %>">
+                            <input type="date" name="startDate" id="startDate" class="form-control" value="<%= query.startDate || '' %>" max="<%= new Date().toISOString().split('T')[0] %>">
+                            <div class="invalid-feedback" id="startDateError"></div>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group">
                             <label class="form-label">End Date</label>
-                            <input type="date" name="endDate" class="form-control" value="<%= query.endDate || '' %>">
+                            <input type="date" name="endDate" id="endDate" class="form-control" value="<%= query.endDate || '' %>" max="<%= new Date().toISOString().split('T')[0] %>">
+                            <div class="invalid-feedback" id="endDateError"></div>
                         </div>
                     </div>
                     <div class="col-12 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-primary" id="searchBtn">
                             <i class="fas fa-search me-1"></i>Search
                         </button>
                         <a href="/orders" class="btn btn-secondary">
@@ -1017,12 +1026,6 @@
     transition: all 0.3s ease;
 }
 
-.search-form .form-control:focus,
-.search-form .form-select:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 0.2rem rgba(255, 152, 0, 0.25);
-}
-
 .search-form .form-label {
     color: var(--gray-700);
     font-weight: 500;
@@ -1071,6 +1074,41 @@
 
 .search-results-summary a:hover {
     text-decoration: underline;
+}
+
+/* Form validation styles */
+.form-group {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.invalid-feedback {
+    display: none;
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23dc3545' viewBox='0 0 12 12'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    border-radius: 8px;
+    padding: 0.75rem 1.25rem;
+}
+
+.search-form .form-control:focus,
+.search-form .form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(255, 152, 0, 0.25);
 }
 </style>
 
@@ -1486,6 +1524,94 @@ function handleRetryPaymentFailure(orderId, message) {
         confirmButtonColor: '#FF9800'
     });
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const startDateError = document.getElementById('startDateError');
+    const endDateError = document.getElementById('endDateError');
+    const searchForm = document.querySelector('.search-form');
+    const searchBtn = document.getElementById('searchBtn');
+    
+    // Today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Function to display custom error
+    function showError(input, errorElement, message) {
+        input.classList.add('is-invalid');
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+    
+    // Function to clear error
+    function clearError(input, errorElement) {
+        input.classList.remove('is-invalid');
+        errorElement.textContent = '';
+        errorElement.style.display = 'none';
+    }
+    
+    // Validate start date
+    startDateInput.addEventListener('change', function() {
+        clearError(startDateInput, startDateError);
+        
+        if (this.value) {
+            // Check if date is in the future
+            if (this.value > today) {
+                showError(startDateInput, startDateError, 'Start date cannot be in the future');
+                this.value = ''; // Clear the invalid value
+            }
+            
+            // If end date is set, check if start date is after end date
+            if (endDateInput.value && this.value > endDateInput.value) {
+                showError(startDateInput, startDateError, 'Start date cannot be after end date');
+                this.value = ''; // Clear the invalid value
+            }
+        }
+    });
+    
+    // Validate end date
+    endDateInput.addEventListener('change', function() {
+        clearError(endDateInput, endDateError);
+        
+        if (this.value) {
+            // Check if date is in the future
+            if (this.value > today) {
+                showError(endDateInput, endDateError, 'End date cannot be in the future');
+                this.value = ''; // Clear the invalid value
+            }
+            
+            // If start date is set, check if end date is before start date
+            if (startDateInput.value && this.value < startDateInput.value) {
+                showError(endDateInput, endDateError, 'End date cannot be before start date');
+                this.value = ''; // Clear the invalid value
+            }
+        }
+    });
+    
+    // Form submission validation
+    searchForm.addEventListener('submit', function(event) {
+        // Validate start date
+        if (startDateInput.value) {
+            if (startDateInput.value > today) {
+                event.preventDefault();
+                showError(startDateInput, startDateError, 'Start date cannot be in the future');
+            }
+        }
+        
+        // Validate end date
+        if (endDateInput.value) {
+            if (endDateInput.value > today) {
+                event.preventDefault();
+                showError(endDateInput, endDateError, 'End date cannot be in the future');
+            }
+            
+            if (startDateInput.value && endDateInput.value < startDateInput.value) {
+                event.preventDefault();
+                showError(endDateInput, endDateError, 'End date cannot be before start date');
+            }
+        }
+    });
+});
 </script>
 
 <%- include('../partials/footer') %>

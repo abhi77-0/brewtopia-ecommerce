@@ -378,9 +378,44 @@ const orderController = {
             // Build search query
             let searchQuery = { user: userId };
 
-            // Search by order ID
-            if (req.query.orderId) {
-                searchQuery._id = new RegExp(req.query.orderId, 'i');
+            // Search by product name
+            if (req.query.productName) {
+                console.log('Searching for product name:', req.query.productName);
+                
+                try {
+                    // Approach 1: First get all product IDs matching the name
+                    const matchingProducts = await Product.find(
+                        { name: new RegExp(req.query.productName, 'i') },
+                        { _id: 1 }
+                    );
+                    
+                    const productIds = matchingProducts.map(p => p._id);
+                    console.log(`Found ${productIds.length} matching products`);
+                    
+                    if (productIds.length > 0) {
+                        // Find orders that contain any of these products
+                        const ordersWithMatchingProducts = await Order.find({
+                            user: userId,
+                            'items.product': { $in: productIds }
+                        }).select('_id');
+                        
+                        const orderIds = ordersWithMatchingProducts.map(o => o._id);
+                        console.log(`Found ${orderIds.length} orders with matching products`);
+                        
+                        if (orderIds.length > 0) {
+                            searchQuery._id = { $in: orderIds };
+                        } else {
+                            // No matching orders, return empty result
+                            searchQuery._id = null;
+                        }
+                    } else {
+                        // No matching products, return empty result
+                        searchQuery._id = null;
+                    }
+                } catch (searchError) {
+                    console.error('Error searching for products:', searchError);
+                    // Continue with normal search if this approach fails
+                }
             }
 
             // Search by status
@@ -388,12 +423,105 @@ const orderController = {
                 searchQuery.status = req.query.status;
             }
 
-            // Search by date range
-            if (req.query.startDate && req.query.endDate) {
-                searchQuery.createdAt = {
-                    $gte: new Date(req.query.startDate),
-                    $lte: new Date(req.query.endDate + 'T23:59:59.999Z')
-                };
+            // Search by date range with robust validation
+            if (req.query.startDate || req.query.endDate) {
+                try {
+                    // Initialize createdAt filter object
+                    searchQuery.createdAt = {};
+                    
+                    // Get current date for validation
+                    const currentDate = new Date();
+                    currentDate.setHours(23, 59, 59, 999); // End of today
+                    
+                    // Array to collect validation errors
+                    const validationErrors = [];
+                    
+                    // Validate start date
+                    if (req.query.startDate) {
+                        const startDate = new Date(req.query.startDate);
+                        
+                        // Check if date is valid
+                        if (isNaN(startDate.getTime())) {
+                            validationErrors.push("Start date is invalid");
+                            console.warn(`Invalid start date format: "${req.query.startDate}"`);
+                            // Use a default early date instead of invalid input
+                            searchQuery.createdAt.$gte = new Date(0); // January 1, 1970
+                        } 
+                        // Check if date is in the future
+                        else if (startDate > currentDate) {
+                            validationErrors.push("Start date cannot be in the future");
+                            console.warn(`Start date is in the future: "${req.query.startDate}"`);
+                            // Use current date instead of future date
+                            searchQuery.createdAt.$gte = new Date(0);
+                        }
+                        else {
+                            // Valid date - use it
+                            searchQuery.createdAt.$gte = startDate;
+                        }
+                    } else {
+                        // No start date provided, use very early date
+                        searchQuery.createdAt.$gte = new Date(0);
+                    }
+                    
+                    // Validate end date
+                    if (req.query.endDate) {
+                        let endDate = new Date(req.query.endDate);
+                        
+                        // Set to end of day for inclusive results
+                        if (!isNaN(endDate.getTime())) {
+                            endDate.setHours(23, 59, 59, 999);
+                        }
+                        
+                        // Check if date is valid
+                        if (isNaN(endDate.getTime())) {
+                            validationErrors.push("End date is invalid");
+                            console.warn(`Invalid end date format: "${req.query.endDate}"`);
+                            // Use current date instead of invalid input
+                            searchQuery.createdAt.$lte = currentDate;
+                        }
+                        // Check if date is in the future 
+                        else if (endDate > currentDate) {
+                            validationErrors.push("End date cannot be in the future");
+                            console.warn(`End date is in the future: "${req.query.endDate}"`);
+                            // Set to current date if future date provided
+                            searchQuery.createdAt.$lte = currentDate;
+                        }
+                        // Check if end date is before start date
+                        else if (searchQuery.createdAt.$gte && endDate < searchQuery.createdAt.$gte) {
+                            validationErrors.push("End date cannot be before start date");
+                            console.warn(`End date is before start date: "${req.query.endDate}" < "${req.query.startDate}"`);
+                            // Set end date same as start date
+                            searchQuery.createdAt.$lte = new Date(searchQuery.createdAt.$gte);
+                            searchQuery.createdAt.$lte.setHours(23, 59, 59, 999);
+                        }
+                        else {
+                            // Valid date - use it
+                            searchQuery.createdAt.$lte = endDate;
+                        }
+                    } else {
+                        // No end date provided, use current date
+                        searchQuery.createdAt.$lte = currentDate;
+                    }
+                    
+                    console.log('Date range filter applied:', {
+                        from: searchQuery.createdAt.$gte.toISOString().split('T')[0],
+                        to: searchQuery.createdAt.$lte.toISOString().split('T')[0]
+                    });
+                    
+                    // If there are validation errors, add them to local variables for the view
+                    if (validationErrors.length > 0) {
+                        res.locals.dateErrors = validationErrors;
+                    }
+                } catch (dateError) {
+                    console.error('Error processing date filters:', dateError);
+                    // Fallback to a safe default if any error occurs
+                    searchQuery.createdAt = {
+                        $gte: new Date(0),
+                        $lte: new Date()
+                    };
+                    // Add error to local variables for the view
+                    res.locals.dateErrors = ['Invalid date format. Using default date range.'];
+                }
             }
 
             // Get total counts (independent of pagination)
@@ -444,8 +572,9 @@ const orderController = {
                 hasPrevPage: page > 1,
                 nextPage: page + 1,
                 prevPage: page - 1,
-                query: req.query, // Pass search parameters back to view
-                filteredCount: filteredCount // Pass filtered count to view
+                query: req.query,
+                filteredCount: filteredCount,
+                dateErrors: res.locals.dateErrors || []
             });
 
         } catch (error) {
