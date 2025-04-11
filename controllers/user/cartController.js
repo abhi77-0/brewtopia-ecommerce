@@ -197,57 +197,70 @@ exports.addToCart = async (req, res) => {
 exports.updateCart = async (req, res) => {
     try {
         const { productId, variant, quantity } = req.body;  // Extract variant from req.body
-
-        // Validate input
-        if (!productId || !variant || !quantity || quantity < 1 || quantity > 5) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid quantity. Must be between 1 and 5.'
-            });
-        }
-
-        // Find user's cart
-        const cart = await Cart.findOne({ user: req.session.user.id });
+        
+        // Get user ID - handle both normal and Google auth users
+        const userId = req.session.user._id || req.session.user.id;
+        
+        let cart = await Cart.findOne({ user: userId });
         
         if (!cart) {
-            return res.status(404).json({
-                success: false,
-                error: 'Cart not found'
-            });
+            return res.status(404).json({ success: false, message: 'Cart not found' });
         }
-
-        // Find the item in the cart - now checking both productId and variant
-        const cartItem = cart.items.find(item => 
-            item.product.toString() === productId && 
-            item.variant === variant  // Add variant check
+        
+        // Find the item in the cart
+        const itemIndex = cart.items.findIndex(
+            item => item.product.toString() === productId && item.variant === variant
         );
-
-        if (!cartItem) {
-            return res.status(404).json({
-                success: false,
-                error: 'Item not found in cart'
-            });
+        
+        if (itemIndex === -1) {
+            return res.status(404).json({ success: false, message: 'Item not found in cart' });
         }
-
+        
         // Update quantity
-        cartItem.quantity = parseInt(quantity);
+        cart.items[itemIndex].quantity = parseInt(quantity);
+        
+        // Save the cart
         await cart.save();
 
-        // Calculate the number of unique products in the cart
-        const uniqueProductCount = cart.items.length;
-
-        res.json({
-            success: true,
+        // Populate the updated cart with product details for calculating prices
+        cart = await Cart.findOne({ user: userId })
+            .populate({
+                path: 'items.product',
+                model: 'Product',
+                select: 'name images variants brand offer categoryOffer',
+                populate: [
+                    { path: 'offer' },
+                    { path: 'categoryOffer' }
+                ]
+            });
+        
+        // Calculate cart totals
+        let subtotal = 0;
+        let itemCount = 0;
+        
+        cart.items.forEach(item => {
+            if (item.product && item.product.variants && item.product.variants[item.variant]) {
+                const variantPrice = item.product.variants[item.variant].price;
+                item.total = variantPrice * item.quantity;
+                subtotal += item.total;
+                itemCount += item.quantity;
+            }
+        });
+        
+        // Return the updated cart data as JSON
+        return res.json({ 
+            success: true, 
             message: 'Cart updated successfully',
-            count: uniqueProductCount
+            cartData: {
+                items: cart.items,
+                subtotal: subtotal,
+                itemCount: itemCount
+            }
         });
-
+        
     } catch (error) {
-        console.error('Update cart error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to update cart'
-        });
+        console.error('Error updating cart:', error);
+        return res.status(500).json({ success: false, error: error.message });
     }
 };
 
