@@ -5,296 +5,381 @@ locals.hideSearch = true;
 
 <%- include('../partials/header') %>
 
-<div class="container py-5">
-    <!-- User Profile Header -->
-    <div class="profile-header">
-        <div class="user-avatar">
-            <%= user.name ? user.name[0].toUpperCase() : 'U' %>
+<div class="container py-4">
+    <!-- Main Profile Section -->
+    <div class="profile-section">
+        <div class="profile-banner">
+            <div class="profile-avatar">
+                <div class="avatar-circle">
+                    <%= user.name ? user.name[0].toUpperCase() : 'U' %>
+                </div>
+            </div>
+            <div class="profile-info">
+                <h1><%= user.name || 'User' %></h1>
+                <p class="email"><%= user.email %></p>
+                <a href="/users/profile/edit" class="edit-profile">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </a>
+            </div>
+            
+            <% if (user.referralCode) { %>
+            <!-- Integrated Referral Section -->
+            <div class="referral-section">
+                <div class="referral-header">
+                    <i class="fas fa-gift"></i>
+                    <span>Refer & Earn</span>
+                </div>
+                <div class="referral-content">
+                    <div class="code-section">
+                        <div class="code-display">
+                            <span class="code"><%= user.referralCode %></span>
+                            <button onclick="copyReferralCode()" class="copy-btn">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="stats-section">
+                        <div class="stat">
+                            <i class="fas fa-user-plus"></i>
+                            <span class="value"><%= user.referralCount || 0 %></span>
+                        </div>
+                        <div class="stat">
+                            <i class="fas fa-rupee-sign"></i>
+                            <span class="value">₹<%= user.referralCount ? user.referralCount * 50 : 0 %></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <% } %>
         </div>
-        <div class="user-details">
-            <h2><%= user.name || 'User' %></h2>
-            <p><%= user.email %></p>
-            <a href="/users/profile/edit" class="edit-btn">
-                <i class="fas fa-edit"></i> Edit Profile
-            </a>
-        </div>
-    </div>
 
-    <!-- Navigation Options -->
-    <div class="navigation-grid">
-        <!-- Orders -->
-        <a href="/orders" class="nav-card">
-            <div class="card-content">
-                <div class="icon-wrapper orders">
+        <!-- Quick Actions Grid -->
+        <div class="quick-actions">
+            <a href="/orders" class="action-card">
+                <div class="action-icon orders">
                     <i class="fas fa-box"></i>
                 </div>
-                <h3>My Orders</h3>
-                <p>Track your orders and view history</p>
-            </div>
-            <div class="card-arrow">
-                <i class="fas fa-chevron-right"></i>
-            </div>
-        </a>
+                <div class="action-info">
+                    <h4>My Orders</h4>
+                    <p>Track & manage orders</p>
+                </div>
+            </a>
 
-        <!-- Addresses -->
-        <a href="/users/addresses" class="nav-card">
-            <div class="card-content">
-                <div class="icon-wrapper address">
+            <a href="/users/addresses" class="action-card">
+                <div class="action-icon address">
                     <i class="fas fa-map-marker-alt"></i>
                 </div>
-                <h3>Addresses</h3>
-                <p>Manage your delivery addresses</p>
-            </div>
-            <div class="card-arrow">
-                <i class="fas fa-chevron-right"></i>
-            </div>
-        </a>
+                <div class="action-info">
+                    <h4>Addresses</h4>
+                    <p>Manage addresses</p>
+                </div>
+            </a>
 
-        <!-- Wallet -->
-        <a href="/wallet" class="nav-card">
-            <div class="card-content">
-                <div class="icon-wrapper wallet">
+            <a href="/wallet" class="action-card">
+                <div class="action-icon wallet">
                     <i class="fas fa-wallet"></i>
                 </div>
-                <h3>Wallet</h3>
-                <p>Check your wallet balance & transactions</p>
-            </div>
-            <div class="card-arrow">
-                <i class="fas fa-chevron-right"></i>
-            </div>
-        </a>
+                <div class="action-info">
+                    <h4>Wallet</h4>
+                    <p>Balance & transactions</p>
+                </div>
+            </a>
 
-        <!-- Coupons -->
-        <a href="/users/coupons" class="nav-card">
-            <div class="card-content">
-                <div class="icon-wrapper coupons">
+            <a href="/users/coupons" class="action-card">
+                <div class="action-icon coupons">
                     <i class="fas fa-ticket-alt"></i>
                 </div>
-                <h3>Coupons</h3>
-                <p>View and use your available coupons</p>
-            </div>
-            <div class="card-arrow">
-                <i class="fas fa-chevron-right"></i>
-            </div>
-        </a>
-
-        <!-- Referral -->
-        <div class="nav-card referral-card">
-            <div class="card-content">
-                <div class="icon-wrapper referral">
-                    <i class="fas fa-user-plus"></i>
+                <div class="action-info">
+                    <h4>Coupons</h4>
+                    <p>View & use coupons</p>
                 </div>
-                <h3>Refer & Earn</h3>
-                <p>Your referral code: <strong><%= user.referralCode %></strong></p>
-                <p class="referral-stats">Successful referrals: <%= user.referralCount || 0 %></p>
-                <div class="referral-share">
-                    <button class="copy-btn" onclick="copyReferralCode()">
-                        <i class="fas fa-copy"></i> Copy Code
-                    </button>
-                </div>
-            </div>
+            </a>
         </div>
     </div>
 </div>
 
 <style>
-    .profile-header {
-        background: linear-gradient(145deg, #FF9800, #F57C00);
-        padding: 3rem 2rem;
+    .profile-section {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .profile-banner {
+        background: linear-gradient(135deg, #FF9800, #F57C00);
         border-radius: 20px;
-        color: white;
+        padding: 2rem;
+        margin-bottom: 2rem;
         display: flex;
         align-items: center;
         gap: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 8px 20px rgba(255, 152, 0, 0.2);
+        position: relative;
+        overflow: hidden;
     }
 
-    .user-avatar {
-        width: 80px;
-        height: 80px;
+    .profile-banner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(30%, -30%);
+    }
+
+    .profile-avatar {
+        position: relative;
+        z-index: 1;
+    }
+
+    .avatar-circle {
+        width: 100px;
+        height: 100px;
         background: rgba(255, 255, 255, 0.2);
-        border-radius: 20px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 600;
+        color: white;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .profile-info {
+        flex: 1;
+        position: relative;
+        z-index: 1;
+    }
+
+    .profile-info h1 {
+        color: white;
+        margin: 0;
         font-size: 2rem;
         font-weight: 600;
-        backdrop-filter: blur(10px);
-        border: 2px solid rgba(255, 255, 255, 0.3);
     }
 
-    .user-details h2 {
-        margin: 0;
-        font-size: 1.8rem;
-        font-weight: 600;
+    .profile-info .email {
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0.5rem 0 1rem;
+        font-size: 1rem;
     }
 
-    .user-details p {
-        margin: 0.5rem 0;
-        opacity: 0.9;
-    }
-
-    .edit-btn {
-        display: inline-block;
-        background: rgba(255, 255, 255, 0.2);
+    .edit-profile {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
         color: white;
         text-decoration: none;
-        padding: 0.5rem 1.25rem;
-        border-radius: 25px;
-        margin-top: 0.5rem;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        transition: all 0.3s ease;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
     }
 
-    .edit-btn:hover {
+    .edit-profile:hover {
         background: rgba(255, 255, 255, 0.3);
-        color: white;
-        transform: translateY(-2px);
+        transform: translateY(-1px);
     }
 
-    .navigation-grid {
+    .referral-section {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 12px;
+        padding: 1rem;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        flex: 1;
+        max-width: 300px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .referral-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        color: #FF9800;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .referral-header i {
+        font-size: 1rem;
+    }
+
+    .referral-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .code-section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .code-display {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #f8f9fa;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        border: 1px solid #e9ecef;
+    }
+
+    .code-display .code {
+        font-family: monospace;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #495057;
+        letter-spacing: 0.5px;
+    }
+
+    .copy-btn {
+        background: #f1f3f5;
+        border: none;
+        color: #495057;
+        cursor: pointer;
+        padding: 0.35rem;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .copy-btn:hover {
+        background: #e9ecef;
+    }
+
+    .stats-section {
+        display: flex;
+        gap: 1rem;
+        padding: 0.25rem 0;
+    }
+
+    .stat {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #f8f9fa;
+        padding: 0.35rem 0.75rem;
+        border-radius: 6px;
+        border: 1px solid #e9ecef;
+    }
+
+    .stat i {
+        font-size: 0.9rem;
+        color: #FF9800;
+    }
+
+    .stat .value {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .quick-actions {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
         gap: 1.5rem;
     }
 
-    .nav-card {
+    .action-card {
         background: white;
-        padding: 1.5rem;
         border-radius: 16px;
+        padding: 1.5rem;
         text-decoration: none;
         color: inherit;
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        gap: 1.5rem;
         transition: all 0.3s ease;
-        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
     }
 
-    .nav-card:hover {
+    .action-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
     }
 
-    .icon-wrapper {
+    .action-icon {
         width: 50px;
         height: 50px;
-        border-radius: 15px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.25rem;
-        margin-bottom: 1rem;
-        transition: all 0.3s ease;
     }
 
-    .orders {
+    .action-icon.orders {
         background: #FFF3E0;
         color: #FF9800;
     }
 
-    .address {
+    .action-icon.address {
         background: #E3F2FD;
         color: #2196F3;
     }
 
-    .wallet {
+    .action-icon.wallet {
         background: #E8F5E9;
         color: #4CAF50;
     }
 
-    .coupons {
+    .action-icon.coupons {
         background: #F3E5F5;
         color: #9C27B0;
     }
 
-    .referral {
-        background: #FFF8E1;
-        color: #FFC107;
-    }
-
-    .referral-card {
-        cursor: default;
-    }
-
-    .referral-card:hover {
-        transform: none;
-    }
-
-    .referral-stats {
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
-        color: #64748b;
-    }
-
-    .referral-share {
-        margin-top: 1rem;
-    }
-
-    .copy-btn {
-        background: #FF9800;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .copy-btn:hover {
-        background: #F57C00;
-        transform: translateY(-2px);
-    }
-
-    .copy-btn i {
-        font-size: 0.9rem;
-    }
-
-    .nav-card:hover .icon-wrapper {
-        transform: scale(1.1);
-    }
-
-    .card-content h3 {
-        margin: 0 0 0.5rem 0;
-        font-size: 1.25rem;
-        color: #1e293b;
-    }
-
-    .card-content p {
+    .action-info h4 {
         margin: 0;
-        color: #64748b;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .action-info p {
+        margin: 0.25rem 0 0;
         font-size: 0.9rem;
-    }
-
-    .card-arrow {
-        color: #94a3b8;
-        transition: all 0.3s ease;
-    }
-
-    .nav-card:hover .card-arrow {
-        transform: translateX(5px);
-        color: #FF9800;
+        color: #666;
     }
 
     @media (max-width: 768px) {
-        .profile-header {
+        .profile-banner {
             flex-direction: column;
             text-align: center;
-            padding: 2rem 1.5rem;
+            padding: 2rem 1rem;
         }
 
-        .user-details {
+        .profile-info {
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
-        .navigation-grid {
+        .avatar-circle {
+            width: 80px;
+            height: 80px;
+            font-size: 2rem;
+        }
+
+        .profile-info h1 {
+            font-size: 1.5rem;
+        }
+
+        .referral-section {
+            max-width: 100%;
+            margin-top: 1rem;
+        }
+
+        .stats-section {
+            justify-content: center;
+        }
+
+        .quick-actions {
             grid-template-columns: 1fr;
         }
     }
@@ -305,10 +390,10 @@ locals.hideSearch = true;
         const referralCode = '<%= user.referralCode %>';
         navigator.clipboard.writeText(referralCode).then(() => {
             const btn = document.querySelector('.copy-btn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i>';
             setTimeout(() => {
-                btn.innerHTML = originalText;
+                btn.innerHTML = originalHTML;
             }, 2000);
         });
     }
