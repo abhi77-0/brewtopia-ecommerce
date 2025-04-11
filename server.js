@@ -23,6 +23,7 @@ const app = express();
 const server = http.createServer(app);
 const userMiddleware = require('./middlewares/userMiddleware');
 require('./config/googleAuth');
+const { notFoundHandler } = require('./middlewares/errorHandler');
 
 
 
@@ -113,6 +114,9 @@ app.use('/checkout', checkoutRoutes);
 app.use('/', wishlistRoutes);
 app.use('/wallet', walletRoutes);
 app.use('/admin/sales-report', adminRoutes);
+
+// 404 Error Handler - Must be after all routes but before other error handlers
+app.use(notFoundHandler);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

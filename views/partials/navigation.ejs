@@ -12,13 +12,128 @@
         min-width: 16px;
         text-align: center;
     }
+
     .nav-icon {
         position: relative;
         display: inline-block;
     }
+
+    .navbar-nav.ms-auto {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .nav-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 10px;
+        border-radius: 20px;
+        transition: background-color 0.3s ease;
+    }
+
+    .user-profile:hover {
+        background-color: rgba(255, 152, 0, 0.1);
+    }
+
+    .user-profile img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .user-profile span {
+        color: #666;
+        font-weight: 500;
+    }
+
+    .dropdown-menu {
+        margin-top: 10px;
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .dropdown-item {
+        padding: 8px 16px;
+        color: #666;
+        transition: all 0.3s ease;
+    }
+
+    .dropdown-item:hover {
+        background-color: rgba(255, 152, 0, 0.1);
+        color: #FF9800;
+    }
+
+    .dropdown-item i {
+        width: 20px;
+        text-align: center;
+        margin-right: 8px;
+        color: #666;
+    }
+
+    .dropdown-item:hover i {
+        color: #FF9800;
+    }
+
+    /* Mobile Styles */
+    @media (max-width: 991.98px) {
+        .navbar-nav.ms-auto {
+            flex-direction: row;
+            justify-content: center;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .nav-item {
+            margin: 0 5px;
+        }
+
+        .user-profile span {
+            display: none;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            min-width: 200px;
+        }
+    }
+
+    /* Small Mobile Styles */
+    @media (max-width: 575.98px) {
+        .navbar-nav.ms-auto {
+            gap: 0.5rem;
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+        }
+
+        .badge-notification {
+            font-size: 8px;
+            padding: 2px 4px;
+            min-width: 14px;
+            top: -3px;
+            right: -3px;
+        }
+
+        .user-profile img {
+            width: 28px;
+            height: 28px;
+        }
+    }
 </style>
 
-<ul class="navbar-nav ms-auto align-items-center">
+<ul class="navbar-nav ms-auto">
     <li class="nav-item dropdown">
         <a class="nav-link user-profile dropdown-toggle" 
            href="#" 
@@ -31,14 +146,14 @@
         </a>
         <ul class="dropdown-menu dropdown-menu-end">
             <% if (locals.isAuthenticated) { %>
-                <li><a class="dropdown-item" href="/users/profile"><i class="fas fa-user me-2"></i>Profile</a></li>
-                <li><a class="dropdown-item" href="/orders"><i class="fas fa-box me-2"></i>Orders</a></li>
-                <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                <li><a class="dropdown-item" href="/users/profile"><i class="fas fa-user"></i>Profile</a></li>
+                <li><a class="dropdown-item" href="/orders"><i class="fas fa-box"></i>Orders</a></li>
+                <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog"></i>Settings</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="/users/logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                <li><a class="dropdown-item" href="/users/logout"><i class="fas fa-sign-out-alt"></i>Logout</a></li>
             <% } else { %>
-                <li><a class="dropdown-item" href="/users/login"><i class="fas fa-sign-in-alt me-2"></i>Login</a></li>
-                <li><a class="dropdown-item" href="/users/register"><i class="fas fa-user-plus me-2"></i>Register</a></li>
+                <li><a class="dropdown-item" href="/users/login"><i class="fas fa-sign-in-alt"></i>Login</a></li>
+                <li><a class="dropdown-item" href="/users/register"><i class="fas fa-user-plus"></i>Register</a></li>
             <% } %>
         </ul>
     </li>
