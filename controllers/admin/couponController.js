@@ -150,7 +150,10 @@ exports.toggleCouponStatus = async (req, res) => {
 
         res.json({
             success: true,
-            message: `Coupon ${coupon.isActive ? 'activated' : 'deactivated'} successfully`
+            message: `Coupon ${coupon.isActive ? 'activated' : 'deactivated'} successfully`,
+            coupon: {
+                isActive: coupon.isActive
+            }
         });
     } catch (error) {
         console.error('Error toggling coupon status:', error);

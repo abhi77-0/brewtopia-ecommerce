@@ -225,6 +225,19 @@
     
     <script>
         function toggleCouponStatus(couponId) {
+            // Get the checkbox and status badge elements
+            const checkbox = document.querySelector(`input[onchange="toggleCouponStatus('${couponId}')"]`);
+            const statusBadge = checkbox.nextElementSibling;
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Updating Status...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
             fetch(`/admin/coupons/${couponId}/toggle`, {
                 method: 'PATCH',
                 headers: {
@@ -234,6 +247,13 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    // Update the UI with the new status from server
+                    const isActive = data.coupon.isActive;
+                    checkbox.checked = isActive;
+                    statusBadge.className = `ms-2 badge ${isActive ? 'bg-success' : 'bg-danger'}`;
+                    statusBadge.textContent = isActive ? 'Active' : 'Inactive';
+
+                    // Show success message
                     Swal.fire({
                         title: 'Success',
                         text: data.message,
@@ -244,10 +264,15 @@
                         timer: 3000
                     });
                 } else {
+                    // Revert the checkbox state if the update failed
+                    checkbox.checked = !checkbox.checked;
                     throw new Error(data.message);
                 }
             })
             .catch(error => {
+                console.error('Error:', error);
+                // Revert the checkbox state on error
+                checkbox.checked = !checkbox.checked;
                 Swal.fire({
                     title: 'Error',
                     text: error.message || 'Failed to update coupon status',

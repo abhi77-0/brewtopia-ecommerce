@@ -1008,49 +1008,53 @@ exports.showAvailableCoupons = async (req, res) => {
         const userId = req.session.user?._id || req.session.user?.id;
         console.log('Fetching coupons for user:', userId);
         
-        // Get the cart to check total amount
-        const cart = await Cart.findOne({ user: userId })
-            .populate({
-                path: 'items.product',
-                model: 'Product',
-                select: 'name description images variants brand'
-            });
+        // Pagination parameters
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 6; // 6 coupons per page
+        const skip = (page - 1) * limit;
+        
+        // Find all active coupons with pagination
+        const [activeCoupons, totalCoupons] = await Promise.all([
+            Coupon.find({
+                isActive: true,
+                endDate: { $gt: new Date() },
+                startDate: { $lte: new Date() }
+            })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit),
             
-        if (!cart) {
-            req.flash('error', 'Please add items to your cart first');
-            return res.redirect('/cart');
-        }
+            Coupon.countDocuments({
+                isActive: true,
+                endDate: { $gt: new Date() },
+                startDate: { $lte: new Date() }
+            })
+        ]);
         
-        // Calculate cart subtotal
-        let subtotal = 0;
-        cart.items.forEach(item => {
-            if (item.product && item.product.variants && item.variant) {
-                const variantPrice = item.product.variants[item.variant]?.price || 0;
-                subtotal += variantPrice * item.quantity;
-            }
-        });
-        
-        // Find all active coupons
-        const activeCoupons = await Coupon.find({
-            isActive: true,
-            endDate: { $gt: new Date() },
-            startDate: { $lte: new Date() }
-        });
+        const totalPages = Math.ceil(totalCoupons / limit);
         
         console.log('Active non-expired coupons:', activeCoupons.length);
         
-        // Render the coupons page from the users folder
+        // Render the coupons page with pagination data
         res.render('users/coupons', {
             title: 'Available Coupons',
             coupons: activeCoupons,
-            cartSubtotal: subtotal,
-            user: req.session.user
+            user: req.session.user,
+            pagination: {
+                currentPage: page,
+                totalPages: totalPages,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1,
+                nextPage: page + 1,
+                prevPage: page - 1,
+                limit: limit
+            }
         });
         
     } catch (error) {
         console.error('Error fetching available coupons:', error);
         req.flash('error', 'Failed to fetch coupons');
-        res.redirect('/cart');
+        res.redirect('/users/profile');
     }
 };
 

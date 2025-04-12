@@ -1,18 +1,21 @@
 <%- include('../partials/header') %>
 
-<div class="container my-5">
+<div class="container py-4">
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Available Coupons</h2>
-                <a href="/cart" class="btn btn-outline-primary">
-                    <i class="fas fa-shopping-cart me-2"></i>Back to Cart
+                <div>
+                    <h2 class="mb-0">Available Coupons</h2>
+                    <p class="text-muted small">Apply these coupons to get amazing discounts</p>
+                </div>
+                <a href="/users/profile" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Profile
                 </a>
             </div>
             
-            <div class="coupon-container">
+            <div class="ticket-container">
                 <% if (coupons && coupons.length > 0) { %>
-                    <div class="row">
+                    <div class="row g-3">
                         <% coupons.forEach(function(coupon) { %>
                             <% 
                             const userId = user && user._id ? user._id.toString() : '';
@@ -23,84 +26,75 @@
                             const hasReachedUserLimit = userUsageCount >= (coupon.perUserLimit || 1);
                             const isDisabled = hasReachedLimit || hasReachedUserLimit;
                             %>
-                            <div class="col-md-6 col-lg-4 mb-4" data-aos="fade-up">
-                                <div class="coupon-card <%= isDisabled ? 'disabled-coupon' : '' %>">
-                                    <div class="coupon-header">
-                                        <div class="discount-badge">
-                                            <% if (coupon.discountType === 'percentage') { %>
-                                                <%= coupon.discountAmount %>% OFF
-                                            <% } else { %>
-                                                ₹<%= coupon.discountAmount %> OFF
-                                            <% } %>
-                                        </div>
-                                        <div class="coupon-title">
-                                            <%= coupon.name %>
-                                        </div>
-                                        <% if (hasReachedLimit || hasReachedUserLimit) { %>
-                                            <div class="usage-badge">
-                                                <i class="fas fa-lock"></i>
-                                                <%= hasReachedLimit ? 'Fully Redeemed' : 'Usage Limit Reached' %>
+                            <div class="col-md-6 col-lg-4">
+                                <div class="ticket <%= isDisabled ? 'disabled' : '' %>">
+                                    <div class="ticket-content">
+                                        <div class="ticket-header">
+                                            <div class="ticket-discount">
+                                                <% if (coupon.discountType === 'percentage') { %>
+                                                    <span class="discount-amount"><%= coupon.discountAmount %>%</span>
+                                                <% } else { %>
+                                                    <span class="discount-amount">₹<%= coupon.discountAmount %></span>
+                                                <% } %>
+                                                <span class="discount-text">OFF</span>
                                             </div>
-                                        <% } %>
-                                    </div>
-                                    
-                                    <div class="coupon-body">
-                                        <div class="coupon-code">
-                                            <span class="code-text"><%= coupon.code.toUpperCase() %></span>
-                                            <button class="copy-btn" onclick="copyToClipboard('<%= coupon.code %>')">
-                                                <i class="fas fa-copy"></i>
-                                            </button>
+                                            <div class="ticket-code">
+                                                <span><%= coupon.code.toUpperCase() %></span>
+                                            </div>
                                         </div>
                                         
-                                        <div class="coupon-details">
-                                            <p class="mb-2"><%= coupon.description %></p>
+                                        <div class="ticket-body">
+                                            <h5 class="ticket-title"><%= coupon.name %></h5>
                                             
-                                            <div class="coupon-meta">
+                                            <div class="ticket-meta">
                                                 <% if (coupon.minimumPurchase > 0) { %>
                                                     <div class="meta-item">
-                                                        <i class="fas fa-tag me-1"></i> Min. Purchase: ₹<%= coupon.minimumPurchase %>
+                                                        <i class="fas fa-tag"></i>
+                                                        <span>Min. ₹<%= coupon.minimumPurchase %></span>
                                                     </div>
                                                 <% } %>
                                                 
                                                 <% if (coupon.maxDiscount > 0 && coupon.discountType === 'percentage') { %>
                                                     <div class="meta-item">
-                                                        <i class="fas fa-hand-holding-usd me-1"></i> Max Discount: ₹<%= coupon.maxDiscount %>
+                                                        <i class="fas fa-hand-holding-usd"></i>
+                                                        <span>Max ₹<%= coupon.maxDiscount %></span>
                                                     </div>
                                                 <% } %>
                                                 
                                                 <div class="meta-item">
-                                                    <i class="far fa-calendar-alt me-1"></i> Valid till: 
-                                                    <% 
-                                                    let expiryDate;
-                                                    try {
-                                                        expiryDate = new Date(coupon.endDate || coupon.expiryDate).toLocaleDateString('en-US', { 
-                                                            day: 'numeric', 
-                                                            month: 'short', 
-                                                            year: 'numeric' 
-                                                        });
-                                                    } catch (e) {
-                                                        expiryDate = 'N/A';
-                                                    }
-                                                    %>
-                                                    <%= expiryDate %>
-                                                </div>
-                                                
-                                                <div class="usage-info">
-                                                    <% if (coupon.usageLimit) { %>
-                                                        <div class="meta-item">
-                                                            <i class="fas fa-users me-1"></i> 
-                                                            Used: <%= coupon.usedCount || 0 %>/<%= coupon.usageLimit %>
-                                                        </div>
-                                                    <% } %>
-                                                    <div class="meta-item">
-                                                        <i class="fas fa-user me-1"></i> 
-                                                        Your Usage: <%= userUsageCount %>/<%= coupon.perUserLimit || 1 %>
-                                                    </div>
+                                                    <i class="far fa-calendar-alt"></i>
+                                                    <span>
+                                                        <% 
+                                                        let expiryDate;
+                                                        try {
+                                                            expiryDate = new Date(coupon.endDate || coupon.expiryDate).toLocaleDateString('en-US', { 
+                                                                day: 'numeric', 
+                                                                month: 'short', 
+                                                                year: 'numeric' 
+                                                            });
+                                                        } catch (e) {
+                                                            expiryDate = 'N/A';
+                                                        }
+                                                        %>
+                                                        Valid till <%= expiryDate %>
+                                                    </span>
                                                 </div>
                                             </div>
+                                            
+                                            <% if (coupon.usageLimit) { %>
+                                                <div class="ticket-usage">
+                                                    <div class="usage-item">
+                                                        <span class="usage-label">Usage</span>
+                                                        <div class="usage-progress">
+                                                            <div class="progress-bar" style="width: <%= (coupon.usedCount || 0) / coupon.usageLimit * 100 %>%"></div>
+                                                        </div>
+                                                        <span class="usage-value"><%= coupon.usedCount || 0 %>/<%= coupon.usageLimit %></span>
+                                                    </div>
+                                                </div>
+                                            <% } %>
                                         </div>
                                         
-                                        <button class="btn btn-primary w-100 mt-3" 
+                                        <button class="btn btn-apply" 
                                                 onclick="applyCoupon('<%= coupon.code %>')"
                                                 <%= isDisabled ? 'disabled' : '' %>>
                                             <%= isDisabled ? 
@@ -112,14 +106,52 @@
                             </div>
                         <% }); %>
                     </div>
+
+                    <% if (pagination && pagination.totalPages > 1) { %>
+                        <div class="pagination-container mt-4">
+                            <nav aria-label="Coupon pagination">
+                                <ul class="pagination justify-content-center">
+                                    <% if (pagination.hasPrevPage) { %>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=<%= pagination.prevPage %>&limit=<%= pagination.limit %>" aria-label="Previous">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        </li>
+                                    <% } else { %>
+                                        <li class="page-item disabled">
+                                            <span class="page-link" aria-hidden="true">&laquo;</span>
+                                        </li>
+                                    <% } %>
+
+                                    <% for(let i = 1; i <= pagination.totalPages; i++) { %>
+                                        <li class="page-item <%= i === pagination.currentPage ? 'active' : '' %>">
+                                            <a class="page-link" href="?page=<%= i %>&limit=<%= pagination.limit %>"><%= i %></a>
+                                        </li>
+                                    <% } %>
+
+                                    <% if (pagination.hasNextPage) { %>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=<%= pagination.nextPage %>&limit=<%= pagination.limit %>" aria-label="Next">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        </li>
+                                    <% } else { %>
+                                        <li class="page-item disabled">
+                                            <span class="page-link" aria-hidden="true">&raquo;</span>
+                                        </li>
+                                    <% } %>
+                                </ul>
+                            </nav>
+                        </div>
+                    <% } %>
                 <% } else { %>
-                    <div class="no-coupons-container text-center py-5">
-                        <div class="no-coupons-icon mb-3">
-                            <i class="fas fa-ticket-alt fa-4x text-muted"></i>
+                    <div class="no-coupons">
+                        <div class="no-coupons-icon">
+                            <i class="fas fa-ticket-alt"></i>
                         </div>
                         <h4>No Coupons Available</h4>
                         <p class="text-muted">Check back later for exciting offers!</p>
-                        <a href="/shop" class="btn btn-primary mt-3">Continue Shopping</a>
+                        <a href="/shop" class="btn btn-primary">Continue Shopping</a>
                     </div>
                 <% } %>
             </div>
@@ -128,214 +160,256 @@
 </div>
 
 <style>
-    .coupon-card {
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        position: relative;
-    }
-    
-    .coupon-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    }
-    
-    .coupon-card::before {
-        content: '';
-        position: absolute;
-        left: -10px;
-        top: 50%;
-        width: 20px;
-        height: 20px;
-        background-color: #f8f9fa;
-        border-radius: 50%;
-        transform: translateY(-50%);
-        z-index: 1;
-        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
-    }
-    
-    .coupon-card::after {
-        content: '';
-        position: absolute;
-        right: -10px;
-        top: 50%;
-        width: 20px;
-        height: 20px;
-        background-color: #f8f9fa;
-        border-radius: 50%;
-        transform: translateY(-50%);
-        z-index: 1;
-        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
-    }
-    
-    .coupon-header {
-        background: linear-gradient(135deg, #FF9800, #F57C00);
-        color: white;
-        padding: 1.5rem;
-        position: relative;
-    }
-    
-    .discount-badge {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-    }
-    
-    .coupon-title {
-        font-size: 1.1rem;
-        font-weight: 500;
-    }
-    
-    .coupon-body {
-        padding: 1.5rem;
-        background-color: white;
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .coupon-code {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background-color: #f8f9fa;
-        padding: 0.5rem 1rem;
+    .ticket {
+        background: #fff;
         border-radius: 6px;
-        margin-bottom: 1rem;
-        border: 1px dashed #ddd;
+        overflow: hidden;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease;
+        height: 100%;
+        position: relative;
+        border: 1px solid #e0e0e0;
     }
     
-    .code-text {
-        font-family: monospace;
-        font-size: 1.1rem;
-        font-weight: bold;
-        letter-spacing: 1px;
+    .ticket::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(255, 152, 0, 0.05), rgba(245, 124, 0, 0.05));
+        z-index: 0;
     }
     
-    .copy-btn {
-        background: none;
-        border: none;
-        color: #FF9800;
-        cursor: pointer;
-        transition: color 0.2s ease;
+    .ticket:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
     }
     
-    .copy-btn:hover {
-        color: #F57C00;
-    }
-    
-    .coupon-details {
-        flex-grow: 1;
-    }
-    
-    .coupon-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        margin-top: 1rem;
-    }
-    
-    .meta-item {
-        font-size: 0.85rem;
-        color: #666;
-    }
-    
-    .no-coupons-container {
-        background-color: #f8f9fa;
-        border-radius: 12px;
-        padding: 3rem;
-    }
-    
-    .no-coupons-icon {
-        color: #ddd;
-    }
-    
-    .disabled-coupon {
+    .ticket.disabled {
         opacity: 0.7;
         pointer-events: none;
     }
     
-    .usage-badge {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: rgba(0, 0, 0, 0.6);
+    .ticket-content {
+        position: relative;
+        z-index: 2;
+        padding: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    
+    .ticket-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px dashed #e0e0e0;
+    }
+    
+    .ticket-discount {
+        background: linear-gradient(135deg, #FF9800, #F57C00);
         color: white;
-        padding: 4px 8px;
+        padding: 0.4rem 0.8rem;
         border-radius: 4px;
-        font-size: 0.8rem;
+        text-align: center;
     }
     
-    .usage-info {
-        margin-top: 0.5rem;
-        padding-top: 0.5rem;
-        border-top: 1px dashed #dee2e6;
+    .discount-amount {
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1;
+        display: block;
     }
     
-    .btn:disabled {
-        background-color: #6c757d;
-        border-color: #6c757d;
+    .discount-text {
+        font-size: 0.7rem;
+        font-weight: 500;
+        opacity: 0.9;
+    }
+    
+    .ticket-code {
+        background: #f8f9fa;
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        font-family: monospace;
+        font-weight: 600;
+        letter-spacing: 1px;
+        font-size: 0.85rem;
+    }
+    
+    .ticket-body {
+        flex: 1;
+    }
+    
+    .ticket-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.75rem;
+    }
+    
+    .ticket-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+        color: #666;
+    }
+    
+    .meta-item i {
+        color: #FF9800;
+        width: 14px;
+        text-align: center;
+    }
+    
+    .ticket-usage {
+        margin-top: auto;
+        margin-bottom: 0.75rem;
+    }
+    
+    .usage-item {
+        margin-bottom: 0.4rem;
+    }
+    
+    .usage-label {
+        font-size: 0.7rem;
+        color: #666;
+        display: block;
+        margin-bottom: 0.2rem;
+    }
+    
+    .usage-progress {
+        height: 2px;
+        background: #f0f0f0;
+        border-radius: 1px;
+        overflow: hidden;
+        margin-bottom: 0.2rem;
+    }
+    
+    .progress-bar {
+        background: linear-gradient(90deg, #FF9800, #F57C00);
+        height: 100%;
+        transition: width 0.3s ease;
+    }
+    
+    .usage-value {
+        font-size: 0.65rem;
+        color: #666;
+    }
+    
+    .btn-apply {
+        background: linear-gradient(135deg, #FF9800, #F57C00);
+        color: white;
+        border: none;
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    
+    .btn-apply:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(255, 152, 0, 0.2);
+    }
+    
+    .btn-apply:disabled {
+        background: #e0e0e0;
+        color: #9e9e9e;
         cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .no-coupons {
+        text-align: center;
+        padding: 2rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+    }
+    
+    .no-coupons-icon {
+        font-size: 2.5rem;
+        color: #ddd;
+        margin-bottom: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .ticket-content {
+            padding: 0.6rem;
+        }
+        
+        .discount-amount {
+            font-size: 1.1rem;
+        }
+        
+        .ticket-code {
+            font-size: 0.8rem;
+        }
+    }
+
+    .pagination-container {
+        margin-top: 2rem;
+    }
+
+    .pagination {
+        gap: 0.25rem;
+    }
+
+    .page-link {
+        color: #FF9800;
+        border: 1px solid #FF9800;
+        padding: 0.5rem 0.75rem;
+        transition: all 0.3s ease;
+    }
+
+    .page-link:hover {
+        background-color: #FF9800;
+        color: white;
+        border-color: #FF9800;
+    }
+
+    .page-item.active .page-link {
+        background-color: #FF9800;
+        border-color: #FF9800;
+        color: white;
+    }
+
+    .page-item.disabled .page-link {
+        color: #6c757d;
+        border-color: #dee2e6;
+        background-color: #fff;
+    }
+
+    @media (max-width: 768px) {
+        .pagination {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .page-link {
+            padding: 0.4rem 0.6rem;
+            font-size: 0.9rem;
+        }
     }
 </style>
 
 <script>
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            // Show toast or notification
-            showToast('Coupon code copied!');
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-        });
-    }
-    
     function applyCoupon(code) {
-        // Redirect to cart page with coupon code
         window.location.href = `/cart?coupon=${code}`;
     }
-    
-    function showToast(message) {
-        // Simple toast implementation
-        const toast = document.createElement('div');
-        toast.className = 'toast-notification';
-        toast.textContent = message;
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => {
-                    document.body.removeChild(toast);
-                }, 300);
-            }, 2000);
-        }, 100);
-    }
 </script>
-
-<style>
-    .toast-notification {
-        position: fixed;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%) translateY(100px);
-        background-color: #333;
-        color: white;
-        padding: 12px 24px;
-        border-radius: 4px;
-        z-index: 1000;
-        opacity: 0;
-        transition: transform 0.3s ease, opacity 0.3s ease;
-    }
-    
-    .toast-notification.show {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-    }
-</style>
 
 <%- include('../partials/footer') %> 
