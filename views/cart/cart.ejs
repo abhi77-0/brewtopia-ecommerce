@@ -151,13 +151,15 @@
                             if (item.product && item.product.variants && item.product.variants[item.variant]) {
                                 const variantPrice = parseFloat(item.product.variants[item.variant].price);
                                 const offerInfo = calculateBestOffer(item.product);
-                                const discountedPrice = offerInfo.bestOffer ? 
-                                    variantPrice * (1 - offerInfo.discountPercentage / 100) : 
-                                    variantPrice;
-                                const subtotal = (discountedPrice * item.quantity).toFixed(2);
-                                return total + parseFloat(totalPrice);
+                                
+                                let itemPrice = variantPrice;
+                                if (offerInfo.bestOffer) {
+                                    itemPrice = variantPrice * (1 - offerInfo.discountPercentage / 100);
+                                }
+                                
+                                return total + (itemPrice * item.quantity);
                             }
-                            return total + parseFloat(item.total || 0);
+                            return total;
                         }, 0).toFixed(2) %></span>
                     </div>
                     

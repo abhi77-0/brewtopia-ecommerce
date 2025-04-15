@@ -1294,7 +1294,6 @@ function handlePaymentFailure(error) {
                 icon: 'error',
                 showCancelButton: true,
                 confirmButtonText: 'View Order',
-                cancelButtonText: 'Try Again',
                 reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -1322,7 +1321,6 @@ function handlePaymentFailure(error) {
             icon: 'error',
             showCancelButton: true,
             confirmButtonText: 'View Orders',
-            cancelButtonText: 'Try Again',
             reverseButtons: true
         }).then((result) => {
             if (result.isConfirmed) {
