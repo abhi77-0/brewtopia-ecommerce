@@ -363,30 +363,35 @@
                         <!-- Offer Name -->
                         <div class="mb-3">
                             <label for="name" class="form-label">Offer Name</label>
-                            <input type="text" class="form-control" id="name" name="name" required>
+                            <input type="text" class="form-control" id="name" name="name">
+                            <div class="invalid-feedback">Please enter a valid offer name (3-50 characters)</div>
+                            <div class="valid-feedback">Name is available</div>
                         </div>
 
                         <!-- Description -->
                         <div class="mb-3">
                             <label for="description" class="form-label">Description</label>
-                            <textarea class="form-control" id="description" name="description" required></textarea>
+                            <textarea class="form-control" id="description" name="description"></textarea>
+                            <div class="invalid-feedback">Please enter a description (10-500 characters)</div>
                         </div>
 
                         <!-- Type and Applicable To -->
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="type" class="form-label">Offer Type</label>
-                                <select class="form-select" id="type" name="type" required onchange="handleTypeChange(this.value)">
+                                <select class="form-select" id="type" name="type" onchange="handleTypeChange(this.value)">
                                     <option value="">Select Type</option>
                                     <option value="product">Product Offer</option>
                                     <option value="category">Category Offer</option>
                                 </select>
+                                <div class="invalid-feedback">Please select an offer type</div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="applicableToId" class="form-label">Applicable To</label>
-                                <select class="form-select" id="applicableToId" name="applicableToId" required>
+                                <select class="form-select" id="applicableToId" name="applicableToId">
                                     <option value="">Select...</option>
                                 </select>
+                                <div class="invalid-feedback">Please select a product or category</div>
                             </div>
                         </div>
 
@@ -395,9 +400,10 @@
                             <div class="col-md-12 mb-3">
                                 <label for="discountPercentage" class="form-label">Discount Percentage</label>
                                 <div class="input-group">
-                                    <input type="number" class="form-control" id="discountPercentage" name="discountPercentage" required min="0" max="100" step="0.01">
+                                    <input type="number" class="form-control" id="discountPercentage" name="discountPercentage" min="0" max="100" step="0.01">
                                     <span class="input-group-text">%</span>
                                 </div>
+                                <div class="invalid-feedback">Please enter a valid discount percentage (0-100%)</div>
                             </div>
                         </div>
 
@@ -405,14 +411,15 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="startDate" class="form-label">Start Date</label>
-                                <input type="datetime-local" class="form-control" id="startDate" name="startDate" required>
+                                <input type="datetime-local" class="form-control" id="startDate" name="startDate">
+                                <div class="invalid-feedback">Please select a valid start date</div>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="endDate" class="form-label">End Date</label>
-                                <input type="datetime-local" class="form-control" id="endDate" name="endDate" required>
+                                <input type="datetime-local" class="form-control" id="endDate" name="endDate">
+                                <div class="invalid-feedback">Please select a valid end date</div>
                             </div>
                         </div>
-
 
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -466,12 +473,93 @@
             document.getElementById('endDate').value = tomorrow.toISOString().slice(0, 16);
         });
 
+        // Form validation function
+        function validateOfferForm(formData) {
+            let isValid = true;
+
+            // Reset all invalid states
+            document.querySelectorAll('.is-invalid').forEach(element => {
+                element.classList.remove('is-invalid');
+            });
+
+            // Validate offer name
+            const name = formData.get('name');
+            if (!name || name.trim().length < 3 || name.trim().length > 50) {
+                document.getElementById('name').classList.add('is-invalid');
+                isValid = false;
+            }
+
+            // Validate description
+            const description = formData.get('description');
+            if (!description || description.trim().length < 10 || description.trim().length > 500) {
+                document.getElementById('description').classList.add('is-invalid');
+                isValid = false;
+            }
+
+            // Validate offer type
+            const type = formData.get('type');
+            if (!type) {
+                document.getElementById('type').classList.add('is-invalid');
+                isValid = false;
+            }
+
+            // Validate applicable to
+            const applicableToId = formData.get('applicableToId');
+            if (!applicableToId) {
+                document.getElementById('applicableToId').classList.add('is-invalid');
+                isValid = false;
+            }
+
+            // Validate discount percentage
+            const discountPercentage = parseFloat(formData.get('discountPercentage'));
+            if (isNaN(discountPercentage) || discountPercentage < 0 || discountPercentage > 100) {
+                document.getElementById('discountPercentage').classList.add('is-invalid');
+                isValid = false;
+            }
+
+            // Validate dates
+            const startDate = new Date(formData.get('startDate'));
+            const endDate = new Date(formData.get('endDate'));
+            const now = new Date();
+
+            if (!formData.get('startDate') || isNaN(startDate.getTime())) {
+                document.getElementById('startDate').classList.add('is-invalid');
+                isValid = false;
+            } else if (startDate < now) {
+                document.getElementById('startDate').classList.add('is-invalid');
+                document.getElementById('startDate').nextElementSibling.textContent = 'Start date cannot be in the past';
+                isValid = false;
+            }
+
+            if (!formData.get('endDate') || isNaN(endDate.getTime())) {
+                document.getElementById('endDate').classList.add('is-invalid');
+                isValid = false;
+            } else if (endDate <= startDate) {
+                document.getElementById('endDate').classList.add('is-invalid');
+                document.getElementById('endDate').nextElementSibling.textContent = 'End date must be after start date';
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
         // Form submission handler
         document.getElementById('offerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            const formData = new FormData(this);
+            const isValid = validateOfferForm(formData);
+
+            if (!isValid) {
+                // Scroll to the first invalid field
+                const firstInvalid = document.querySelector('.is-invalid');
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+
             try {
-                const formData = new FormData(this);
                 const offerId = formData.get('offerId');
                 const url = offerId ? `/admin/offers/edit/${offerId}` : '/admin/offers/add';
                 
@@ -481,9 +569,6 @@
                     formDataObj[key] = value;
                 });
                 
-                // Log the data being sent (for debugging)
-                console.log('Sending data:', formDataObj);
-                
                 const response = await fetch(url, {
                     method: offerId ? 'PUT' : 'POST',
                     headers: {
@@ -491,14 +576,6 @@
                     },
                     body: JSON.stringify(formDataObj)
                 });
-                
-                // Check if response is JSON
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    // If not JSON, get the text and throw an error with it
-                    const text = await response.text();
-                    throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}...`);
-                }
                 
                 const data = await response.json();
                 
@@ -520,12 +597,16 @@
                 });
             } catch (error) {
                 console.error('Error saving offer:', error);
-                Swal.fire({
-                    title: 'Error!',
-                    text: error.message,
-                    icon: 'error',
-                    confirmButtonText: 'OK'
-                });
+                // Show error message in the form
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger mt-3';
+                errorDiv.textContent = error.message;
+                this.insertBefore(errorDiv, this.firstChild);
+                
+                // Remove the error message after 5 seconds
+                setTimeout(() => {
+                    errorDiv.remove();
+                }, 5000);
             }
         });
 
@@ -655,6 +736,116 @@
             startDateInput.value = now.toISOString().slice(0, 16);
             endDateInput.value = tomorrow.toISOString().slice(0, 16);
         }
+
+        // Real-time validation
+        function setupRealTimeValidation() {
+            const form = document.getElementById('offerForm');
+            
+            // Name validation with debounce
+            let nameTimeout;
+            form.querySelector('#name').addEventListener('input', function() {
+                clearTimeout(nameTimeout);
+                const name = this.value.trim();
+                
+                if (name.length < 3 || name.length > 50) {
+                    this.classList.add('is-invalid');
+                    this.classList.remove('is-valid');
+                    return;
+                }
+                
+                // Check for duplicate names after a delay
+                nameTimeout = setTimeout(async () => {
+                    try {
+                        const response = await fetch('/admin/offers/check-name', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                name: name,
+                                offerId: form.querySelector('input[name="offerId"]').value
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.exists) {
+                            this.classList.add('is-invalid');
+                            this.classList.remove('is-valid');
+                            this.nextElementSibling.textContent = 'An offer with this name already exists';
+                        } else {
+                            this.classList.remove('is-invalid');
+                            this.classList.add('is-valid');
+                        }
+                    } catch (error) {
+                        console.error('Error checking offer name:', error);
+                    }
+                }, 500);
+            });
+
+            // Description validation
+            form.querySelector('#description').addEventListener('input', function() {
+                if (this.value.trim().length < 10 || this.value.trim().length > 500) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+
+            // Type validation
+            form.querySelector('#type').addEventListener('change', function() {
+                if (!this.value) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+
+            // Applicable to validation
+            form.querySelector('#applicableToId').addEventListener('change', function() {
+                if (!this.value) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+
+            // Discount percentage validation
+            form.querySelector('#discountPercentage').addEventListener('input', function() {
+                const value = parseFloat(this.value);
+                if (isNaN(value) || value < 0 || value > 100) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+
+            // Date validation
+            form.querySelector('#startDate').addEventListener('change', function() {
+                const startDate = new Date(this.value);
+                const now = new Date();
+                if (!this.value || isNaN(startDate.getTime()) || startDate < now) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+
+            form.querySelector('#endDate').addEventListener('change', function() {
+                const endDate = new Date(this.value);
+                const startDate = new Date(form.querySelector('#startDate').value);
+                if (!this.value || isNaN(endDate.getTime()) || endDate <= startDate) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+        }
+
+        // Initialize real-time validation
+        document.addEventListener('DOMContentLoaded', function() {
+            setupRealTimeValidation();
+        });
     </script>
 </body>
 </html> 

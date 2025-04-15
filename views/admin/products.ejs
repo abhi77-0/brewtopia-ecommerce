@@ -367,24 +367,26 @@
                             <!-- Product Name -->
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Product Name</label>
-                                <input type="text" name="name" class="form-control" required>
+                                <input type="text" name="name" class="form-control">
+                                <div class="invalid-feedback">Product name must be at least 3 characters long</div>
                             </div>
                             
                             <!-- Category -->
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Category</label>
-                                <select name="category" class="form-control" required>
+                                <select name="category" class="form-control">
                                     <option value="">Select Category</option>
                                     <% categories.forEach(function(category) { %>
                                         <option value="<%= category._id %>"><%= category.name %></option>
                                     <% }); %>
                                 </select>
+                                <div class="invalid-feedback">Please select a category</div>
                             </div>
 
                             <!-- Brand -->
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Brand</label>
-                                <select name="brand" class="form-control" required>
+                                <select name="brand" class="form-control">
                                     <option value="">Select Brand</option>
                                     <option value="kingfisher">Kingfisher</option>
                                     <option value="heineken">Heineken</option>
@@ -392,12 +394,14 @@
                                     <option value="corona">Corona</option>
                                     <option value="carlsberg">Carlsberg</option>
                                 </select>
+                                <div class="invalid-feedback">Please select a brand</div>
                             </div>
 
                             <!-- Description -->
                             <div class="col-12 mb-3">
                                 <label class="form-label">Description</label>
-                                <textarea name="description" class="form-control" rows="3" required></textarea>
+                                <textarea name="description" class="form-control" rows="3"></textarea>
+                                <div class="invalid-feedback">Description must be at least 10 characters long</div>
                             </div>
                         </div>
 
@@ -406,7 +410,8 @@
                             <h6 class="mb-3">Product Images</h6>
                             <div class="col-md-4">
                                 <label class="form-label">Image 1</label>
-                                <input type="file" name="image1" class="form-control" accept="image/*" required>
+                                <input type="file" name="image1" class="form-control" accept="image/*">
+                                <div class="invalid-feedback">Main product image is required</div>
                                 <div class="image-preview mt-2"></div>
                             </div>
                             <div class="col-md-4">
@@ -431,11 +436,13 @@
                                         <h6>500ml Variant</h6>
                                         <div class="mb-3">
                                             <label class="form-label">Price (₹)</label>
-                                            <input type="number" name="price500ml" class="form-control" required>
+                                            <input type="number" name="price500ml" class="form-control">
+                                            <div class="invalid-feedback">Price must be greater than 0</div>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Stock</label>
-                                            <input type="number" name="stock500ml" class="form-control" required>
+                                            <input type="number" name="stock500ml" class="form-control">
+                                            <div class="invalid-feedback">Stock cannot be negative</div>
                                         </div>
                                     </div>
                                 </div>
@@ -447,11 +454,13 @@
                                         <h6>650ml Variant</h6>
                                         <div class="mb-3">
                                             <label class="form-label">Price (₹)</label>
-                                            <input type="number" name="price650ml" class="form-control" required>
+                                            <input type="number" name="price650ml" class="form-control">
+                                            <div class="invalid-feedback">Price must be greater than 0</div>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Stock</label>
-                                            <input type="number" name="stock650ml" class="form-control" required>
+                                            <input type="number" name="stock650ml" class="form-control">
+                                            <div class="invalid-feedback">Stock cannot be negative</div>
                                         </div>
                                     </div>
                                 </div>
@@ -483,11 +492,12 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Product Name</label>
-                                    <input type="text" name="name" class="form-control" required>
+                                    <input type="text" name="name" class="form-control">
+                                    <div class="invalid-feedback">Product name must be at least 3 characters long</div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Category</label>
-                                    <select name="category" class="form-control" required>
+                                    <select name="category" class="form-control">
                                         <option value="">Select Category</option>
                                         <% if (categories && categories.length > 0) { %>
                                             <% categories.forEach(function(category) { %>
@@ -497,10 +507,11 @@
                                             <option value="" disabled>No categories available</option>
                                         <% } %>
                                     </select>
+                                    <div class="invalid-feedback">Please select a category</div>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Brand</label>
-                                    <select name="brand" class="form-control" required>
+                                    <select name="brand" class="form-control">
                                         <option value="">Select Brand</option>
                                         <option value="kingfisher">Kingfisher</option>
                                         <option value="heineken">Heineken</option>
@@ -508,12 +519,14 @@
                                         <option value="corona">Corona</option>
                                         <option value="carlsberg">Carlsberg</option>
                                     </select>
+                                    <div class="invalid-feedback">Please select a brand</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label class="form-label">Description</label>
-                                    <textarea name="description" class="form-control" rows="5" required></textarea>
+                                    <textarea name="description" class="form-control" rows="5"></textarea>
+                                    <div class="invalid-feedback">Description must be at least 10 characters long</div>
                                 </div>
                             </div>
                         </div>
@@ -525,6 +538,7 @@
                                 <div class="mb-3">
                                     <label class="form-label">Main Image</label>
                                     <input type="file" name="image1" class="form-control" accept="image/*">
+                                    <div class="invalid-feedback">Please select a main image</div>
                                     <div class="image-preview" id="preview1Edit">
                                         <i class="fas fa-image"></i>
                                     </div>
@@ -557,11 +571,13 @@
                                     <h6>500ml Variant</h6>
                                     <div class="mb-3">
                                         <label class="form-label">Price (₹)</label>
-                                        <input type="number" name="price500ml" step="0.01" class="form-control" required>
+                                        <input type="number" name="price500ml" step="0.01" class="form-control">
+                                        <div class="invalid-feedback">Price must be greater than 0</div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Stock</label>
-                                        <input type="number" name="stock500ml" class="form-control" required>
+                                        <input type="number" name="stock500ml" class="form-control">
+                                        <div class="invalid-feedback">Stock cannot be negative</div>
                                     </div>
                                 </div>
                             </div>
@@ -570,11 +586,13 @@
                                     <h6>650ml Variant</h6>
                                     <div class="mb-3">
                                         <label class="form-label">Price (₹)</label>
-                                        <input type="number" name="price650ml" step="0.01" class="form-control" required>
+                                        <input type="number" name="price650ml" step="0.01" class="form-control">
+                                        <div class="invalid-feedback">Price must be greater than 0</div>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label">Stock</label>
-                                        <input type="number" name="stock650ml" class="form-control" required>
+                                        <input type="number" name="stock650ml" class="form-control">
+                                        <div class="invalid-feedback">Stock cannot be negative</div>
                                     </div>
                                 </div>
                             </div>
@@ -672,6 +690,94 @@
             }
         }
         
+        // Validation functions
+        function validateProductForm(formData, form) {
+            const errors = [];
+            let isValid = true;
+            
+            // Reset all invalid states
+            form.querySelectorAll('.is-invalid').forEach(element => {
+                element.classList.remove('is-invalid');
+            });
+
+            // Product Name validation
+            const nameInput = form.querySelector('input[name="name"]');
+            if (!formData.get('name') || formData.get('name').trim().length < 3) {
+                nameInput.classList.add('is-invalid');
+                errors.push('Product name must be at least 3 characters long');
+                isValid = false;
+            }
+            
+            // Category validation
+            const categorySelect = form.querySelector('select[name="category"]');
+            if (!formData.get('category')) {
+                categorySelect.classList.add('is-invalid');
+                errors.push('Please select a category');
+                isValid = false;
+            }
+            
+            // Brand validation
+            const brandSelect = form.querySelector('select[name="brand"]');
+            if (!formData.get('brand')) {
+                brandSelect.classList.add('is-invalid');
+                errors.push('Please select a brand');
+                isValid = false;
+            }
+            
+            // Description validation
+            const descriptionInput = form.querySelector('textarea[name="description"]');
+            if (!formData.get('description') || formData.get('description').trim().length < 10) {
+                descriptionInput.classList.add('is-invalid');
+                errors.push('Description must be at least 10 characters long');
+                isValid = false;
+            }
+            
+            // Image validation for new product
+            const image1Input = form.querySelector('input[name="image1"]');
+            if (form.id === 'addProductForm' && (!image1Input.files || !image1Input.files[0])) {
+                image1Input.classList.add('is-invalid');
+                errors.push('Main product image is required');
+                isValid = false;
+            }
+            
+            // Variant validation
+            const price500Input = form.querySelector('input[name="price500ml"]');
+            const stock500Input = form.querySelector('input[name="stock500ml"]');
+            const price650Input = form.querySelector('input[name="price650ml"]');
+            const stock650Input = form.querySelector('input[name="stock650ml"]');
+            
+            const price500ml = parseFloat(formData.get('price500ml'));
+            const stock500ml = parseInt(formData.get('stock500ml'));
+            const price650ml = parseFloat(formData.get('price650ml'));
+            const stock650ml = parseInt(formData.get('stock650ml'));
+            
+            if (isNaN(price500ml) || price500ml <= 0) {
+                price500Input.classList.add('is-invalid');
+                errors.push('500ml variant price must be greater than 0');
+                isValid = false;
+            }
+            
+            if (isNaN(stock500ml) || stock500ml < 0) {
+                stock500Input.classList.add('is-invalid');
+                errors.push('500ml variant stock cannot be negative');
+                isValid = false;
+            }
+            
+            if (isNaN(price650ml) || price650ml <= 0) {
+                price650Input.classList.add('is-invalid');
+                errors.push('650ml variant price must be greater than 0');
+                isValid = false;
+            }
+            
+            if (isNaN(stock650ml) || stock650ml < 0) {
+                stock650Input.classList.add('is-invalid');
+                errors.push('650ml variant stock cannot be negative');
+                isValid = false;
+            }
+            
+            return { isValid, errors };
+        }
+
         // Edit Product Form Submit
         document.getElementById('editProductForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -679,33 +785,30 @@
             const form = this;
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
-            
+            const formData = new FormData(form);
+
+            // Validate form
+            const { isValid } = validateProductForm(formData, form);
+            if (!isValid) {
+                return; // Stop form submission if validation fails
+            }
+
             try {
-                // Show loading state with SweetAlert2
-                Swal.fire({
-                    title: 'Updating Product...',
-                    text: 'Please wait',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-                
+                // Show loading state
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
                 submitBtn.disabled = true;
                 
-                const formData = new FormData(form);
                 const productId = formData.get('productId');
                 
                 // Prepare variants data
                 const variants = {
                     '500ml': {
-                        price: parseFloat(formData.get('price500ml')) || 0,
-                        stock: parseInt(formData.get('stock500ml')) || 0
+                        price: parseFloat(formData.get('price500ml')),
+                        stock: parseInt(formData.get('stock500ml'))
                     },
                     '650ml': {
-                        price: parseFloat(formData.get('price650ml')) || 0,
-                        stock: parseInt(formData.get('stock650ml')) || 0
+                        price: parseFloat(formData.get('price650ml')),
+                        stock: parseInt(formData.get('stock650ml'))
                     }
                 };
                 
@@ -719,22 +822,22 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    // Success message
-                    await Swal.fire({
+                    Swal.fire({
                         icon: 'success',
                         title: 'Success!',
                         text: data.message || 'Product updated successfully',
                         showConfirmButton: false,
                         timer: 1500
+                    }).then(() => {
+                        window.location.reload();
                     });
-                    window.location.reload();
                 } else {
                     throw new Error(data.error || 'Failed to update product');
                 }
                 
             } catch (error) {
                 console.error('Error updating product:', error);
-                await Swal.fire({
+                Swal.fire({
                     icon: 'error',
                     title: 'Oops...',
                     text: error.message || 'Failed to update product'
@@ -742,10 +845,6 @@
             } finally {
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
-                const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
-                if (modal) {
-                    modal.hide();
-                }
             }
         });
 
@@ -776,23 +875,15 @@
             const form = this;
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
+            const formData = new FormData(form);
+
+            // Validate form
+            const { isValid } = validateProductForm(formData, form);
+            if (!isValid) {
+                return; // Stop form submission if validation fails
+            }
 
             try {
-                // Prepare variants data
-                const variants = {
-                    '500ml': {
-                        price: form.querySelector('input[name="price500ml"]').value,
-                        stock: form.querySelector('input[name="stock500ml"]').value
-                    },
-                    '650ml': {
-                        price: form.querySelector('input[name="price650ml"]').value,
-                        stock: form.querySelector('input[name="stock650ml"]').value
-                    }
-                };
-
-                const formData = new FormData(form);
-                formData.append('variants', JSON.stringify(variants));
-
                 // Show loading state
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
                 submitBtn.disabled = true;
@@ -802,18 +893,20 @@
                     body: formData
                 });
 
-                if (response.ok) {
+                const data = await response.json();
+
+                if (response.ok && data.success) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Success!',
-                        text: 'Product added successfully',
+                        text: data.message || 'Product added successfully',
                         showConfirmButton: false,
                         timer: 1500
                     }).then(() => {
                         window.location.reload();
                     });
                 } else {
-                    throw new Error('Failed to add product');
+                    throw new Error(data.error || 'Failed to add product');
                 }
 
             } catch (error) {
@@ -821,15 +914,11 @@
                 Swal.fire({
                     icon: 'error',
                     title: 'Oops...',
-                    text: 'Failed to add product'
+                    text: error.message || 'Failed to add product'
                 });
             } finally {
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
-                const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
-                if (modal) {
-                    modal.hide();
-                }
             }
         });
 
@@ -886,6 +975,109 @@
                     }
                 });
             });
+        });
+
+        // Real-time validation
+        function setupRealTimeValidation() {
+            const forms = ['addProductForm', 'editProductForm'];
+            
+            forms.forEach(formId => {
+                const form = document.getElementById(formId);
+                if (!form) return;
+
+                // Name validation
+                const nameInput = form.querySelector('input[name="name"]');
+                if (nameInput) {
+                    nameInput.addEventListener('input', function() {
+                        if (this.value.trim().length < 3) {
+                            this.classList.add('is-invalid');
+                            this.nextElementSibling.style.display = 'block';
+                        } else {
+                            this.classList.remove('is-invalid');
+                            this.nextElementSibling.style.display = 'none';
+                        }
+                    });
+                }
+
+                // Category and Brand validation
+                const selects = form.querySelectorAll('select[name="category"], select[name="brand"]');
+                selects.forEach(select => {
+                    select.addEventListener('change', function() {
+                        if (!this.value) {
+                            this.classList.add('is-invalid');
+                            this.nextElementSibling.style.display = 'block';
+                        } else {
+                            this.classList.remove('is-invalid');
+                            this.nextElementSibling.style.display = 'none';
+                        }
+                    });
+                });
+
+                // Description validation
+                const descriptionInput = form.querySelector('textarea[name="description"]');
+                if (descriptionInput) {
+                    descriptionInput.addEventListener('input', function() {
+                        if (this.value.trim().length < 10) {
+                            this.classList.add('is-invalid');
+                            this.nextElementSibling.style.display = 'block';
+                        } else {
+                            this.classList.remove('is-invalid');
+                            this.nextElementSibling.style.display = 'none';
+                        }
+                    });
+                }
+
+                // Price validation
+                const priceInputs = form.querySelectorAll('input[name^="price"]');
+                priceInputs.forEach(input => {
+                    input.addEventListener('input', function() {
+                        const value = parseFloat(this.value);
+                        if (isNaN(value) || value <= 0) {
+                            this.classList.add('is-invalid');
+                            this.nextElementSibling.style.display = 'block';
+                        } else {
+                            this.classList.remove('is-invalid');
+                            this.nextElementSibling.style.display = 'none';
+                        }
+                    });
+                });
+
+                // Stock validation
+                const stockInputs = form.querySelectorAll('input[name^="stock"]');
+                stockInputs.forEach(input => {
+                    input.addEventListener('input', function() {
+                        const value = parseInt(this.value);
+                        if (isNaN(value) || value < 0) {
+                            this.classList.add('is-invalid');
+                            this.nextElementSibling.style.display = 'block';
+                        } else {
+                            this.classList.remove('is-invalid');
+                            this.nextElementSibling.style.display = 'none';
+                        }
+                    });
+                });
+
+                // Image validation
+                if (formId === 'addProductForm') {
+                    const imageInput = form.querySelector('input[name="image1"]');
+                    if (imageInput) {
+                        imageInput.addEventListener('change', function() {
+                            if (!this.files || !this.files[0]) {
+                                this.classList.add('is-invalid');
+                                this.nextElementSibling.style.display = 'block';
+                            } else {
+                                this.classList.remove('is-invalid');
+                                this.nextElementSibling.style.display = 'none';
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        // Initialize real-time validation
+        document.addEventListener('DOMContentLoaded', function() {
+            setupRealTimeValidation();
         });
     </script>
 </body>

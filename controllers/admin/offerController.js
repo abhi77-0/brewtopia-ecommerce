@@ -118,6 +118,26 @@ exports.postAddOffer = async (req, res) => {
             applicableToId,
         } = req.body;
 
+        // Validate offer name
+        if (!name || name.trim().length < 3 || name.trim().length > 50) {
+            return res.status(400).json({
+                success: false,
+                message: 'Offer name must be between 3 and 50 characters'
+            });
+        }
+
+        // Check for duplicate offer names
+        const duplicateNameOffer = await Offer.findOne({
+            name: { $regex: new RegExp('^' + name.trim() + '$', 'i') }
+        });
+
+        if (duplicateNameOffer) {
+            return res.status(400).json({
+                success: false,
+                message: 'An offer with this name already exists'
+            });
+        }
+
         const now = new Date();
         const startDateObj = new Date(startDate);
         const endDateObj = new Date(endDate);
@@ -140,15 +160,15 @@ exports.postAddOffer = async (req, res) => {
             });
         }
 
-        // Check for existing offers
-        const existingOffer = await Offer.findOne({
+        // Check for existing active offers on the same product/category
+        const activeOffer = await Offer.findOne({
             type,
             applicableTo: applicableToId,
             endDate: { $gte: now },
             isActive: true
         });
 
-        if (existingOffer) {
+        if (activeOffer) {
             return res.status(400).json({
                 success: false,
                 message: `An active offer already exists for this ${type}`
@@ -200,6 +220,27 @@ exports.postEditOffer = async (req, res) => {
             applicableToId,
             isActive
         } = req.body;
+
+        // Validate offer name
+        if (!name || name.trim().length < 3 || name.trim().length > 50) {
+            return res.status(400).json({
+                success: false,
+                message: 'Offer name must be between 3 and 50 characters'
+            });
+        }
+
+        // Check for duplicate offer names (excluding current offer)
+        const existingOffer = await Offer.findOne({
+            _id: { $ne: offerId },
+            name: { $regex: new RegExp('^' + name.trim() + '$', 'i') }
+        });
+
+        if (existingOffer) {
+            return res.status(400).json({
+                success: false,
+                message: 'An offer with this name already exists'
+            });
+        }
 
         const now = new Date();
         const startDateObj = new Date(startDate);
@@ -344,6 +385,33 @@ exports.deleteOffer = async (req, res) => {
             message: 'Failed to delete offer',
             error: error.message
         });
+    }
+};
+
+// Check if offer name exists
+exports.checkOfferName = async (req, res) => {
+    try {
+        const { name, offerId } = req.body;
+
+        if (!name || name.trim().length < 3 || name.trim().length > 50) {
+            return res.json({ exists: false });
+        }
+
+        const query = {
+            name: { $regex: new RegExp('^' + name.trim() + '$', 'i') }
+        };
+
+        // If editing an existing offer, exclude it from the check
+        if (offerId) {
+            query._id = { $ne: offerId };
+        }
+
+        const existingOffer = await Offer.findOne(query);
+
+        res.json({ exists: !!existingOffer });
+    } catch (error) {
+        console.error('Error checking offer name:', error);
+        res.status(500).json({ exists: false });
     }
 };
 

@@ -146,8 +146,19 @@
                 <div class="cart-summary">
                     <h3 class="summary-title">Order Summary</h3>
                     <div class="summary-item d-flex justify-content-between">
-                        <span>Subtotal (<%= itemCount %> items)</span>
-                        <span>₹<%= subtotal %></span>
+                        <span>Subtotal (<%= cart.items.reduce((total, item) => total + item.quantity, 0) %> items)</span>
+                        <span>₹<%= cart.items.reduce((total, item) => {
+                            if (item.product && item.product.variants && item.product.variants[item.variant]) {
+                                const variantPrice = parseFloat(item.product.variants[item.variant].price);
+                                const offerInfo = calculateBestOffer(item.product);
+                                const discountedPrice = offerInfo.bestOffer ? 
+                                    variantPrice * (1 - offerInfo.discountPercentage / 100) : 
+                                    variantPrice;
+                                const subtotal = (discountedPrice * item.quantity).toFixed(2);
+                                return total + parseFloat(totalPrice);
+                            }
+                            return total + parseFloat(item.total || 0);
+                        }, 0).toFixed(2) %></span>
                     </div>
                     
                     <% 
@@ -182,7 +193,13 @@
                     <% } else { %>
                         <div class="summary-item d-flex justify-content-between text-success">
                             <span>Discount (10%)</span>
-                            <span>-₹<%= discount %></span>
+                            <span>-₹<%= Math.round(cart.items.reduce((total, item) => {
+                                if (item.product && item.product.variants && item.product.variants[item.variant]) {
+                                    const variantPrice = parseFloat(item.product.variants[item.variant].price);
+                                    return total + (variantPrice * item.quantity);
+                                }
+                                return total;
+                            }, 0) * 0.1) %></span>
                         </div>
                     <% } %>
                     
@@ -192,14 +209,37 @@
                     </div>
                     <div class="summary-item d-flex justify-content-between">
                         <span>GST (18%)</span>
-                        <span>₹<%= Math.round(subtotal * 0.18) %></span>
+                        <span>₹<%= Math.round(cart.items.reduce((total, item) => {
+                            if (item.product && item.product.variants && item.product.variants[item.variant]) {
+                                const variantPrice = parseFloat(item.product.variants[item.variant].price);
+                                const offerInfo = calculateBestOffer(item.product);
+                                const discountedPrice = offerInfo.bestOffer ? 
+                                    variantPrice * (1 - offerInfo.discountPercentage / 100) : 
+                                    variantPrice;
+                                return total + (discountedPrice * item.quantity);
+                            }
+                            return total;
+                        }, 0) * 0.18) %></span>
                     </div>
                     <div class="summary-total d-flex justify-content-between">
                         <span>Total</span>
-                        <% const finalTotal = hasOfferDiscount ? 
-                            (subtotal - totalOfferDiscount + shipping + Math.round(subtotal * 0.18)) : 
-                            (total + Math.round(subtotal * 0.18)); %>
-                        <span>₹<%= finalTotal %></span>
+                        <% const subtotal = cart.items.reduce((total, item) => {
+                            if (item.product && item.product.variants && item.product.variants[item.variant]) {
+                                const variantPrice = parseFloat(item.product.variants[item.variant].price);
+                                const offerInfo = calculateBestOffer(item.product);
+                                const discountedPrice = offerInfo.bestOffer ? 
+                                    variantPrice * (1 - offerInfo.discountPercentage / 100) : 
+                                    variantPrice;
+                                return total + (discountedPrice * item.quantity);
+                            }
+                            return total;
+                        }, 0);
+                        
+                        const gst = Math.round(subtotal * 0.18);
+                        const finalTotal = hasOfferDiscount ? 
+                            (subtotal - totalOfferDiscount + shipping + gst) : 
+                            (subtotal - Math.round(subtotal * 0.1) + shipping + gst); %>
+                        <span>₹<%= Math.round(finalTotal) %></span>
                     </div>
                     <button onclick="window.location.href='/cart/checkout'" 
                             class="btn btn-primary btn-block checkout-btn" 
@@ -324,7 +364,15 @@ function updateCartSummary(cartData) {
         // Update subtotal
         const subtotalElement = summaryContainer.querySelector('.summary-item:first-child span:last-child');
         if (subtotalElement) {
-            subtotalElement.textContent = `₹${cartData.subtotal}`;
+            const subtotal = cartData.items.reduce((total, item) => {
+                const itemPrice = parseFloat(item.product.variants[item.variant].price);
+                const offerInfo = calculateBestOfferClientSide(item.product);
+                const discountedPrice = offerInfo.bestOffer ? 
+                    itemPrice * (1 - offerInfo.discountPercentage / 100) : 
+                    itemPrice;
+                return total + (discountedPrice * item.quantity);
+            }, 0);
+            subtotalElement.textContent = `₹${subtotal.toFixed(2)}`;
         }
         
         // Calculate and update offer discount
