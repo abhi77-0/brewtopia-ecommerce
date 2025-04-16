@@ -190,6 +190,7 @@ const getAdminProducts = async (req, res) => {
         // Get paginated products with category populated
         const products = await Product.find()
             .populate('category')
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit);
             
