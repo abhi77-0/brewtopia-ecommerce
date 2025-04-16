@@ -740,41 +740,6 @@
                 isValid = false;
             }
             
-            // Variant validation
-            const price500Input = form.querySelector('input[name="price500ml"]');
-            const stock500Input = form.querySelector('input[name="stock500ml"]');
-            const price650Input = form.querySelector('input[name="price650ml"]');
-            const stock650Input = form.querySelector('input[name="stock650ml"]');
-            
-            const price500ml = parseFloat(formData.get('price500ml'));
-            const stock500ml = parseInt(formData.get('stock500ml'));
-            const price650ml = parseFloat(formData.get('price650ml'));
-            const stock650ml = parseInt(formData.get('stock650ml'));
-            
-            if (isNaN(price500ml) || price500ml <= 0) {
-                price500Input.classList.add('is-invalid');
-                errors.push('500ml variant price must be greater than 0');
-                isValid = false;
-            }
-            
-            if (isNaN(stock500ml) || stock500ml < 0) {
-                stock500Input.classList.add('is-invalid');
-                errors.push('500ml variant stock cannot be negative');
-                isValid = false;
-            }
-            
-            if (isNaN(price650ml) || price650ml <= 0) {
-                price650Input.classList.add('is-invalid');
-                errors.push('650ml variant price must be greater than 0');
-                isValid = false;
-            }
-            
-            if (isNaN(stock650ml) || stock650ml < 0) {
-                stock650Input.classList.add('is-invalid');
-                errors.push('650ml variant stock cannot be negative');
-                isValid = false;
-            }
-            
             return { isValid, errors };
         }
 
@@ -800,18 +765,29 @@
                 
                 const productId = formData.get('productId');
                 
-                // Prepare variants data
-                const variants = {
-                    '500ml': {
-                        price: parseFloat(formData.get('price500ml')),
-                        stock: parseInt(formData.get('stock500ml'))
-                    },
-                    '650ml': {
-                        price: parseFloat(formData.get('price650ml')),
-                        stock: parseInt(formData.get('stock650ml'))
-                    }
-                };
-                
+                // Validate and prepare variants data
+                const variants = {};
+                const price500ml = formData.get('price500ml');
+                const stock500ml = formData.get('stock500ml');
+                const price650ml = formData.get('price650ml');
+                const stock650ml = formData.get('stock650ml');
+
+                // Only add variants if they have valid prices
+                if (price500ml && price500ml.trim() !== '') {
+                    variants['500ml'] = {
+                        price: parseFloat(price500ml) || 0,
+                        stock: parseInt(stock500ml) || 0
+                    };
+                }
+
+                if (price650ml && price650ml.trim() !== '') {
+                    variants['650ml'] = {
+                        price: parseFloat(price650ml) || 0,
+                        stock: parseInt(stock650ml) || 0
+                    };
+                }
+
+                // Add variants to formData
                 formData.set('variants', JSON.stringify(variants));
                 
                 const response = await fetch(`/admin/products/edit/${productId}`, {
@@ -887,6 +863,31 @@
                 // Show loading state
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
                 submitBtn.disabled = true;
+
+                // Validate and prepare variants data
+                const variants = {};
+                const price500ml = formData.get('price500ml');
+                const stock500ml = formData.get('stock500ml');
+                const price650ml = formData.get('price650ml');
+                const stock650ml = formData.get('stock650ml');
+
+                // Only add variants if they have valid prices
+                if (price500ml && price500ml.trim() !== '') {
+                    variants['500ml'] = {
+                        price: parseFloat(price500ml) || 0,
+                        stock: parseInt(stock500ml) || 0
+                    };
+                }
+
+                if (price650ml && price650ml.trim() !== '') {
+                    variants['650ml'] = {
+                        price: parseFloat(price650ml) || 0,
+                        stock: parseInt(stock650ml) || 0
+                    };
+                }
+
+                // Add variants to formData
+                formData.set('variants', JSON.stringify(variants));
 
                 const response = await fetch('/admin/products/add', {
                     method: 'POST',
@@ -1026,36 +1027,6 @@
                         }
                     });
                 }
-
-                // Price validation
-                const priceInputs = form.querySelectorAll('input[name^="price"]');
-                priceInputs.forEach(input => {
-                    input.addEventListener('input', function() {
-                        const value = parseFloat(this.value);
-                        if (isNaN(value) || value <= 0) {
-                            this.classList.add('is-invalid');
-                            this.nextElementSibling.style.display = 'block';
-                        } else {
-                            this.classList.remove('is-invalid');
-                            this.nextElementSibling.style.display = 'none';
-                        }
-                    });
-                });
-
-                // Stock validation
-                const stockInputs = form.querySelectorAll('input[name^="stock"]');
-                stockInputs.forEach(input => {
-                    input.addEventListener('input', function() {
-                        const value = parseInt(this.value);
-                        if (isNaN(value) || value < 0) {
-                            this.classList.add('is-invalid');
-                            this.nextElementSibling.style.display = 'block';
-                        } else {
-                            this.classList.remove('is-invalid');
-                            this.nextElementSibling.style.display = 'none';
-                        }
-                    });
-                });
 
                 // Image validation
                 if (formId === 'addProductForm') {

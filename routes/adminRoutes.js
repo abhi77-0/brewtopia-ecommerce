@@ -41,6 +41,7 @@ router.post('/products/toggle-visibility/:id', isAdmin, adminController.togglePr
 // User Management Routes
 router.get('/users', isAdmin, adminController.getUsers);
 router.put('/users/:id/block', isAdmin, adminController.toggleUserBlockStatus);
+router.get('/users/search', isAdmin, adminController.searchUsers);
 
 // Category Management Routes
 router.get('/categories', isAdmin, categoryController.getCategories);

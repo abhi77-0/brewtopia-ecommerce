@@ -263,7 +263,7 @@
                             <!-- Add debug for each category -->
                             <% console.log('Processing category:', category); %>
                             <div class="col-md-6 col-lg-4">
-                                <div class="category-card card">
+                                <div class="category-card card" data-category-id="<%= category._id %>">
                                     <div class="card-body">
                                         <h5 class="card-title mb-0"><%= category.name %></h5>
                                         <span class="badge bg-primary">
@@ -414,9 +414,42 @@
                     showConfirmButton: false
                 });
 
-                // Close modal and refresh page
+                // Create and append new category card
+                const newCategory = data.category;
+                const categoriesRow = document.querySelector('.categories-row');
+                const noCategories = document.querySelector('.categories-row .col-12.text-center');
+                
+                if (noCategories) {
+                    noCategories.remove();
+                }
+
+                const categoryCard = `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="category-card card" data-category-id="${newCategory._id}">
+                            <div class="card-body">
+                                <h5 class="card-title mb-0">${newCategory.name}</h5>
+                                <span class="badge bg-primary">
+                                    0 Products
+                                </span>
+                                <div class="action-buttons">
+                                    <button class="btn btn-outline-primary btn-action" onclick="editCategory('${newCategory._id}')">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-action" 
+                                            onclick="toggleVisibility('${newCategory._id}', true)">
+                                        <i class="fas fa-eye-slash"></i> Hide
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                categoriesRow.insertAdjacentHTML('afterbegin', categoryCard);
+
+                // Reset form and close modal
+                e.target.reset();
                 bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
-                window.location.reload();
             } catch (error) {
                 Swal.fire({
                     title: 'Error!',
@@ -501,9 +534,32 @@
                     showConfirmButton: false
                 });
 
-                // Close modal and refresh page
+                // Update the category card in the UI
+                const updatedCategory = data.category;
+                const categoryCard = document.querySelector(`[data-category-id="${categoryId}"]`);
+                
+                if (categoryCard) {
+                    // Update the category name
+                    categoryCard.querySelector('.card-title').textContent = updatedCategory.name;
+                    
+                    // Update the visibility button
+                    const visibilityButton = categoryCard.querySelector('.btn-outline-warning, .btn-outline-success');
+                    visibilityButton.className = `btn ${updatedCategory.isVisible ? 'btn-outline-warning' : 'btn-outline-success'} btn-action`;
+                    visibilityButton.setAttribute('onclick', `toggleVisibility('${categoryId}', ${updatedCategory.isVisible})`);
+                    
+                    // Update the eye icon
+                    const eyeIcon = visibilityButton.querySelector('i');
+                    eyeIcon.className = `fas ${updatedCategory.isVisible ? 'fa-eye-slash' : 'fa-eye'}`;
+                    
+                    // Update the button text
+                    const buttonText = visibilityButton.querySelector('span');
+                    if (buttonText) {
+                        buttonText.textContent = updatedCategory.isVisible ? 'Hide' : 'Show';
+                    }
+                }
+
+                // Close modal
                 bootstrap.Modal.getInstance(document.getElementById('editCategoryModal')).hide();
-                window.location.reload();
             } catch (error) {
                 Swal.fire({
                     title: 'Error!',

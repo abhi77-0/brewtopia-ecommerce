@@ -426,24 +426,132 @@
             }
         }
 
-        // Search functionality
+        // Debounce function
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const searchInput = document.querySelector('.search-input');
-            const tableRows = document.querySelectorAll('tbody tr');
+            const tbody = document.querySelector('tbody');
+            const loadingRow = `
+                <tr id="loading-row">
+                    <td colspan="4" class="text-center py-4">
+                        <div class="d-flex justify-content-center align-items-center">
+                            <div class="spinner-border text-primary me-2" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span>Searching...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
 
-            searchInput.addEventListener('input', function(e) {
-                const searchTerm = e.target.value.toLowerCase();
+            // Function to update table with search results
+            async function updateSearchResults(searchTerm) {
+                try {
+                    // Show loading state
+                    tbody.innerHTML = loadingRow;
 
-                tableRows.forEach(row => {
-                    const userName = row.querySelector('.user-name')?.textContent.toLowerCase() || '';
-                    const userEmail = row.querySelector('.user-email')?.textContent.toLowerCase() || '';
-                    
-                    if (userName.includes(searchTerm) || userEmail.includes(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
+                    // Make API call to server
+                    const response = await fetch(`/admin/users/search?term=${encodeURIComponent(searchTerm)}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Search failed');
                     }
-                });
+
+                    const users = await response.json();
+
+                    // Update table with results
+                    if (users.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="4">
+                                    <div class="empty-state">
+                                        <i class="fas fa-search"></i>
+                                        <p>No users found matching "${searchTerm}"</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+
+                    // Build table rows from search results
+                    tbody.innerHTML = users.map(user => `
+                        <tr>
+                            <td>
+                                <div class="user-info">
+                                    <div>
+                                        <p class="user-name">${user.name}</p>
+                                        <p class="user-email">${user.email}</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                ${new Date(user.createdAt).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                })}
+                            </td>
+                            <td>
+                                <span class="status-badge ${user.blocked ? 'status-blocked' : 'status-active'}">
+                                    ${user.blocked ? 'Blocked' : 'Active'}
+                                </span>
+                            </td>
+                            <td>
+                                <button onclick="toggleBlockUser('${user._id}', ${user.blocked})" 
+                                        class="btn-action ${user.blocked ? 'btn-unblock' : 'btn-block'}">
+                                    <i class="fas ${user.blocked ? 'fa-unlock' : 'fa-ban'} me-2"></i>
+                                    ${user.blocked ? 'Unblock' : 'Block'}
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                } catch (error) {
+                    console.error('Search error:', error);
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="4">
+                                <div class="empty-state">
+                                    <i class="fas fa-exclamation-circle text-danger"></i>
+                                    <p class="text-danger">Error occurred while searching. Please try again.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+
+            // Create debounced search function
+            const debouncedSearch = debounce(async (searchTerm) => {
+                if (searchTerm.trim().length === 0) {
+                    // If search is empty, reload the page to show all users
+                    window.location.reload();
+                    return;
+                }
+                await updateSearchResults(searchTerm);
+            }, 500); // 500ms delay
+
+            // Add input event listener
+            searchInput.addEventListener('input', function(e) {
+                const searchTerm = e.target.value.trim();
+                debouncedSearch(searchTerm);
             });
         });
     </script>

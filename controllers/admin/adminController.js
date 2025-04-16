@@ -576,7 +576,6 @@ module.exports = {
     getUsers,
     toggleUserBlockStatus,
     
-
     // Admin Product management controllers
     getAdminProducts,
     getAdminProductDetail,
@@ -587,5 +586,28 @@ module.exports = {
     
     // Order management controllers
     getOrders,
-    updateOrderStatus
+    updateOrderStatus,
+    
+    // Search users
+    searchUsers: async (req, res) => {
+        try {
+            const searchTerm = req.query.term;
+            
+            // Create a case-insensitive search regex
+            const searchRegex = new RegExp(searchTerm, 'i');
+            
+            // Search in both name and email fields
+            const users = await User.find({
+                $or: [
+                    { name: searchRegex },
+                    { email: searchRegex }
+                ]
+            }).select('name email blocked createdAt');
+
+            res.json(users);
+        } catch (error) {
+            console.error('Error searching users:', error);
+            res.status(500).json({ error: 'Failed to search users' });
+        }
+    }
 };
