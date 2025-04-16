@@ -274,7 +274,7 @@
                     <tbody>
                         <% if (offers && offers.length > 0) { %>
                             <% offers.forEach(offer => { %>
-                                <tr>
+                                <tr data-offer-id="<%= offer._id %>">
                                     <td><strong><%= offer.name %></strong></td>
                                     <td><%= offer.description %></td>
                                     <td><span class="badge bg-info"><%= offer.discountPercentage %>%</span></td>
@@ -551,7 +551,6 @@
             const isValid = validateOfferForm(formData);
 
             if (!isValid) {
-                // Scroll to the first invalid field
                 const firstInvalid = document.querySelector('.is-invalid');
                 if (firstInvalid) {
                     firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -563,7 +562,6 @@
                 const offerId = formData.get('offerId');
                 const url = offerId ? `/admin/offers/edit/${offerId}` : '/admin/offers/add';
                 
-                // Convert form data to a proper JSON object
                 const formDataObj = {};
                 formData.forEach((value, key) => {
                     formDataObj[key] = value;
@@ -584,29 +582,101 @@
                 }
 
                 // Show success message
-                Swal.fire({
+                await Swal.fire({
                     title: 'Success!',
                     text: offerId ? 'Offer updated successfully' : 'Offer created successfully',
                     icon: 'success',
-                    confirmButtonText: 'OK'
-                }).then(() => {
-                    // Close modal and reload page
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('offerModal'));
-                    modal.hide();
-                    window.location.reload();
+                    timer: 1500,
+                    showConfirmButton: false
                 });
+
+                // Update the UI
+                const offer = data.offer;
+                const tbody = document.querySelector('table tbody');
+                
+                if (offerId) {
+                    // Update existing offer row
+                    const row = document.querySelector(`tr[data-offer-id="${offerId}"]`);
+                    if (row) {
+                        row.innerHTML = `
+                            <td><strong>${offer.name}</strong></td>
+                            <td>${offer.description}</td>
+                            <td><span class="badge bg-info">${offer.discountPercentage}%</span></td>
+                            <td>${new Date(offer.startDate).toLocaleDateString()}</td>
+                            <td>${new Date(offer.endDate).toLocaleDateString()}</td>
+                            <td>
+                                <span class="badge bg-${
+                                    !offer.isActive ? 'secondary' :
+                                    new Date() < new Date(offer.startDate) ? 'info' :
+                                    new Date() > new Date(offer.endDate) ? 'danger' :
+                                    'success'
+                                }">
+                                    ${
+                                        !offer.isActive ? 'Inactive' :
+                                        new Date() < new Date(offer.startDate) ? 'Scheduled' :
+                                        new Date() > new Date(offer.endDate) ? 'Expired' :
+                                        'Active'
+                                    }
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-action btn-outline-primary me-2" onclick="editOffer('${offer._id}')">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                <button class="btn btn-action btn-outline-danger" onclick="deleteOffer('${offer._id}')">
+                                    <i class="fas fa-trash-alt"></i> Delete
+                                </button>
+                            </td>
+                        `;
+                    }
+                } else {
+                    // Add new offer row
+                    const newRow = document.createElement('tr');
+                    newRow.setAttribute('data-offer-id', offer._id);
+                    newRow.innerHTML = `
+                        <td><strong>${offer.name}</strong></td>
+                        <td>${offer.description}</td>
+                        <td><span class="badge bg-info">${offer.discountPercentage}%</span></td>
+                        <td>${new Date(offer.startDate).toLocaleDateString()}</td>
+                        <td>${new Date(offer.endDate).toLocaleDateString()}</td>
+                        <td>
+                            <span class="badge bg-${
+                                !offer.isActive ? 'secondary' :
+                                new Date() < new Date(offer.startDate) ? 'info' :
+                                new Date() > new Date(offer.endDate) ? 'danger' :
+                                'success'
+                            }">
+                                ${
+                                    !offer.isActive ? 'Inactive' :
+                                    new Date() < new Date(offer.startDate) ? 'Scheduled' :
+                                    new Date() > new Date(offer.endDate) ? 'Expired' :
+                                    'Active'
+                                }
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-action btn-outline-primary me-2" onclick="editOffer('${offer._id}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-action btn-outline-danger" onclick="deleteOffer('${offer._id}')">
+                                <i class="fas fa-trash-alt"></i> Delete
+                            </button>
+                        </td>
+                    `;
+                    tbody.insertBefore(newRow, tbody.firstChild);
+                }
+
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('offerModal'));
+                modal.hide();
             } catch (error) {
                 console.error('Error saving offer:', error);
-                // Show error message in the form
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'alert alert-danger mt-3';
-                errorDiv.textContent = error.message;
-                this.insertBefore(errorDiv, this.firstChild);
-                
-                // Remove the error message after 5 seconds
-                setTimeout(() => {
-                    errorDiv.remove();
-                }, 5000);
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.message,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
             }
         });
 
@@ -700,18 +770,64 @@
                 });
 
                 if (result.isConfirmed) {
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Deleting...',
+                        text: 'Please wait while we delete the offer.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
                     const response = await fetch(`/admin/offers/delete/${id}`, {
                         method: 'DELETE'
                     });
                     
                     const data = await response.json();
                     
-                    if (!response.ok) throw new Error(data.message);
+                    if (!response.ok) throw new Error(data.message || 'Failed to delete offer');
                     
-                    window.location.reload();
+                    // Remove the offer row from the table
+                    const offerRow = document.querySelector(`tr[data-offer-id="${id}"]`);
+                    if (offerRow) {
+                        offerRow.remove();
+                        
+                        // Check if there are no more offers
+                        const tbody = document.querySelector('table tbody');
+                        const remainingRows = tbody.querySelectorAll('tr[data-offer-id]');
+                        
+                        if (remainingRows.length === 0) {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="7" class="text-center py-5">
+                                        <i class="fas fa-gift fa-3x mb-3 text-muted"></i>
+                                        <p class="text-muted mt-2">No offers found. Create your first offer!</p>
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                    }
+
+                    // Show success message
+                    await Swal.fire({
+                        title: 'Deleted!',
+                        text: 'The offer has been deleted successfully.',
+                        icon: 'success',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
                 }
             } catch (error) {
-                alert(error.message);
+                console.error('Error deleting offer:', error);
+                await Swal.fire({
+                    title: 'Error!',
+                    text: error.message || 'Failed to delete the offer.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
             }
         }
 

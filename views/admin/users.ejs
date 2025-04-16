@@ -365,6 +365,11 @@
     
     <script>
         async function toggleBlockUser(userId, isBlocked) {
+            const userRow = document.querySelector(`button[onclick*="${userId}"]`).closest('tr');
+            const actionButton = userRow.querySelector('.btn-action');
+            const statusBadge = userRow.querySelector('.status-badge');
+            const originalButtonHtml = actionButton.innerHTML;
+            
             try {
                 const result = await Swal.fire({
                     title: isBlocked ? 'Unblock User?' : 'Block User?',
@@ -381,16 +386,9 @@
                 });
 
                 if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Processing...',
-                        text: 'Please wait while we update the user status.',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
+                    // Show loading state in button
+                    actionButton.disabled = true;
+                    actionButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
 
                     const response = await fetch(`/admin/users/${userId}/block`, {
                         method: 'PUT',
@@ -405,17 +403,40 @@
                         throw new Error(data.error || 'Failed to toggle user status');
                     }
 
+                    // Update UI elements
+                    const newBlockedState = !isBlocked;
+                    
+                    // Update status badge
+                    statusBadge.className = `status-badge ${newBlockedState ? 'status-blocked' : 'status-active'}`;
+                    statusBadge.textContent = newBlockedState ? 'Blocked' : 'Active';
+                    
+                    // Update action button
+                    actionButton.className = `btn-action ${newBlockedState ? 'btn-unblock' : 'btn-block'}`;
+                    actionButton.innerHTML = `
+                        <i class="fas ${newBlockedState ? 'fa-unlock' : 'fa-ban'} me-2"></i>
+                        ${newBlockedState ? 'Unblock' : 'Block'}
+                    `;
+                    actionButton.disabled = false;
+                    actionButton.setAttribute('onclick', `toggleBlockUser('${userId}', ${newBlockedState})`);
+
+                    // Update stats cards
+                    updateStatsCards(newBlockedState);
+
+                    // Show success message
                     await Swal.fire({
                         title: 'Success!',
                         text: isBlocked ? 'User has been unblocked.' : 'User has been blocked.',
                         icon: 'success',
-                        confirmButtonColor: '#10B981'
+                        timer: 1500,
+                        showConfirmButton: false
                     });
-
-                    window.location.reload();
                 }
             } catch (error) {
                 console.error('Error toggling user status:', error);
+                
+                // Restore button state
+                actionButton.disabled = false;
+                actionButton.innerHTML = originalButtonHtml;
                 
                 await Swal.fire({
                     title: 'Error!',
@@ -423,6 +444,24 @@
                     icon: 'error',
                     confirmButtonColor: '#EF4444'
                 });
+            }
+        }
+
+        // Function to update stats cards
+        function updateStatsCards(userWasBlocked) {
+            const totalUsersElement = document.querySelector('.stat-value');
+            const activeUsersElement = document.querySelectorAll('.stat-value')[1];
+            const blockedUsersElement = document.querySelectorAll('.stat-value')[2];
+            
+            const activeUsers = parseInt(activeUsersElement.textContent);
+            const blockedUsers = parseInt(blockedUsersElement.textContent);
+            
+            if (userWasBlocked) {
+                activeUsersElement.textContent = (activeUsers - 1).toString();
+                blockedUsersElement.textContent = (blockedUsers + 1).toString();
+            } else {
+                activeUsersElement.textContent = (activeUsers + 1).toString();
+                blockedUsersElement.textContent = (blockedUsers - 1).toString();
             }
         }
 

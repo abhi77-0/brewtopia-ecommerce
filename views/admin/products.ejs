@@ -615,7 +615,6 @@
         // Edit Product function
         async function editProduct(id) {
             try {
-                console.log('Fetching product data for ID:', id);
                 const response = await fetch(`/admin/products/${id}`, {
                     method: 'GET',
                     headers: {
@@ -623,31 +622,25 @@
                     }
                 });
 
-                // Check if response is JSON
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Server did not return JSON');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch product details');
                 }
 
                 const product = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error(product.error || 'Failed to fetch product details');
-                }
-
-                console.log('Product data:', product);
-
                 // Fill the edit form
                 const form = document.getElementById('editProductForm');
                 
-                // Basic fields
+                // Set the product ID
                 form.querySelector('input[name="productId"]').value = product._id;
+                
+                // Set basic fields
                 form.querySelector('input[name="name"]').value = product.name || '';
                 form.querySelector('select[name="category"]').value = product.category?._id || '';
                 form.querySelector('select[name="brand"]').value = product.brand || '';
                 form.querySelector('textarea[name="description"]').value = product.description || '';
-
-                // Fill variant details
+                
+                // Set variant details
                 if (product.variants) {
                     if (product.variants['500ml']) {
                         form.querySelector('input[name="price500ml"]').value = product.variants['500ml'].price || '';
@@ -681,12 +674,19 @@
                     }
                 }
                 
+                // Update modal title
+                document.querySelector('#editProductModal .modal-title').textContent = 'Edit Product';
+                
                 // Show the modal
                 const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
                 modal.show();
             } catch (error) {
                 console.error('Error fetching product details:', error);
-                alert('Error: ' + error.message);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Failed to fetch product details'
+                });
             }
         }
         
@@ -751,28 +751,25 @@
             const submitBtn = form.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             const formData = new FormData(form);
+            const productId = formData.get('productId');
 
             // Validate form
             const { isValid } = validateProductForm(formData, form);
             if (!isValid) {
-                return; // Stop form submission if validation fails
+                return;
             }
 
             try {
-                // Show loading state
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
                 submitBtn.disabled = true;
                 
-                const productId = formData.get('productId');
-                
-                // Validate and prepare variants data
+                // Prepare variants data
                 const variants = {};
                 const price500ml = formData.get('price500ml');
                 const stock500ml = formData.get('stock500ml');
                 const price650ml = formData.get('price650ml');
                 const stock650ml = formData.get('stock650ml');
 
-                // Only add variants if they have valid prices
                 if (price500ml && price500ml.trim() !== '') {
                     variants['500ml'] = {
                         price: parseFloat(price500ml) || 0,
@@ -787,7 +784,6 @@
                     };
                 }
 
-                // Add variants to formData
                 formData.set('variants', JSON.stringify(variants));
                 
                 const response = await fetch(`/admin/products/edit/${productId}`, {
@@ -798,19 +794,81 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    Swal.fire({
+                    // Show success message
+                    await Swal.fire({
                         icon: 'success',
                         title: 'Success!',
                         text: data.message || 'Product updated successfully',
                         showConfirmButton: false,
                         timer: 1500
-                    }).then(() => {
-                        window.location.reload();
                     });
+
+                    // Update the table row
+                    const product = data.product;
+                    const tbody = document.querySelector('table tbody');
+                    const rows = tbody.querySelectorAll('tr');
+                    
+                    for (const row of rows) {
+                        if (row.querySelector(`button[onclick*="${productId}"]`)) {
+                            // Get the selected category name from the form
+                            const categorySelect = document.querySelector('#editProductForm select[name="category"]');
+                            const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+                            const categoryName = selectedOption.text || 'Uncategorized';
+
+                            row.innerHTML = `
+                                <td>
+                                    <img src="${product.images.image1 || 'https://res.cloudinary.com/dr0bl807r/image/upload/v1/brewtopia/placeholder.jpg'}" 
+                                         alt="${product.name}" 
+                                         class="product-image">
+                                </td>
+                                <td>
+                                    ${!product.isVisible ? '<span class="badge bg-secondary">Hidden</span>' : ''}
+                                    ${product.name}
+                                </td>
+                                <td>${categoryName}</td>
+                                <td>
+                                    ${product.variants && product.variants['500ml'] ? `
+                                        <div class="variant-badge bg-info text-white">
+                                            500ml - ₹${product.variants['500ml'].price || 0}
+                                            <small>(Stock: ${product.variants['500ml'].stock || 0})</small>
+                                        </div>
+                                    ` : ''}
+                                    ${product.variants && product.variants['650ml'] ? `
+                                        <div class="variant-badge bg-primary text-white">
+                                            650ml - ₹${product.variants['650ml'].price || 0}
+                                            <small>(Stock: ${product.variants['650ml'].stock || 0})</small>
+                                        </div>
+                                    ` : ''}
+                                </td>
+                                <td>
+                                    <span class="badge ${product.isVisible ? 'bg-success' : 'bg-danger'}">
+                                        ${product.isVisible ? 'Active' : 'Inactive'}
+                                    </span>
+                                </td>
+                                <td>
+                                    <form action="/admin/products/toggle-visibility/${product._id}" method="POST" class="d-inline visibility-toggle-form">
+                                        <button type="submit" class="btn btn-sm ${product.isVisible ? 'btn-outline-danger' : 'btn-outline-success'}">
+                                            <i class="fas ${product.isVisible ? 'fa-eye-slash' : 'fa-eye'}"></i>
+                                            ${product.isVisible ? 'Hide' : 'Show'}
+                                        </button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <button class="btn btn-info btn-action" onclick="editProduct('${product._id}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </td>
+                            `;
+                            break;
+                        }
+                    }
+
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+                    modal.hide();
                 } else {
                     throw new Error(data.error || 'Failed to update product');
                 }
-                
             } catch (error) {
                 console.error('Error updating product:', error);
                 Swal.fire({
@@ -897,15 +955,85 @@
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    Swal.fire({
+                    // Show success message
+                    await Swal.fire({
                         icon: 'success',
                         title: 'Success!',
                         text: data.message || 'Product added successfully',
                         showConfirmButton: false,
                         timer: 1500
-                    }).then(() => {
-                        window.location.reload();
                     });
+
+                    // Update the UI
+                    const product = data.product;
+                    const tbody = document.querySelector('table tbody');
+                    const noProductsRow = tbody.querySelector('tr td[colspan="7"]');
+                    
+                    if (noProductsRow) {
+                        tbody.innerHTML = ''; // Remove the "No products found" message
+                    }
+
+                    // Create new row
+                    const newRow = document.createElement('tr');
+                    newRow.setAttribute('data-product-id', product._id);
+                    newRow.className = product.isVisible ? '' : 'table-secondary';
+
+                    // Get the selected category name from the form
+                    const categorySelect = document.querySelector('#addProductForm select[name="category"]');
+                    const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+                    const categoryName = selectedOption.text || 'Uncategorized';
+
+                    newRow.innerHTML = `
+                        <td>
+                            <img src="${product.images.image1 || 'https://res.cloudinary.com/dr0bl807r/image/upload/v1/brewtopia/placeholder.jpg'}" 
+                                 alt="${product.name}" 
+                                 class="product-image">
+                        </td>
+                        <td>
+                            ${!product.isVisible ? '<span class="badge bg-secondary">Hidden</span>' : ''}
+                            ${product.name}
+                        </td>
+                        <td>${categoryName}</td>
+                        <td>
+                            ${product.variants && product.variants['500ml'] ? `
+                                <div class="variant-badge bg-info text-white">
+                                    500ml - ₹${product.variants['500ml'].price || 0}
+                                    <small>(Stock: ${product.variants['500ml'].stock || 0})</small>
+                                </div>
+                            ` : ''}
+                            ${product.variants && product.variants['650ml'] ? `
+                                <div class="variant-badge bg-primary text-white">
+                                    650ml - ₹${product.variants['650ml'].price || 0}
+                                    <small>(Stock: ${product.variants['650ml'].stock || 0})</small>
+                                </div>
+                            ` : ''}
+                        </td>
+                        <td>
+                            <span class="badge ${product.isVisible ? 'bg-success' : 'bg-danger'}">
+                                ${product.isVisible ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
+                        <td>
+                            <form action="/admin/products/toggle-visibility/${product._id}" method="POST" class="d-inline visibility-toggle-form">
+                                <button type="submit" class="btn btn-sm ${product.isVisible ? 'btn-outline-danger' : 'btn-outline-success'}">
+                                    <i class="fas ${product.isVisible ? 'fa-eye-slash' : 'fa-eye'}"></i>
+                                    ${product.isVisible ? 'Hide' : 'Show'}
+                                </button>
+                            </form>
+                        </td>
+                        <td>
+                            <button class="btn btn-info btn-action" onclick="editProduct('${product._id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    `;
+                    
+                    tbody.insertBefore(newRow, tbody.firstChild);
+
+                    // Close modal and reset form
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+                    modal.hide();
+                    this.reset();
                 } else {
                     throw new Error(data.error || 'Failed to add product');
                 }
@@ -932,17 +1060,15 @@
                     e.preventDefault();
                     
                     const formAction = this.getAttribute('action');
+                    const row = this.closest('tr');
+                    const button = this.querySelector('button');
+                    const statusBadge = row.querySelector('td:nth-child(5) .badge');
+                    const nameCell = row.querySelector('td:nth-child(2)');
                     
                     try {
                         // Show loading state
-                        Swal.fire({
-                            title: 'Processing...',
-                            text: 'Updating product visibility',
-                            allowOutsideClick: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                            }
-                        });
+                        button.disabled = true;
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
                         
                         const response = await fetch(formAction, {
                             method: 'POST',
@@ -954,25 +1080,56 @@
                         const data = await response.json();
                         
                         if (response.ok && data.success) {
-                            // Success message
-                            await Swal.fire({
+                            // Get current visibility state from the row's class
+                            const currentlyVisible = !row.classList.contains('table-secondary');
+                            // Toggle the visibility state
+                            const isVisible = !currentlyVisible;
+                            
+                            // Update row class
+                            row.className = isVisible ? '' : 'table-secondary';
+                            
+                            // Update status badge
+                            statusBadge.className = `badge ${isVisible ? 'bg-success' : 'bg-danger'}`;
+                            statusBadge.textContent = isVisible ? 'Active' : 'Inactive';
+                            
+                            // Update visibility toggle button
+                            button.className = `btn btn-sm ${isVisible ? 'btn-outline-danger' : 'btn-outline-success'}`;
+                            button.innerHTML = `
+                                <i class="fas ${isVisible ? 'fa-eye-slash' : 'fa-eye'}"></i>
+                                ${isVisible ? 'Hide' : 'Show'}
+                            `;
+                            
+                            // Update hidden badge in name cell
+                            const hiddenBadgeHtml = !isVisible ? '<span class="badge bg-secondary">Hidden</span> ' : '';
+                            const productName = nameCell.textContent.trim().replace(/Hidden/g, '').trim();
+                            nameCell.innerHTML = hiddenBadgeHtml + productName;
+
+                            // Show success message
+                            Swal.fire({
                                 icon: 'success',
                                 title: 'Success!',
                                 text: data.message || 'Product visibility updated',
                                 showConfirmButton: false,
                                 timer: 1500
                             });
-                            window.location.reload(); // Reload to see the changes
                         } else {
                             throw new Error(data.error || 'Failed to update product visibility');
                         }
                     } catch (error) {
                         console.error('Error updating product visibility:', error);
-                        await Swal.fire({
+                        Swal.fire({
                             icon: 'error',
                             title: 'Oops...',
                             text: error.message || 'Failed to update product visibility'
                         });
+                        
+                        // Restore button state on error
+                        button.innerHTML = `
+                            <i class="fas ${row.classList.contains('table-secondary') ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                            ${row.classList.contains('table-secondary') ? 'Show' : 'Hide'}
+                        `;
+                    } finally {
+                        button.disabled = false;
                     }
                 });
             });
