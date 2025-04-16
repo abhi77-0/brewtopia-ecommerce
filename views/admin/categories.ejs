@@ -504,16 +504,8 @@
         document.getElementById('editCategoryForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const form = e.target;
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const originalBtnText = submitBtn.innerHTML;
-            
             try {
-                // Show loading state
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-                
-                const formData = new FormData(form);
+                const formData = new FormData(e.target);
                 const categoryId = formData.get('categoryId');
                 
                 const response = await fetch('/admin/categories/edit', {
@@ -533,15 +525,6 @@
                     throw new Error(data.error || 'Failed to update category');
                 }
 
-                // Update the category card in the UI
-                const updatedCategory = data.category;
-                const categoryCard = document.querySelector(`[data-category-id="${categoryId}"]`);
-                
-                if (categoryCard) {
-                    // Update the category name
-                    categoryCard.querySelector('.card-title').textContent = updatedCategory.name;
-                }
-
                 // Show success message
                 await Swal.fire({
                     title: 'Success!',
@@ -550,6 +533,30 @@
                     timer: 1500,
                     showConfirmButton: false
                 });
+
+                // Update the category card in the UI
+                const updatedCategory = data.category;
+                const categoryCard = document.querySelector(`[data-category-id="${categoryId}"]`);
+                
+                if (categoryCard) {
+                    // Update the category name
+                    categoryCard.querySelector('.card-title').textContent = updatedCategory.name;
+                    
+                    // Update the visibility button
+                    const visibilityButton = categoryCard.querySelector('.btn-outline-warning, .btn-outline-success');
+                    visibilityButton.className = `btn ${updatedCategory.isVisible ? 'btn-outline-warning' : 'btn-outline-success'} btn-action`;
+                    visibilityButton.setAttribute('onclick', `toggleVisibility('${categoryId}', ${updatedCategory.isVisible})`);
+                    
+                    // Update the eye icon
+                    const eyeIcon = visibilityButton.querySelector('i');
+                    eyeIcon.className = `fas ${updatedCategory.isVisible ? 'fa-eye-slash' : 'fa-eye'}`;
+                    
+                    // Update the button text
+                    const buttonText = visibilityButton.querySelector('span');
+                    if (buttonText) {
+                        buttonText.textContent = updatedCategory.isVisible ? 'Hide' : 'Show';
+                    }
+                }
 
                 // Close modal
                 bootstrap.Modal.getInstance(document.getElementById('editCategoryModal')).hide();
@@ -560,18 +567,11 @@
                     icon: 'error',
                     confirmButtonText: 'OK'
                 });
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalBtnText;
             }
         });
 
         // Toggle visibility function
         async function toggleVisibility(id, currentVisibility) {
-            const categoryCard = document.querySelector(`[data-category-id="${id}"]`);
-            const visibilityButton = categoryCard.querySelector('.btn-outline-warning, .btn-outline-success');
-            const originalButtonHtml = visibilityButton.innerHTML;
-            
             try {
                 const action = currentVisibility ? 'hide' : 'show';
 
@@ -589,8 +589,14 @@
 
                 if (result.isConfirmed) {
                     // Show loading state
-                    visibilityButton.disabled = true;
-                    visibilityButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                    Swal.fire({
+                        title: 'Processing...',
+                        text: `Please wait while we ${action} the category.`,
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
 
                     const response = await fetch(`/admin/categories/${id}/toggle-visibility`, {
                         method: 'PATCH',
@@ -605,20 +611,6 @@
                     if (!response.ok) {
                         throw new Error(data.error || `Failed to ${action} category`);
                     }
-
-                    // Update the UI
-                    const newVisibility = !currentVisibility;
-                    
-                    // Update button class and onclick
-                    visibilityButton.className = `btn ${newVisibility ? 'btn-outline-warning' : 'btn-outline-success'} btn-action`;
-                    visibilityButton.setAttribute('onclick', `toggleVisibility('${id}', ${newVisibility})`);
-                    
-                    // Update icon and text and re-enable button
-                    visibilityButton.disabled = false;
-                    visibilityButton.innerHTML = `
-                        <i class="fas ${newVisibility ? 'fa-eye-slash' : 'fa-eye'}"></i>
-                        ${newVisibility ? 'Hide' : 'Show'}
-                    `;
                     
                     // Show success message
                     await Swal.fire({
@@ -628,12 +620,28 @@
                         timer: 1500,
                         showConfirmButton: false
                     });
+
+                    // Update the UI without page reload
+                    const categoryCard = document.querySelector(`[data-category-id="${id}"]`);
+                    if (categoryCard) {
+                        const visibilityButton = categoryCard.querySelector('.btn-outline-warning, .btn-outline-success');
+                        const eyeIcon = visibilityButton.querySelector('i');
+                        const buttonText = visibilityButton.querySelector('span');
+
+                        // Update button classes
+                        visibilityButton.className = `btn ${!currentVisibility ? 'btn-outline-warning' : 'btn-outline-success'} btn-action`;
+                        visibilityButton.setAttribute('onclick', `toggleVisibility('${id}', ${!currentVisibility})`);
+
+                        // Update icon
+                        eyeIcon.className = `fas ${!currentVisibility ? 'fa-eye-slash' : 'fa-eye'}`;
+
+                        // Update text
+                        if (buttonText) {
+                            buttonText.textContent = !currentVisibility ? 'Hide' : 'Show';
+                        }
+                    }
                 }
             } catch (error) {
-                // Restore original button state
-                visibilityButton.disabled = false;
-                visibilityButton.innerHTML = originalButtonHtml;
-                
                 Swal.fire({
                     title: 'Error!',
                     text: error.message,
