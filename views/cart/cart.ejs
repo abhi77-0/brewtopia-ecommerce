@@ -267,9 +267,19 @@ async function updateQuantity(productId, variant, action) {
     
     const currentQty = parseInt(quantityInput.value);
     const stock = parseInt(quantityInput.dataset.stock);
+    const maxAllowedQty = 5; // Maximum allowed quantity per item
     
     let newQty;
     if (action === 'increase') {
+        if (currentQty >= maxAllowedQty) {
+            Swal.fire({
+                title: 'Quantity Limit',
+                text: 'Maximum 5 items allowed per product',
+                icon: 'warning',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
         if (currentQty >= stock) {
             Swal.fire({
                 title: 'Stock Limit',
